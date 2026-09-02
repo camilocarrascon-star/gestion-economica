@@ -1,0 +1,3412 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Gestión Económica Personal</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+
+/* ============================================================
+   1. PALETA DE COLORES Y VARIABLES (paleta terrosa — Claude Design)
+   Toda modificación de color del sistema se hace SOLO aquí.
+   ============================================================ */
+:root{
+  --bg-pagina:#E8DDCB;
+  --bg-app:#F7F1E6;
+  --superficie:#FFFCF6;
+  --borde:#EFE5D4;
+  --borde-suave:#F1EAE0;
+  --texto-principal:#33291F;
+  --texto-secundario:#8C7A63;
+  --texto-terciario:#B7A78F;
+  --texto-cuaternario:#C3B49C;
+  --sombra: 0 1px 3px rgba(51,41,31,0.07);
+  --sombra-flotante: 0 6px 18px rgba(124,47,62,0.30);
+
+  --acento:#7C2F3E;
+
+  --tab-pacientes:#7C2F3E;
+  --tab-agenda:#4F6B5C;
+  --tab-gastos:#B4653A;
+  --tab-ingresos:#6B7A45;
+  --tab-objetivos:#A9741B;
+  --tab-dashboard:#6E4B2A;
+
+  --stripe-entrelazos:#7C2F3E;
+  --stripe-fonasa:#B4653A;
+  --stripe-particular:#6B7A45;
+
+  --et-atenciones:#4F6B5C;
+  --et-nel:#7C2F3E;
+  --et-oficina:#A9741B;
+  --et-eventos:#B4653A;
+  --et-casa:#6B7A45;
+  --et-entrelazos:#8C5A2B;
+  --et-analisis:#6E4B2A;
+  --et-lecturas:#8C7A63;
+  --et-seminarios:#5C6B7A;
+
+  --cat-CF:#7C2F3E;
+  --cat-FO:#A9741B;
+  --cat-OC:#B4653A;
+  --cat-CO:#6B7A45;
+  --cat-SP:#4F6B5C;
+  --cat-DT:#6E4B2A;
+
+  --pago-Efectivo:#6B7A45;
+  --pago-BancoEstado:#A9741B;
+  --pago-Santander:#B4653A;
+
+  --fuente-particular:#6B7A45;
+  --fuente-fonasa_directo:#B4653A;
+  --fuente-entrelazos:#7C2F3E;
+  --fuente-trabajo_dependiente:#A9741B;
+  --fuente-manual:#8C7A63;
+
+  --obj-colchon:#6B7A45;
+  --obj-congreso:#A9741B;
+  --obj-emergencia:#7C2F3E;
+
+  --recibir-bg:#FBF3E2;
+  --recibir-borde:#EBDCBC;
+  --recibir-texto:#8B6516;
+  --recibir-texto2:#AD9155;
+  --recibir-fila-borde:#F0E4CE;
+
+  --lazos-bg:#FBF0F0;
+  --lazos-borde:#EBD3D6;
+  --lazos-texto:#7C2F3E;
+  --lazos-texto2:#B08D93;
+}
+
+/* ============================================================
+   2. TIPOGRAFÍA
+   ============================================================ */
+.etiqueta{
+  font-family:'Quicksand',sans-serif;
+  font-weight:650;
+  letter-spacing:0.02em;
+}
+.monto-fuente{
+  font-family:-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   3. LAYOUT GENERAL / RESET
+   ============================================================ */
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body{
+  margin:0; padding:0;
+  position:fixed;
+  inset:0;
+  height:100%;
+  width:100%;
+  overflow:hidden;
+  background:var(--bg-pagina);
+  color:var(--texto-principal);
+  font-family:-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  overscroll-behavior-y:none;
+}
+button{
+  font-family:inherit; border:none; background:none; cursor:pointer;
+  touch-action:manipulation; user-select:none; -webkit-user-select:none;
+}
+input{ font-family:inherit; }
+
+.app-shell{
+  max-width:480px;
+  margin:0 auto;
+  background:var(--bg-app);
+  height:100vh;
+  height:100dvh;
+  display:flex;
+  flex-direction:column;
+  position:relative;
+  overflow:hidden;
+}
+.contenedor{
+  flex:1;
+  min-height:0;
+  padding:calc(env(safe-area-inset-top,14px) + 6px) 16px 16px 16px;
+  overflow-y:auto;
+  scrollbar-width:none;
+  display:flex;
+  flex-direction:column;
+  gap:11px;
+}
+.contenedor::-webkit-scrollbar{ display:none; }
+
+/* ============================================================
+   4. ENCABEZADO DE PANTALLA
+   ============================================================ */
+.pantalla-encabezado{
+  flex:none;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding-bottom:2px;
+}
+.pantalla-encabezado h1{
+  font-size:20px;
+  font-weight:700;
+  letter-spacing:-0.4px;
+  color:var(--texto-principal);
+  font-family:'Quicksand',sans-serif;
+  margin:0;
+}
+.pantalla-encabezado .relleno{ flex:1; }
+.boton-icono{
+  width:28px; height:28px; flex:none;
+  border:1px solid var(--borde);
+  background:var(--superficie);
+  border-radius:9px;
+  font-size:14px;
+  color:var(--texto-secundario);
+  display:flex; align-items:center; justify-content:center;
+  touch-action:manipulation;
+}
+.boton-ojo{
+  width:28px; height:28px; flex:none;
+  border:1px solid var(--borde);
+  border-radius:9px;
+  display:flex; align-items:center; justify-content:center;
+  touch-action:manipulation;
+  background:var(--superficie);
+  color:var(--texto-secundario);
+}
+.boton-ojo svg{ display:block; }
+.boton-ojo.oculto{ background:var(--borde-suave); }
+
+/* ============================================================
+   5. INTERRUPTOR ACTIVOS / ARCHIVADOS
+   ============================================================ */
+.interruptor-estado{
+  flex:none;
+  display:flex; gap:3px; padding:3px;
+  background:var(--borde); border-radius:11px;
+}
+.interruptor-estado button{
+  flex:1; border-radius:9px; padding:7px 0;
+  font-size:12.5px; font-weight:650;
+  font-family:'Quicksand',sans-serif;
+  color:var(--texto-secundario);
+  touch-action:manipulation;
+}
+.interruptor-estado button.activo{
+  background:var(--superficie);
+  color:var(--texto-principal);
+  box-shadow:var(--sombra);
+}
+
+/* ============================================================
+   6. TARJETAS DE PACIENTE
+   ============================================================ */
+.lista-scroll{
+  flex:1; min-height:0;
+  display:flex; flex-direction:column; gap:6px;
+}
+.tarjeta-paciente{
+  background:var(--superficie);
+  border:1px solid var(--borde);
+  border-radius:12px;
+  padding:9px 12px;
+  display:flex; align-items:center; gap:10px;
+  touch-action:manipulation;
+}
+.tarjeta-paciente.archivado{ opacity:0.55; }
+.tarjeta-paciente .franja{
+  width:3px; align-self:stretch; border-radius:2px; flex:none;
+}
+.tarjeta-paciente .cuerpo{ flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; }
+.tarjeta-paciente .nombre{
+  font-size:14px; font-weight:650; letter-spacing:-0.2px;
+  color:var(--texto-principal);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.fila-badges{ display:flex; gap:5px; }
+.badge{
+  font-size:9.5px; font-weight:700; letter-spacing:0.2px;
+  padding:2px 7px; border-radius:5px;
+  font-family:'Quicksand',sans-serif;
+}
+.tarjeta-paciente .monto{
+  font-size:14px; font-weight:700; flex:none;
+  color:var(--texto-principal);
+}
+
+.vacio{
+  text-align:center; color:var(--texto-terciario); font-size:14px;
+  padding:56px 20px; line-height:1.5;
+}
+
+/* ============================================================
+   7. BOTÓN FLOTANTE "+"
+   ============================================================ */
+.boton-flotante{
+  position:absolute;
+  right:18px; bottom:calc(88px + env(safe-area-inset-bottom,0px));
+  width:54px; height:54px; border-radius:27px;
+  color:#FFF6E8; font-size:26px; font-weight:300; line-height:1;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:var(--sombra-flotante);
+  z-index:20; touch-action:manipulation;
+}
+.boton-flotante:active{ transform:scale(0.94); }
+
+/* ============================================================
+   8. MENÚ INFERIOR DE NAVEGACIÓN
+   ============================================================ */
+.nav-inferior{
+  flex:none;
+  background:var(--superficie);
+  border-top:1px solid var(--borde);
+  padding:7px 6px calc(20px + env(safe-area-inset-bottom,0px)) 6px;
+  display:grid; grid-template-columns:repeat(6,1fr); gap:2px;
+}
+.nav-item{
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  padding:4px 0 2px;
+  touch-action:manipulation;
+}
+.nav-item .punto{ width:7px; height:7px; border-radius:50%; }
+.nav-item .texto{
+  font-size:9.5px; letter-spacing:0.1px; font-weight:600;
+  font-family:'Quicksand',sans-serif;
+  color:var(--texto-terciario);
+}
+.nav-item.activo .texto{ font-weight:700; }
+
+/* ============================================================
+   9. MODALES (hoja deslizante desde abajo)
+   ============================================================ */
+.fondo-modal{
+  position:fixed; inset:0;
+  background:rgba(51,41,31,0.42);
+  display:none; align-items:flex-end; justify-content:center;
+  z-index:50;
+}
+.fondo-modal.abierto{ display:flex; }
+.hoja-modal{
+  width:100%; max-width:480px; margin:0 auto;
+  background:var(--bg-app);
+  border-radius:22px 22px 0 0;
+  padding:18px 16px calc(22px + env(safe-area-inset-bottom,0px)) 16px;
+  max-height:88vh; overflow-y:auto;
+}
+.encabezado-modal{
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:16px;
+}
+.encabezado-modal h2{
+  font-size:16px; font-weight:700; margin:0;
+  font-family:'Quicksand',sans-serif; color:var(--texto-principal);
+}
+.cerrar-modal{
+  font-size:20px; color:var(--texto-secundario); padding:4px 8px;
+  touch-action:manipulation;
+}
+
+.campo-modal{ margin-bottom:14px; }
+.campo-modal .etiqueta-campo{
+  font-size:10.5px; font-weight:700; letter-spacing:0.6px;
+  color:var(--texto-secundario);
+  font-family:'Quicksand',sans-serif;
+  margin-bottom:6px; display:block; padding-left:2px;
+  text-transform:uppercase;
+}
+.campo-modal input[type="text"],
+.campo-modal input[type="date"],
+.campo-modal input[type="month"]{
+  width:100%; box-sizing:border-box;
+  padding:11px 12px; border-radius:11px;
+  border:1px solid var(--borde); background:var(--superficie);
+  font-size:14px; color:var(--texto-principal);
+}
+.campo-modal input.campo-hora-texto{
+  width:100%; box-sizing:border-box;
+  padding:11px 12px; border-radius:11px;
+  border:1px solid var(--borde); background:var(--superficie);
+  font-size:14px; color:var(--texto-principal);
+  font-variant-numeric:tabular-nums; letter-spacing:0.03em;
+}
+.campo-modal input:focus{ outline:2px solid var(--acento); outline-offset:1px; }
+.campo-modal input:disabled{ background:var(--borde-suave); color:var(--texto-secundario); }
+
+.segmentado{ display:flex; gap:6px; }
+.segmentado button{
+  flex:1; padding:10px 6px; border-radius:11px;
+  background:var(--superficie); border:1.5px solid var(--borde);
+  font-size:12.5px; font-weight:650; font-family:'Quicksand',sans-serif;
+  color:var(--texto-principal); text-align:center; touch-action:manipulation;
+}
+.segmentado button.seleccionado{
+  border-color: var(--chip-color, var(--acento));
+  background: color-mix(in srgb, var(--chip-color, var(--acento)) 10%, white);
+  color: var(--chip-color, var(--acento));
+}
+.segmentado.envolver{ flex-wrap:wrap; }
+.segmentado.envolver button{ flex:1 1 calc(50% - 4px); }
+
+.nota-campo{
+  font-size:11.5px; color:var(--texto-terciario); margin-top:6px; line-height:1.4;
+}
+
+.boton-primario{
+  width:100%; padding:14px; border-radius:13px;
+  background:var(--acento); color:#FFF6E8;
+  font-size:15px; font-weight:700; font-family:'Quicksand',sans-serif;
+  letter-spacing:0.2px; margin-top:6px; touch-action:manipulation;
+}
+.boton-primario:active{ transform:scale(0.98); }
+.boton-secundario{
+  width:100%; padding:12px; text-align:center;
+  color:var(--texto-secundario); font-size:13.5px; font-weight:650;
+  font-family:'Quicksand',sans-serif;
+  margin-top:8px; touch-action:manipulation;
+}
+
+.zona-archivar{ margin-top:22px; padding-top:16px; border-top:1px solid var(--borde); }
+.boton-archivar{
+  width:100%; padding:12px; border-radius:12px;
+  background:var(--borde-suave); color:#9B4A4A;
+  font-size:13.5px; font-weight:650; font-family:'Quicksand',sans-serif;
+  touch-action:manipulation;
+}
+.confirmacion-archivar{ margin-top:10px; }
+.confirmacion-archivar p{
+  font-size:12.5px; color:var(--texto-secundario); text-align:center;
+  margin:0 0 10px 0; line-height:1.4;
+}
+.fila-confirmacion{ display:flex; gap:8px; }
+.fila-confirmacion button{
+  flex:1; padding:11px; border-radius:11px;
+  font-size:13px; font-weight:650; font-family:'Quicksand',sans-serif;
+  touch-action:manipulation;
+}
+.boton-confirmar-si{ background:#9B4A4A; color:#fff; }
+.boton-confirmar-no{ background:var(--borde-suave); color:var(--texto-principal); }
+
+/* ============================================================
+   10. AGENDA
+   ============================================================ */
+.agenda-encabezado{
+  flex:none; display:flex; align-items:center; gap:6px; padding-bottom:2px;
+}
+.agenda-mes-nombre{ font-size:19px; font-weight:700; letter-spacing:-0.3px; color:var(--texto-principal); font-family:'Quicksand',sans-serif; line-height:1; }
+.agenda-anio{ font-size:10.5px; font-weight:600; color:var(--texto-secundario); margin-top:2px; font-family:'Quicksand',sans-serif; }
+.agenda-desliza{ font-size:9.5px; font-weight:600; color:var(--texto-cuaternario); font-family:'Quicksand',sans-serif; }
+.boton-hoy-agenda{
+  margin-left:8px; padding:5px 11px; border-radius:9px;
+  background:var(--tab-agenda); color:#FFF6E8;
+  font-size:11px; font-weight:700; letter-spacing:0.2px;
+  font-family:'Quicksand',sans-serif; touch-action:manipulation; flex:none;
+}
+.boton-hoy-agenda:active{ transform:scale(0.95); }
+
+.grid-dow{
+  flex:none; display:grid; grid-template-columns:repeat(7,1fr); padding:0 2px 4px;
+}
+.grid-dow span{
+  text-align:center; font-size:10px; font-weight:700; letter-spacing:0.4px;
+  color:var(--texto-terciario); font-family:'Quicksand',sans-serif;
+}
+
+/* Vista mensual: ocupa todo el espacio disponible (flex:1) por defecto.
+   Cuando se abre la semana, se comprime a una altura fija de 300px y
+   el panel semanal pasa a ocupar el resto (flex:1). */
+.grid-mes{
+  display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:60px;
+  padding:0 2px; overflow-y:auto; touch-action:pan-y;
+  flex:1; min-height:0;
+}
+.grid-mes.comprimido{ flex:none; height:300px; }
+
+.celda-dia{
+  border-top:1px solid var(--borde);
+  padding:3px 2px 0; display:flex; flex-direction:column; gap:2px;
+  overflow:hidden; touch-action:manipulation;
+}
+.celda-dia .numero-fila{ display:flex; justify-content:center; flex:none; }
+.celda-dia .numero-dia{
+  min-width:19px; height:19px; padding:0 5px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11.5px; font-weight:600; color:var(--texto-principal);
+}
+.celda-dia.hoy .numero-dia{ background:var(--borde-suave); font-weight:700; }
+.celda-dia.fuera-mes .numero-dia{ color:var(--texto-cuaternario); }
+
+/* Chips de evento en el mes: tint del color de categoría al 15% con
+   texto en el tono oscuro de esa misma categoría (no texto crema sobre
+   fondo sólido). Fuera del mes actual, el tint baja a 7% y el texto se
+   ve más tenue (opacity reducida sobre el conjunto del chip). */
+.chip-evento-mes{
+  font-size:9px; line-height:1.3; padding:1.5px 3px; border-radius:3px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  font-weight:650; flex:none;
+}
+.celda-dia.fuera-mes .chip-evento-mes{ opacity:0.55; }
+.chip-mes-atenciones{ background:color-mix(in srgb, var(--et-atenciones) 15%, white); color:#33473B; }
+.chip-mes-nel{ background:color-mix(in srgb, var(--et-nel) 15%, white); color:#5C1F2C; }
+.chip-mes-oficina{ background:color-mix(in srgb, var(--et-oficina) 15%, white); color:#6E4B10; }
+.chip-mes-eventos{ background:color-mix(in srgb, var(--et-eventos) 15%, white); color:#7A4527; }
+.chip-mes-casa{ background:color-mix(in srgb, var(--et-casa) 15%, white); color:#47512E; }
+.chip-mes-entrelazos{ background:color-mix(in srgb, var(--et-entrelazos) 15%, white); color:#5C3A1C; }
+.chip-mes-analisis{ background:color-mix(in srgb, var(--et-analisis) 15%, white); color:#4A331C; }
+.chip-mes-lecturas{ background:color-mix(in srgb, var(--et-lecturas) 15%, white); color:#5C4F40; }
+.chip-mes-seminarios{ background:color-mix(in srgb, var(--et-seminarios) 15%, white); color:#3D4750; }
+.chip-mas-mes{ font-size:8.5px; font-weight:650; color:var(--texto-terciario); padding:0 3px; }
+
+/* Panel semanal: vive dentro del mismo contenedor flex vertical que el
+   mes. Cerrado no ocupa espacio (display:none); abierto se expande con
+   flex:1 para llenar el resto de la pantalla. */
+#panelSemana{
+  display:none; flex-direction:column;
+  background:#FBF7EF; border-top:1px solid var(--borde);
+  min-height:0;
+}
+#panelSemana.abierto{ display:flex; }
+.panel-semana-encabezado{ flex:none; display:flex; align-items:center; gap:7px; padding:9px 10px 6px; }
+.boton-cerrar-semana{
+  width:26px; height:26px; border-radius:8px; background:var(--borde);
+  color:var(--texto-secundario); font-size:13px; display:flex; align-items:center; justify-content:center;
+  touch-action:manipulation; flex:none;
+}
+.panel-semana-titulo{ font-size:13px; font-weight:700; color:var(--texto-principal); font-family:'Quicksand',sans-serif; }
+.panel-semana-conteo{ font-size:10.5px; font-weight:600; color:var(--texto-terciario); font-family:'Quicksand',sans-serif; }
+
+.grid-semana{
+  flex:1; min-height:0; overflow-y:auto; touch-action:pan-y;
+  display:grid; grid-template-columns:repeat(7,1fr); gap:2px; padding:0 5px 6px;
+}
+.columna-semana{
+  display:flex; flex-direction:column; gap:2px; min-width:0; border-radius:7px;
+  padding:3px 2px 0; touch-action:manipulation;
+}
+.columna-semana.seleccionada{ background:var(--borde-suave); }
+.columna-semana-cabecera{ display:flex; flex-direction:column; align-items:center; gap:1px; padding-bottom:3px; }
+.columna-semana-dow{ font-size:8.5px; font-weight:700; letter-spacing:0.3px; color:var(--texto-terciario); font-family:'Quicksand',sans-serif; }
+.columna-semana-num{
+  min-width:17px; height:17px; padding:0 4px; border-radius:9px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700; color:var(--texto-principal);
+}
+.columna-semana.hoy .columna-semana-num{ background:var(--acento); color:#fff; }
+.chip-evento-semana{
+  border-radius:4px; padding:3px 3px 4px; overflow:hidden; touch-action:manipulation;
+}
+.chip-evento-semana .hora{ font-size:7.5px; font-weight:700; line-height:1; color:rgba(255,246,232,0.85); }
+.chip-evento-semana .titulo{ font-size:8.5px; font-weight:700; line-height:1.15; color:#FFF6E8; margin-top:1.5px; overflow-wrap:break-word; }
+.chip-mas-semana{ text-align:center; font-size:8px; font-weight:700; color:var(--texto-terciario); padding-top:2px; }
+.chip-multidia-semana{
+  border-radius:4px; padding:3px 4px; overflow:hidden; touch-action:manipulation;
+  font-size:8.5px; font-weight:700; line-height:1.2;
+  white-space:nowrap; text-overflow:ellipsis;
+}
+.sin-eventos-columna{ text-align:center; font-size:8px; font-weight:700; color:var(--texto-terciario); padding-top:6px; }
+
+.grid-etiquetas{ display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
+.chip-etiqueta{
+  padding:9px 4px; border-radius:12px; background:var(--superficie);
+  border:1.5px solid var(--borde); text-align:center;
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  touch-action:manipulation;
+}
+.chip-etiqueta .punto-etiqueta{ width:9px; height:9px; border-radius:50%; }
+.chip-etiqueta .nombre-etiqueta{ font-size:9.5px; color:var(--texto-secundario); line-height:1.2; font-family:'Quicksand',sans-serif; font-weight:650; }
+.chip-etiqueta.seleccionada{
+  border-color: var(--chip-color, var(--acento));
+  background: color-mix(in srgb, var(--chip-color, var(--acento)) 10%, white);
+}
+
+.lista-busqueda-paciente{ max-height:200px; overflow-y:auto; margin-bottom:6px; }
+.fila-paciente-busqueda{
+  padding:11px 10px; border-radius:11px; background:var(--superficie);
+  border:1px solid var(--borde); margin-bottom:6px;
+  font-size:13.5px; font-weight:650; touch-action:manipulation;
+}
+.paciente-confirmado{
+  display:flex; align-items:center; gap:8px;
+  padding:10px 12px; border-radius:12px;
+  background: color-mix(in srgb, var(--tab-agenda) 12%, white);
+  font-size:13px; font-weight:650; color:var(--texto-principal);
+  margin-bottom:8px;
+}
+.paciente-confirmado .check{ color:var(--tab-agenda); font-size:15px; }
+
+.estado-chip{
+  font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px;
+  font-family:'Quicksand',sans-serif;
+}
+.estado-realizada_percibida,.estado-ausencia_percibida{ background:color-mix(in srgb, var(--tab-agenda) 16%, white); color:var(--tab-agenda); }
+.estado-realizada_devengada,.estado-ausencia_devengada{ background:color-mix(in srgb, var(--tab-objetivos) 16%, white); color:#8B6516; }
+.estado-ausencia_justificada{ background:var(--borde-suave); color:var(--texto-secundario); }
+
+/* ============================================================
+   11. MÓDULO C — GASTOS
+   ============================================================ */
+.zona-monto-gasto{ flex:none; padding:6px 4px 2px; text-align:center; }
+#gastoMontoPantalla{ font-size:46px; font-weight:700; letter-spacing:-2px; line-height:1; font-variant-numeric:tabular-nums; color:var(--texto-principal); }
+#gastoPreviewTotal{ font-size:16px; font-weight:600; color:var(--texto-secundario); font-variant-numeric:tabular-nums; margin-top:6px; min-height:19px; font-family:'Quicksand',sans-serif; }
+
+.teclado-gasto{ flex:none; display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+.tecla-gasto{
+  border:1px solid var(--borde); border-radius:12px; height:44px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; font-weight:600; color:var(--texto-principal);
+  background:var(--superficie); touch-action:manipulation;
+}
+.tecla-gasto:active{ background:var(--borde-suave); }
+.tecla-gasto-cero-triple{ font-size:17px; }
+.tecla-gasto-funcion{ color:var(--texto-secundario); font-size:17px; }
+.tecla-gasto-borrar{ color:#9B4A4A; font-size:17px; }
+.tecla-gasto-toggle-op{ background:var(--acento); color:#FFF6E8; font-size:16px; font-weight:700; }
+
+.fila-operadores-gasto{
+  display:grid; grid-template-columns:repeat(4,1fr); gap:6px;
+  overflow:hidden; max-height:0; opacity:0; margin-top:0;
+  transition:max-height .22s ease, opacity .18s ease, margin-top .22s ease;
+  background:var(--borde); border-radius:14px;
+}
+.fila-operadores-gasto.visible{ max-height:100px; opacity:1; margin-top:6px; padding:7px; }
+.tecla-op-gasto{
+  height:38px; border-radius:10px; background:var(--superficie); color:var(--texto-principal);
+  font-size:18px; font-weight:600; display:flex; align-items:center; justify-content:center;
+  touch-action:manipulation;
+}
+
+.gastos-etiqueta-seccion{
+  font-size:10.5px; font-weight:700; letter-spacing:0.7px; color:var(--texto-secundario);
+  font-family:'Quicksand',sans-serif; padding-left:2px; text-transform:uppercase;
+}
+.grid-categorias-gasto{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:7px; }
+.chip-categoria-gasto{
+  border:1.5px solid var(--borde); border-radius:11px; padding:8px 7px;
+  display:flex; flex-direction:column; align-items:flex-start; gap:3px;
+  background:var(--superficie); touch-action:manipulation;
+}
+.chip-categoria-gasto .fila-punto{ display:flex; align-items:center; gap:5px; }
+.chip-categoria-gasto .punto-gasto{ width:7px; height:7px; border-radius:50%; }
+.chip-categoria-gasto .codigo-gasto{ font-size:11px; font-weight:700; letter-spacing:0.4px; font-family:'Quicksand',sans-serif; }
+.chip-categoria-gasto .nombre-categoria-gasto{ font-size:10.5px; font-weight:600; line-height:1.15; text-align:left; color:var(--texto-secundario); }
+.chip-categoria-gasto.seleccionada{ border-color:var(--chip-color); background:color-mix(in srgb, var(--chip-color) 10%, white); }
+
+.grid-pagos-gasto{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:7px; }
+.chip-pago-gasto{
+  border:1.5px solid var(--borde); border-radius:11px; padding:9px 6px;
+  font-size:11.5px; font-weight:650; font-family:'Quicksand',sans-serif;
+  background:var(--superficie); color:var(--texto-principal); touch-action:manipulation;
+}
+.chip-pago-gasto.seleccionada{ border-color:var(--chip-color); background:color-mix(in srgb, var(--chip-color) 10%, white); color:var(--chip-color); }
+
+.fila-fecha-desc{ display:flex; gap:6px; }
+.campo-gasto-inline{ display:flex; flex-direction:column; gap:5px; min-width:0; }
+.campo-gasto-inline input{
+  width:100%; box-sizing:border-box; border:1px solid var(--borde); background:var(--superficie);
+  border-radius:11px; padding:10px; font-size:13px; color:var(--texto-principal); outline:none; font-family:inherit;
+}
+
+.boton-guardar-gasto{
+  width:100%; border-radius:13px; background:var(--acento); color:#FFF6E8;
+  font-size:15px; font-weight:700; padding:14px; font-family:'Quicksand',sans-serif;
+  letter-spacing:0.2px; touch-action:manipulation;
+}
+.boton-guardar-gasto:active{ transform:scale(0.98); }
+
+.registros-encabezado{ display:flex; align-items:center; gap:8px; padding:0 2px 8px; }
+.boton-exportar-gasto{
+  border:1px solid var(--borde); background:var(--superficie); border-radius:9px;
+  padding:5px 10px; font-size:11px; font-weight:650; color:var(--texto-secundario);
+  font-family:'Quicksand',sans-serif; touch-action:manipulation;
+}
+.fila-registro-gasto{
+  position:relative; background:var(--superficie); border:1px solid var(--borde);
+  border-radius:12px; padding:9px 10px; display:flex; align-items:center; gap:9px;
+}
+.franja-categoria-gasto{ width:3px; align-self:stretch; border-radius:2px; flex:none; }
+.detalle-registro-gasto{ flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+.monto-registro-gasto{ font-size:14px; font-weight:700; color:var(--texto-principal); }
+.meta-gasto{ font-size:10.5px; font-weight:600; color:var(--texto-secundario); font-family:'Quicksand',sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.boton-menu-gasto{ font-size:15px; color:var(--texto-terciario); flex:none; touch-action:manipulation; padding:4px; }
+.menu-contextual-gasto{
+  position:absolute; right:8px; top:38px; background:var(--superficie); border:1px solid var(--borde);
+  border-radius:12px; box-shadow:0 6px 18px rgba(51,41,31,0.15); overflow:hidden; z-index:30; min-width:130px; display:none;
+}
+.menu-contextual-gasto.abierto{ display:block; }
+.menu-contextual-gasto button{ display:block; width:100%; text-align:left; padding:11px 15px; font-size:13.5px; color:var(--texto-principal); }
+.menu-contextual-gasto button:active{ background:var(--borde-suave); }
+.menu-contextual-gasto button.opcion-eliminar-gasto{ color:#9B4A4A; }
+.texto-confirmacion-gasto{ padding:9px 15px 4px; font-size:11.5px; color:var(--texto-secundario); }
+.boton-ver-todos-gasto{
+  border:1px solid var(--borde); background:transparent; border-radius:11px; padding:9px;
+  font-size:12px; font-weight:650; color:var(--texto-secundario); font-family:'Quicksand',sans-serif; touch-action:manipulation;
+}
+.campo-modal-monto-gasto input{
+  width:100%; font-size:30px; font-weight:700; border:1px solid var(--borde);
+  background:var(--superficie); border-radius:13px; padding:12px; text-align:center; margin-bottom:14px;
+  font-variant-numeric:tabular-nums;
+}
+
+/* ============================================================
+   12. MÓDULO B — INGRESOS
+   ============================================================ */
+.tarjeta-ing{ background:var(--superficie); border:1px solid var(--borde); border-radius:16px; padding:14px 16px; }
+.tarjeta-ing-encabezado{ display:flex; align-items:center; gap:8px; }
+.tarjeta-ing-titulo{ font-size:10.5px; font-weight:700; letter-spacing:0.6px; color:var(--texto-secundario); font-family:'Quicksand',sans-serif; flex:1; text-transform:uppercase; }
+.tarjeta-ing-total{ font-size:26px; font-weight:800; letter-spacing:-1px; font-variant-numeric:tabular-nums; margin-top:3px; color:var(--texto-principal); }
+.fuentes-lista{ display:flex; flex-direction:column; gap:7px; margin-top:13px; padding-top:12px; border-top:1px solid var(--borde); }
+.fila-fuente{ display:flex; align-items:center; gap:8px; }
+.fila-fuente .punto{ width:7px; height:7px; border-radius:50%; flex:none; }
+.fila-fuente .nombre{ font-size:12.5px; font-weight:600; color:var(--texto-principal); flex:1; min-width:0; font-family:'Quicksand',sans-serif; }
+.fila-fuente .cuenta{ font-size:11px; font-weight:600; color:var(--texto-terciario); font-variant-numeric:tabular-nums; }
+.fila-fuente .monto{ font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--texto-principal); }
+
+.tarjeta-recibir{ background:var(--recibir-bg); border:1px solid var(--recibir-borde); border-radius:16px; padding:13px 14px; }
+.tarjeta-recibir-encabezado{ display:flex; align-items:center; gap:8px; }
+.tarjeta-recibir-titulo{ font-size:11px; font-weight:700; letter-spacing:0.3px; color:var(--recibir-texto); font-family:'Quicksand',sans-serif; flex:1; text-transform:uppercase; }
+.tarjeta-recibir-monto{ font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--recibir-texto); }
+.tarjeta-recibir-nota{ font-size:10.5px; font-weight:600; color:var(--recibir-texto2); margin-top:2px; font-family:'Quicksand',sans-serif; }
+.fila-pendiente-pago{ background:var(--superficie); border:1px solid var(--recibir-fila-borde); border-radius:11px; padding:9px 10px; margin-top:7px; }
+.fila-pendiente-pago .fila-top{ display:flex; align-items:baseline; gap:8px; }
+.fila-pendiente-pago .nombre{ font-size:13px; font-weight:650; color:var(--texto-principal); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fila-pendiente-pago .monto{ font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--recibir-texto); }
+.fila-pendiente-pago .fila-bottom{ display:flex; align-items:center; gap:6px; margin-top:8px; }
+.fila-pendiente-pago .fecha{ font-size:10.5px; font-weight:600; color:var(--texto-secundario); flex:1; font-family:'Quicksand',sans-serif; }
+.boton-medio-pago{
+  border:1px solid #E3D4B4; background:var(--superficie); border-radius:8px; padding:5px 11px;
+  font-size:11px; font-weight:650; color:var(--recibir-texto); font-family:'Quicksand',sans-serif; touch-action:manipulation;
+}
+
+.tarjeta-lazos{ background:var(--lazos-bg); border:1px solid var(--lazos-borde); border-radius:16px; padding:13px 14px; }
+.tarjeta-lazos-encabezado{ display:flex; align-items:center; gap:8px; }
+.tarjeta-lazos-titulo{ font-size:11px; font-weight:700; letter-spacing:0.3px; color:var(--lazos-texto); font-family:'Quicksand',sans-serif; flex:1; text-transform:uppercase; }
+.tarjeta-lazos-monto{ font-size:18px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:-0.5px; margin-top:3px; color:var(--lazos-texto); }
+.tarjeta-lazos-nota{ font-size:10.5px; font-weight:600; color:var(--lazos-texto2); margin-top:3px; font-family:'Quicksand',sans-serif; }
+.boton-generar-boleta{ width:100%; margin-top:11px; border-radius:11px; background:var(--acento); color:#FFF6E8; font-size:13px; font-weight:700; padding:11px; font-family:'Quicksand',sans-serif; touch-action:manipulation; }
+
+.movimientos-encabezado{ display:flex; align-items:center; gap:8px; padding:2px; }
+.movimientos-titulo{ font-size:10.5px; font-weight:700; letter-spacing:0.6px; color:var(--texto-secundario); font-family:'Quicksand',sans-serif; flex:1; text-transform:uppercase; }
+.movimientos-conteo{ font-size:10.5px; font-weight:600; color:var(--texto-terciario); font-family:'Quicksand',sans-serif; }
+.movimientos-lista{ display:flex; flex-direction:column; gap:6px; margin-top:8px; }
+.fila-ingreso{
+  background:var(--superficie); border:1px solid var(--borde); border-radius:12px; padding:10px 12px;
+  display:flex; align-items:center; gap:10px; touch-action:manipulation;
+}
+.fila-ingreso .detalle{ flex:1; min-width:0; display:flex; flex-direction:column; gap:5px; }
+.fila-ingreso .nombre{ font-size:13.5px; font-weight:650; color:var(--texto-principal); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fila-ingreso .fila-meta{ display:flex; align-items:center; gap:7px; }
+.fila-ingreso .badge-fuente{ font-size:9.5px; font-weight:700; letter-spacing:0.2px; padding:2px 7px; border-radius:5px; font-family:'Quicksand',sans-serif; }
+.fila-ingreso .fecha{ font-size:10.5px; font-weight:600; color:var(--texto-terciario); font-family:'Quicksand',sans-serif; }
+.fila-ingreso .derecha{ text-align:right; display:flex; flex-direction:column; gap:2px; flex:none; }
+.fila-ingreso .monto{ font-size:13.5px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--texto-principal); }
+.fila-ingreso .nota-neto{ font-size:9.5px; font-weight:600; color:var(--texto-terciario); font-family:'Quicksand',sans-serif; }
+
+.detalle-ingreso-lectura{ font-size:14px; font-weight:650; color:var(--texto-principal); }
+
+/* ============================================================
+   13. MÓDULO D — OBJETIVOS DE AHORRO
+   ============================================================ */
+.tarjeta-objetivo{
+  background:var(--superficie); border:1px solid var(--borde); border-radius:16px;
+  padding:13px 15px 14px; touch-action:manipulation;
+}
+.tarjeta-objetivo-cabecera{ display:flex; align-items:center; gap:8px; }
+.tarjeta-objetivo-cabecera .punto{ width:8px; height:8px; border-radius:50%; flex:none; }
+.tarjeta-objetivo-cabecera .nombre{ font-size:14.5px; font-weight:700; color:var(--texto-principal); font-family:'Quicksand',sans-serif; flex:1; min-width:0; }
+.tarjeta-objetivo-cabecera .flecha{ font-size:14px; color:var(--texto-cuaternario); flex:none; }
+.barra-progreso-objetivo{ height:7px; border-radius:4px; background:var(--borde-suave); overflow:hidden; margin-top:11px; }
+.relleno-progreso-objetivo{ height:100%; border-radius:4px; }
+.grid-datos-objetivo{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:12px; }
+.dato-objetivo{ display:flex; flex-direction:column; gap:2px; }
+.dato-objetivo.con-borde{ padding-left:9px; border-left:1px solid var(--borde-suave); }
+.dato-objetivo .etiqueta-dato{ font-size:9.5px; font-weight:700; letter-spacing:0.5px; color:var(--texto-terciario); font-family:'Quicksand',sans-serif; }
+.dato-objetivo .valor-dato{ font-size:13.5px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--texto-principal); }
+.dato-objetivo .valor-dato.meta{ font-weight:650; }
+.pie-objetivo{ margin-top:11px; padding-top:9px; border-top:1px solid var(--borde-suave); display:flex; align-items:center; gap:8px; }
+.pie-objetivo .info{ flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+.pie-objetivo .fecha-label{ font-size:10.5px; font-weight:600; color:var(--texto-secundario); font-family:'Quicksand',sans-serif; }
+.boton-agregar-monto{
+  flex:none; border:1px solid; background:transparent; border-radius:9px;
+  padding:6px 11px; font-size:11.5px; font-weight:700; font-family:'Quicksand',sans-serif; touch-action:manipulation;
+}
+
+/* ============================================================
+   14. MÓDULO E — DASHBOARD
+   ============================================================ */
+.dash-encabezado{ flex:none; display:flex; align-items:baseline; gap:7px; padding-bottom:2px; }
+.dash-mes-actual{ font-size:20px; font-weight:700; letter-spacing:-0.4px; color:var(--texto-principal); font-family:'Quicksand',sans-serif; text-transform:capitalize; }
+.dash-anio-actual{ font-size:12px; font-weight:600; color:var(--texto-secundario); font-family:'Quicksand',sans-serif; }
+.dash-dia-actual{ font-size:11px; font-weight:600; color:var(--texto-terciario); font-family:'Quicksand',sans-serif; margin-left:auto; }
+
+.tarjeta-resumen-dash{ background:var(--superficie); border:1px solid var(--borde); border-radius:18px; padding:14px 18px 18px; }
+.resumen-dash-encabezado{ display:flex; align-items:center; gap:8px; padding-bottom:12px; }
+.resumen-dash-titulo{ font-size:10.5px; font-weight:700; letter-spacing:0.6px; color:var(--texto-secundario); font-family:'Quicksand',sans-serif; flex:1; text-transform:uppercase; }
+.grid-resumen-dash{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.col-resumen-dash{ display:flex; flex-direction:column; gap:3px; }
+.col-resumen-dash.con-borde{ padding-left:14px; border-left:1px solid var(--borde); }
+.col-resumen-dash .fila-punto{ display:flex; align-items:center; gap:5px; }
+.col-resumen-dash .punto{ width:6px; height:6px; border-radius:50%; }
+.col-resumen-dash .etiqueta{ font-size:11px; font-weight:600; color:var(--texto-secundario); font-family:'Quicksand',sans-serif; }
+.col-resumen-dash .valor{ font-size:18px; font-weight:700; letter-spacing:-0.4px; font-variant-numeric:tabular-nums; color:var(--texto-principal); }
+.separador-dash{ height:1px; background:var(--borde); margin:16px 0 15px; }
+.bloque-disponible-dash{ display:flex; flex-direction:column; gap:2px; }
+.bloque-disponible-dash .etiqueta{ font-size:12px; font-weight:700; letter-spacing:0.6px; color:var(--texto-secundario); font-family:'Quicksand',sans-serif; text-transform:uppercase; }
+.bloque-disponible-dash .valor{ font-size:24px; font-weight:800; letter-spacing:-0.4px; line-height:1.2; font-variant-numeric:tabular-nums; color:var(--texto-principal); }
+.bloque-disponible-dash .nota{ font-size:12px; font-weight:500; color:var(--texto-secundario); margin-top:4px; }
+
+.tarjeta-pendiente-dash{ background:var(--recibir-bg); border:1px solid var(--recibir-borde); border-radius:15px; padding:13px 15px; }
+.pendiente-dash-encabezado{ display:flex; align-items:center; gap:8px; }
+.pendiente-dash-titulo{ font-size:11px; font-weight:700; letter-spacing:0.3px; color:var(--recibir-texto); font-family:'Quicksand',sans-serif; flex:1; text-transform:uppercase; }
+.pendiente-dash-fila{ display:flex; align-items:flex-end; gap:13px; margin-top:8px; }
+.pendiente-dash-monto{ font-size:18px; font-weight:700; letter-spacing:-0.4px; font-variant-numeric:tabular-nums; flex:1; color:var(--recibir-texto); }
+.pendiente-dash-derecha{ text-align:right; display:flex; flex-direction:column; gap:1px; flex:none; }
+.pendiente-dash-numero{ font-size:16px; font-weight:700; color:#7E560F; font-variant-numeric:tabular-nums; }
+.pendiente-dash-etiqueta{ font-size:10.5px; font-weight:600; line-height:1.2; color:var(--recibir-texto2); font-family:'Quicksand',sans-serif; }
+
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+<!-- ============================================================
+     PANTALLA: PACIENTES
+     ============================================================ -->
+<div class="contenedor" id="pantallaPacientes">
+  <div class="pantalla-encabezado">
+    <h1>Pacientes</h1>
+    <div class="relleno"></div>
+    <button class="boton-ojo" id="botonOjoPacientes" onclick="alternarVisibilidadPacientes()"></button>
+    <button class="boton-icono" onclick="abrirConfiguracion()">⚙</button>
+  </div>
+
+  <div class="interruptor-estado">
+    <button id="botonActivos" class="activo" onclick="cambiarFiltroEstado('activo')">Activos</button>
+    <button id="botonArchivados" onclick="cambiarFiltroEstado('archivado')">Archivados</button>
+  </div>
+
+  <div class="lista-scroll" id="listaPacientes"><div class="vacio">Cargando pacientes…</div></div>
+</div>
+
+<!-- ============================================================
+     PANTALLA: AGENDA (Módulo A+F)
+     ============================================================ -->
+<div class="contenedor" id="pantallaAgenda" style="display:none;">
+  <div class="agenda-encabezado">
+    <div>
+      <div class="agenda-mes-nombre" id="tituloMes"></div>
+      <div class="agenda-anio" id="agendaAnio"></div>
+    </div>
+    <div style="flex:1"></div>
+    <span class="agenda-desliza">desliza ↔</span>
+    <button class="boton-hoy-agenda" onclick="irAHoyAgenda()">Hoy</button>
+  </div>
+
+  <div class="grid-dow">
+    <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+  </div>
+
+  <div style="flex:1; display:flex; flex-direction:column; min-height:0;">
+    <div id="gridDiasArriba" style="display:grid; grid-template-columns:repeat(7,1fr); padding:0 4px; touch-action:pan-y;"></div>
+
+    <div id="panelSemana" style="display:none; flex-direction:column; background:#FBF7EF; border-top:1px solid #E5DACA; border-bottom:1px solid #E5DACA;">
+      <div style="flex:none; display:flex; align-items:center; gap:7px; padding:8px 12px 6px;">
+        <span class="panel-semana-titulo" id="tituloSemana"></span>
+        <span class="panel-semana-conteo" id="conteoSemana"></span>
+        <div style="flex:1"></div>
+        <button class="boton-cerrar-semana" onclick="cerrarPanelSemana()">⌃</button>
+      </div>
+      <div id="gridSemana" style="flex:1; display:grid; grid-template-columns:repeat(7,1fr); gap:2px; padding:0 5px 6px; min-height:0; touch-action:pan-y;"></div>
+    </div>
+
+    <div id="gridDiasAbajo" style="display:grid; grid-template-columns:repeat(7,1fr); padding:0 4px; touch-action:pan-y;"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PANTALLA: GASTOS (Módulo C, integrado como pestaña)
+     ============================================================ -->
+<div class="contenedor" id="pantallaGastos" style="display:none;">
+
+  <div class="zona-monto-gasto">
+    <div id="gastoMontoPantalla" class="monto-fuente">$0</div>
+    <div id="gastoPreviewTotal" class="monto-fuente"></div>
+  </div>
+
+  <div class="teclado-gasto" id="gastoTecladoNumerico">
+    <button class="tecla-gasto" onclick="teclaGasto('1')">1</button>
+    <button class="tecla-gasto" onclick="teclaGasto('2')">2</button>
+    <button class="tecla-gasto" onclick="teclaGasto('3')">3</button>
+    <button class="tecla-gasto tecla-gasto-borrar" onclick="borrarGasto()">⌫</button>
+    <button class="tecla-gasto" onclick="teclaGasto('4')">4</button>
+    <button class="tecla-gasto" onclick="teclaGasto('5')">5</button>
+    <button class="tecla-gasto" onclick="teclaGasto('6')">6</button>
+    <button class="tecla-gasto tecla-gasto-funcion" onclick="limpiarTodoGasto()">C</button>
+    <button class="tecla-gasto" onclick="teclaGasto('7')">7</button>
+    <button class="tecla-gasto" onclick="teclaGasto('8')">8</button>
+    <button class="tecla-gasto" onclick="teclaGasto('9')">9</button>
+    <button class="tecla-gasto tecla-gasto-toggle-op" id="gastoBotonToggleOp" onclick="alternarTecladoOperadoresGasto()">+−×÷</button>
+    <button class="tecla-gasto" onclick="teclaGasto('000')">000</button>
+    <button class="tecla-gasto" onclick="teclaGasto('0')">0</button>
+    <button class="tecla-gasto tecla-gasto-cero-triple" onclick="teclaGasto('.')">,</button>
+    <div></div>
+  </div>
+  <div class="fila-operadores-gasto" id="gastoFilaOperadores">
+    <button class="tecla-op-gasto" onclick="teclaGasto('(')">(</button>
+    <button class="tecla-op-gasto" onclick="teclaGasto(')')">)</button>
+    <button class="tecla-op-gasto" onclick="teclaGasto('÷')">÷</button>
+    <button class="tecla-op-gasto" onclick="teclaGasto('×')">×</button>
+    <button class="tecla-op-gasto" onclick="teclaGasto('−')">−</button>
+    <button class="tecla-op-gasto" onclick="teclaGasto('+')">+</button>
+  </div>
+
+  <div>
+    <div class="gastos-etiqueta-seccion">Categoría</div>
+    <div class="grid-categorias-gasto" id="gastoGridCategorias"></div>
+  </div>
+
+  <div>
+    <div class="gastos-etiqueta-seccion">Medio de pago</div>
+    <div class="grid-pagos-gasto" id="gastoGridPagos"></div>
+  </div>
+
+  <div class="fila-fecha-desc">
+    <div class="campo-gasto-inline" style="flex:none; width:120px;">
+      <span class="gastos-etiqueta-seccion">Fecha</span>
+      <input type="date" id="gastoCampoFecha">
+    </div>
+    <div class="campo-gasto-inline" style="flex:1;">
+      <span class="gastos-etiqueta-seccion">Descripción</span>
+      <input type="text" id="gastoCampoDescripcion" placeholder="Opcional">
+    </div>
+  </div>
+
+  <button class="boton-guardar-gasto" id="gastoBotonGuardar" style="margin-top:8px;" onclick="guardarNuevoGasto()">Guardar gasto</button>
+
+  <div style="margin-top:8px;">
+    <div class="registros-encabezado">
+      <span class="gastos-etiqueta-seccion" style="flex:1;">Últimos registros</span>
+      <button class="boton-exportar-gasto" onclick="exportarCSVGasto()">Exportar datos</button>
+    </div>
+    <div id="gastoListaRegistros" style="display:flex; flex-direction:column; gap:6px;"><div class="vacio">Cargando registros…</div></div>
+    <button class="boton-ver-todos-gasto" id="gastoBotonVerTodos" style="margin-top:6px; width:100%;" onclick="alternarVerTodosGasto()"></button>
+  </div>
+
+  <!-- ============================================================
+       Aviso de sincronización con Google Sheets — solo aparece si
+       hay gastos que no se pudieron enviar (el guardado local nunca
+       se pierde; esto solo avisa que falta reflejarlo en la hoja).
+       ============================================================ -->
+  <div id="bannerSyncGastos" style="display:none; margin-top:14px; padding:10px 12px; border-radius:12px; background:#FBF3E2; border:1px solid #EBDCBC; font-size:12px; color:#8B6516; display:flex; align-items:center; gap:8px;"></div>
+
+</div>
+
+<!-- ============================================================
+     PANTALLA: INGRESOS (Módulo B)
+     ============================================================ -->
+<div class="contenedor" id="pantallaIngresos" style="display:none;">
+  <div class="pantalla-encabezado">
+    <button class="boton-icono" onclick="cambiarMesIngresos(-1)">‹</button>
+    <div style="flex:1; text-align:center; line-height:1.1;">
+      <div style="font-size:17px; font-weight:700; letter-spacing:-0.3px; color:var(--texto-principal); font-family:'Quicksand',sans-serif;" id="tituloMesIngresos"></div>
+    </div>
+    <button class="boton-icono" onclick="cambiarMesIngresos(1)">›</button>
+  </div>
+
+  <div class="tarjeta-ing">
+    <div class="tarjeta-ing-encabezado">
+      <span class="tarjeta-ing-titulo">Ingresos percibidos del mes</span>
+      <button class="boton-ojo" id="botonOjoIngTotal" onclick="alternarVisibilidadIngTotal()"></button>
+    </div>
+    <div class="tarjeta-ing-total monto-fuente" id="totalMesIngresos">$0</div>
+    <div class="fuentes-lista" id="resumenPorFuente"></div>
+  </div>
+
+  <div class="tarjeta-recibir">
+    <div class="tarjeta-recibir-encabezado">
+      <span class="tarjeta-recibir-titulo">Cuentas por cobrar</span>
+      <button class="boton-ojo" id="botonOjoIngRecibir" onclick="alternarVisibilidadIngRecibir()"></button>
+      <span class="tarjeta-recibir-monto monto-fuente" id="recibirTotalMonto"></span>
+    </div>
+    <div class="tarjeta-recibir-nota" id="recibirNota"></div>
+    <div id="seccionPendientesPago"></div>
+  </div>
+
+  <div class="tarjeta-lazos" id="tarjetaLazos" style="display:none;">
+    <div class="tarjeta-lazos-encabezado">
+      <span class="tarjeta-lazos-titulo">Boleta Entre Lazos</span>
+      <button class="boton-ojo" id="botonOjoIngLazos" onclick="alternarVisibilidadIngLazos()"></button>
+    </div>
+    <div class="tarjeta-lazos-monto monto-fuente" id="lazosMontoTotal"></div>
+    <div class="tarjeta-lazos-nota" id="lazosNota"></div>
+    <div id="seccionPendientesBoleta"></div>
+  </div>
+
+  <div>
+    <div class="movimientos-encabezado">
+      <span class="movimientos-titulo">Movimientos del mes</span>
+      <span class="movimientos-conteo" id="conteoMovimientos"></span>
+      <button class="boton-ojo" id="botonOjoIngMov" onclick="alternarVisibilidadIngMov()"></button>
+    </div>
+    <div class="movimientos-lista" id="listaIngresosMes"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PANTALLA: OBJETIVOS DE AHORRO (Módulo D)
+     ============================================================ -->
+<div class="contenedor" id="pantallaObjetivos" style="display:none;">
+  <div class="pantalla-encabezado">
+    <h1>Objetivos de ahorro</h1>
+    <div class="relleno"></div>
+    <button class="boton-ojo" id="botonOjoObjetivos" onclick="alternarVisibilidadObjetivos()"></button>
+  </div>
+  <div class="lista-scroll" id="listaObjetivos"></div>
+</div>
+
+<!-- ============================================================
+     PANTALLA: DASHBOARD (Módulo E)
+     ============================================================ -->
+<div class="contenedor" id="pantallaDashboard" style="display:none;">
+  <div class="dash-encabezado">
+    <span class="dash-mes-actual" id="dashMesActual"></span>
+    <span class="dash-anio-actual" id="dashAnioActual"></span>
+    <span class="dash-dia-actual" id="dashDiaActual"></span>
+  </div>
+
+  <div class="tarjeta-resumen-dash">
+    <div class="resumen-dash-encabezado">
+      <span class="resumen-dash-titulo">Resumen del mes</span>
+      <button class="boton-ojo" id="dashBotonOjoResumen" onclick="alternarVisibilidadResumen()"></button>
+    </div>
+    <div class="grid-resumen-dash">
+      <div class="col-resumen-dash">
+        <div class="fila-punto"><span class="punto" style="background:#6B7A45"></span><span class="etiqueta">Ingresé</span></div>
+        <span class="valor monto-fuente" id="dashIngrese">$0</span>
+      </div>
+      <div class="col-resumen-dash con-borde">
+        <div class="fila-punto"><span class="punto" style="background:#B4653A"></span><span class="etiqueta">Gasté</span></div>
+        <span class="valor monto-fuente" id="dashGaste">$0</span>
+      </div>
+    </div>
+    <div class="separador-dash"></div>
+    <div class="bloque-disponible-dash">
+      <span class="etiqueta">Disponible</span>
+      <span class="valor monto-fuente" id="dashDisponible">$0</span>
+      <span class="nota">después de gastos e ingresos registrados</span>
+    </div>
+  </div>
+
+  <div class="tarjeta-pendiente-dash">
+    <div class="pendiente-dash-encabezado">
+      <span class="pendiente-dash-titulo">Pendiente de cobrar</span>
+      <button class="boton-ojo" id="dashBotonOjoPendiente" onclick="alternarVisibilidadPendiente()"></button>
+    </div>
+    <div class="pendiente-dash-fila">
+      <span class="pendiente-dash-monto monto-fuente" id="dashMontoPendiente">$0</span>
+      <div class="pendiente-dash-derecha">
+        <span class="pendiente-dash-numero monto-fuente" id="dashNumeroPacientes">0</span>
+        <span class="pendiente-dash-etiqueta">pacientes<br>con deuda</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="boton-flotante" id="botonNuevoPaciente" onclick="abrirFichaNueva()">+</button>
+<button class="boton-flotante" id="botonNuevoEvento" style="display:none;" onclick="abrirFichaEventoNueva()">+</button>
+<button class="boton-flotante" id="botonNuevoIngreso" style="display:none;" onclick="abrirFichaIngresoManual()">+</button>
+<button class="boton-flotante" id="botonNuevoObjetivo" style="display:none;" onclick="abrirFichaObjetivoNueva()">+</button>
+
+<!-- ============================================================
+     MENÚ INFERIOR DE NAVEGACIÓN
+     ============================================================ -->
+<div class="nav-inferior">
+  <button class="nav-item activo" id="navPacientes" onclick="irAPantalla('pacientes')">
+    <span class="punto" style="background:#7C2F3E"></span><span class="texto etiqueta">Pacientes</span>
+  </button>
+  <button class="nav-item" id="navAgenda" onclick="irAPantalla('agenda')">
+    <span class="punto" style="background:#4F6B5C"></span><span class="texto etiqueta">Agenda</span>
+  </button>
+  <button class="nav-item" id="navGastos" onclick="irAPantalla('gastos')">
+    <span class="punto" style="background:#B4653A"></span><span class="texto etiqueta">Gastos</span>
+  </button>
+  <button class="nav-item" id="navIngresos" onclick="irAPantalla('ingresos')">
+    <span class="punto" style="background:#6B7A45"></span><span class="texto etiqueta">Ingresos</span>
+  </button>
+  <button class="nav-item" id="navObjetivos" onclick="irAPantalla('objetivos')">
+    <span class="punto" style="background:#A9741B"></span><span class="texto etiqueta">Objetivos</span>
+  </button>
+  <button class="nav-item" id="navDashboard" onclick="irAPantalla('dashboard')">
+    <span class="punto" style="background:#6E4B2A"></span><span class="texto etiqueta">Dashboard</span>
+  </button>
+</div>
+
+</div><!-- /app-shell -->
+
+<!-- ============================================================
+     MODAL: FICHA DE PACIENTE (crear / editar)
+     ============================================================ -->
+<div class="fondo-modal" id="fondoModalFicha" onclick="cerrarModalSiFondo(event, 'fondoModalFicha', cerrarFicha)">
+  <div class="hoja-modal">
+    <div class="encabezado-modal">
+      <h2 id="tituloFicha">Nuevo paciente</h2>
+      <button class="cerrar-modal" onclick="cerrarFicha()">✕</button>
+    </div>
+
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Nombre completo</span>
+      <input type="text" id="campoNombre" placeholder="Nombre y apellido">
+    </div>
+
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Canal de atención</span>
+      <div class="segmentado" id="segmentadoCanal"></div>
+    </div>
+
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Tipo de pago</span>
+      <div class="segmentado" id="segmentadoTipoPago"></div>
+    </div>
+
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Monto habitual de sesión</span>
+      <input type="text" id="campoMonto" inputmode="numeric">
+      <div class="nota-campo" id="notaMonto"></div>
+    </div>
+
+    <button class="boton-primario" onclick="guardarFicha()">Guardar</button>
+    <button class="boton-secundario" onclick="cerrarFicha()">Cancelar</button>
+
+    <div class="zona-archivar" id="zonaArchivar" style="display:none;">
+      <button class="boton-archivar" id="botonArchivarPaciente" onclick="solicitarArchivar()">Archivar paciente</button>
+      <div class="confirmacion-archivar" id="confirmacionArchivar" style="display:none;">
+        <p>Este paciente se archivará. Su historial se conserva y puedes reactivarlo cuando quieras.</p>
+        <div class="fila-confirmacion">
+          <button class="boton-confirmar-no" onclick="cancelarArchivar()">Cancelar</button>
+          <button class="boton-confirmar-si" onclick="confirmarArchivar()">Sí, archivar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: CONFIGURACIÓN GLOBAL
+     ============================================================ -->
+<div class="fondo-modal" id="fondoModalConfig" onclick="cerrarModalSiFondo(event, 'fondoModalConfig', cerrarConfiguracion)">
+  <div class="hoja-modal">
+    <div class="encabezado-modal">
+      <h2>Configuración</h2>
+      <button class="cerrar-modal" onclick="cerrarConfiguracion()">✕</button>
+    </div>
+
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Monto FONASA directo (CLP)</span>
+      <input type="text" id="configMontoFonasa" inputmode="numeric">
+      <div class="nota-campo">Se usa para pacientes con canal Particular directo y tipo de pago FONASA.</div>
+    </div>
+
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Monto FONASA Entre Lazos (CLP)</span>
+      <input type="text" id="configMontoFonasaEL" inputmode="numeric">
+      <div class="nota-campo">Se usa para pacientes con canal Entre Lazos y tipo de pago FONASA.</div>
+    </div>
+
+    <div class="campo-modal">
+      <span class="etiqueta-campo">% impuesto por boleta</span>
+      <input type="text" id="configImpuesto" inputmode="decimal">
+      <div class="nota-campo">Aplica a todos los pacientes. Por defecto 15,25%.</div>
+    </div>
+
+    <div class="campo-modal">
+      <span class="etiqueta-campo">% comisión Entre Lazos</span>
+      <input type="text" id="configComisionEL" inputmode="decimal">
+      <div class="nota-campo">Aplica solo a pacientes con canal Entre Lazos. Por defecto 10%.</div>
+    </div>
+
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Sueldo fijo mensual neto — Trabajo dependiente (CLP)</span>
+      <input type="text" id="configSueldoDependiente" inputmode="numeric">
+      <div class="nota-campo">Déjalo en 0 si todavía no aplica.</div>
+    </div>
+
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Mes de inicio del sueldo fijo</span>
+      <input type="month" id="configMesInicioSueldo">
+    </div>
+
+    <div class="nota-campo" style="margin-bottom:12px;">Cambiar estos valores no afecta registros ya guardados — solo aplica hacia adelante.</div>
+
+    <button class="boton-primario" onclick="guardarConfiguracion()">Guardar</button>
+    <button class="boton-secundario" onclick="cerrarConfiguracion()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: FICHA DE EVENTO (Agenda) — crear / editar
+     ============================================================ -->
+<div class="fondo-modal" id="fondoModalEvento" onclick="cerrarModalSiFondo(event, 'fondoModalEvento', cerrarFichaEvento)">
+  <div class="hoja-modal">
+    <div class="encabezado-modal">
+      <h2 id="tituloFichaEvento">Nueva atención</h2>
+      <button class="cerrar-modal" onclick="cerrarFichaEvento()">✕</button>
+    </div>
+
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Etiqueta</span>
+      <div class="grid-etiquetas" id="gridEtiquetasEvento"></div>
+    </div>
+
+    <div class="campo-modal" id="campoSubtipoAtencion" style="display:none;">
+      <span class="etiqueta-campo">Tipo de atención</span>
+      <div class="segmentado" id="segmentadoSubtipoAtencion"></div>
+    </div>
+
+    <div class="campo-modal" id="campoBuscarPaciente" style="display:none;">
+      <span class="etiqueta-campo">Paciente</span>
+      <input type="text" id="campoBusquedaPaciente" placeholder="Escribe para buscar…" oninput="manejarEscrituraBusquedaPaciente()">
+      <div id="pacienteSeleccionadoConfirmacion"></div>
+      <div class="lista-busqueda-paciente" id="listaBusquedaPaciente"></div>
+    </div>
+
+    <div id="camposConsultaUnica" style="display:none;">
+      <div class="campo-modal">
+        <span class="etiqueta-campo">Nombre del paciente</span>
+        <input type="text" id="eventoConsultaNombre" placeholder="Nombre y apellido">
+      </div>
+      <div class="campo-modal">
+        <span class="etiqueta-campo">Tipo de pago</span>
+        <div class="segmentado" id="segmentadoTipoPagoEventoConsulta"></div>
+      </div>
+      <div class="campo-modal">
+        <span class="etiqueta-campo">Monto de la sesión</span>
+        <input type="text" id="eventoConsultaMonto" inputmode="numeric">
+        <div class="nota-campo" id="eventoConsultaNotaMonto"></div>
+      </div>
+    </div>
+
+    <div class="campo-modal" id="campoNombreLibreEvento" style="display:none;">
+      <span class="etiqueta-campo">Nombre</span>
+      <input type="text" id="eventoNombreLibre" placeholder="Nombre del evento">
+    </div>
+
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Fecha</span>
+      <input type="date" id="eventoFecha" oninput="actualizarVisibilidadRecurrenciaPersonalizada(); actualizarResumenDuracion();">
+    </div>
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Hora</span>
+      <input type="text" class="campo-hora-texto" id="eventoHora" inputmode="numeric" placeholder="HH:MM" maxlength="5" oninput="formatearEntradaHora(this); actualizarResumenDuracion();">
+      <div class="nota-campo">Formato 24 horas, por ejemplo 09:30 o 19:00.</div>
+    </div>
+
+    <div class="campo-modal" id="campoDuracionToggle" style="display:none;">
+      <span class="etiqueta-campo">Duración</span>
+      <div class="segmentado" id="segmentadoDuracion"></div>
+    </div>
+
+    <div id="camposDuracionDetalle" style="display:none;">
+      <div class="campo-modal">
+        <span class="etiqueta-campo">Fecha de término</span>
+        <input type="date" id="eventoFechaTermino" oninput="actualizarResumenDuracion()">
+      </div>
+      <div class="campo-modal">
+        <span class="etiqueta-campo">Hora de término (opcional)</span>
+        <input type="text" class="campo-hora-texto" id="eventoHoraTermino" inputmode="numeric" placeholder="HH:MM" maxlength="5" oninput="formatearEntradaHora(this); actualizarResumenDuracion();">
+      </div>
+      <div class="nota-campo" id="resumenDuracionEvento" style="margin-bottom:12px;"></div>
+    </div>
+
+    <div class="campo-modal" id="campoRecurrenciaEvento">
+      <span class="etiqueta-campo">Recurrencia</span>
+      <div class="segmentado envolver" id="segmentadoRecurrenciaEvento"></div>
+      <div class="nota-campo" id="notaRecurrenciaEvento"></div>
+    </div>
+
+    <div class="campo-modal" id="campoRecurrenciaPersonalizada" style="display:none;">
+      <span class="etiqueta-campo">Semana del mes</span>
+      <div class="segmentado" id="segmentadoSemanaDelMes"></div>
+      <div class="nota-campo" style="margin-bottom:10px;">Se repite ese día de la semana (el mismo de la fecha elegida arriba), en su N-ésima aparición del mes.</div>
+    </div>
+
+    <div class="campo-modal" id="campoEstadoSesionEvento" style="display:none;">
+      <span class="etiqueta-campo">Estado de la sesión</span>
+      <div class="segmentado envolver" id="segmentadoEstadoSesionEvento"></div>
+      <div class="nota-campo">Opcional. Puedes dejarlo sin marcar y actualizarlo después.</div>
+    </div>
+
+    <button class="boton-primario" onclick="guardarFichaEvento()">Guardar</button>
+    <button class="boton-secundario" onclick="cerrarFichaEvento()">Cancelar</button>
+
+    <div class="zona-archivar" id="zonaEliminarEvento" style="display:none;">
+      <button class="boton-archivar" id="botonOmitirFechaEvento" onclick="solicitarOmitirFecha()" style="display:none; margin-bottom:8px;">Omitir esta fecha</button>
+      <button class="boton-archivar" id="botonEliminarEvento" onclick="solicitarEliminarEvento()">Eliminar</button>
+      <div class="confirmacion-archivar" id="confirmacionEliminarEvento" style="display:none;">
+        <p id="textoConfirmacionEliminarEvento">Este registro se eliminará permanentemente. No se puede deshacer.</p>
+        <div class="fila-confirmacion">
+          <button class="boton-confirmar-no" onclick="cancelarEliminarEvento()">Cancelar</button>
+          <button class="boton-confirmar-si" onclick="confirmarEliminarEvento()">Sí, eliminar</button>
+        </div>
+      </div>
+      <div class="confirmacion-archivar" id="confirmacionOmitirFecha" style="display:none;">
+        <p>Esta fecha puntual se omitirá. Las demás repeticiones de este evento se mantienen sin cambios.</p>
+        <div class="fila-confirmacion">
+          <button class="boton-confirmar-no" onclick="cancelarOmitirFecha()">Cancelar</button>
+          <button class="boton-confirmar-si" onclick="confirmarOmitirFecha()">Sí, omitir</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: FICHA DE INGRESO — nuevo manual / ver detalle
+     ============================================================ -->
+<div class="fondo-modal" id="fondoModalIngreso" onclick="cerrarModalSiFondo(event, 'fondoModalIngreso', cerrarFichaIngreso)">
+  <div class="hoja-modal">
+    <div class="encabezado-modal">
+      <h2 id="tituloFichaIngreso">Nuevo ingreso manual</h2>
+      <button class="cerrar-modal" onclick="cerrarFichaIngreso()">✕</button>
+    </div>
+
+    <div id="detalleIngresoSoloLectura" style="display:none;"></div>
+
+    <div id="camposIngresoManual">
+      <div class="campo-modal">
+        <span class="etiqueta-campo">Descripción</span>
+        <input type="text" id="ingresoManualDescripcion" placeholder="Ej: reembolso, otro ingreso">
+      </div>
+      <div class="campo-modal">
+        <span class="etiqueta-campo">Monto (CLP)</span>
+        <input type="text" id="ingresoManualMonto" inputmode="numeric">
+      </div>
+      <div class="campo-modal">
+        <span class="etiqueta-campo">Fecha</span>
+        <input type="date" id="ingresoManualFecha">
+      </div>
+      <div class="campo-modal">
+        <span class="etiqueta-campo">Medio de pago</span>
+        <div class="segmentado" id="segmentadoMedioPagoManual"></div>
+      </div>
+    </div>
+
+    <button class="boton-primario" id="botonGuardarIngresoManual" onclick="guardarIngresoManual()">Guardar</button>
+    <button class="boton-secundario" onclick="cerrarFichaIngreso()">Cancelar</button>
+
+    <div class="zona-archivar" id="zonaEliminarIngreso" style="display:none;">
+      <button class="boton-archivar" onclick="solicitarEliminarIngreso()">Eliminar</button>
+      <div class="confirmacion-archivar" id="confirmacionEliminarIngreso" style="display:none;">
+        <p>Este ingreso se eliminará permanentemente. Si viene de una sesión o de una boleta, esa sesión volverá a quedar pendiente de importar. No se puede deshacer.</p>
+        <div class="fila-confirmacion">
+          <button class="boton-confirmar-no" onclick="cancelarEliminarIngreso()">Cancelar</button>
+          <button class="boton-confirmar-si" onclick="confirmarEliminarIngreso()">Sí, eliminar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: FICHA DE OBJETIVO (Módulo D)
+     ============================================================ -->
+<div class="fondo-modal" id="fondoModalObjetivo" onclick="cerrarModalSiFondo(event, 'fondoModalObjetivo', cerrarFichaObjetivo)">
+  <div class="hoja-modal">
+    <div class="encabezado-modal">
+      <h2 id="tituloFichaObjetivo">Objetivo</h2>
+      <button class="cerrar-modal" onclick="cerrarFichaObjetivo()">✕</button>
+    </div>
+
+    <div class="campo-modal" id="campoNombreObjetivo" style="display:none;">
+      <span class="etiqueta-campo">Nombre del objetivo</span>
+      <input type="text" id="objetivoNombre" placeholder="Ej: Vacaciones familiares, curso de formación...">
+    </div>
+
+    <div class="campo-modal" id="campoMesesACubrir" style="display:none;">
+      <span class="etiqueta-campo">Meses a cubrir</span>
+      <input type="text" id="objetivoMesesACubrir" inputmode="numeric" oninput="actualizarMetaCalculadaColchon()">
+    </div>
+    <div class="campo-modal" id="campoGastoFijoMensual" style="display:none;">
+      <span class="etiqueta-campo">Gasto fijo mensual estimado (CLP)</span>
+      <input type="text" id="objetivoGastoFijoMensual" inputmode="numeric" oninput="actualizarMetaCalculadaColchon()">
+      <div class="nota-campo">Ingrésalo a mano — este monto viene del Módulo de Gastos.</div>
+    </div>
+    <div class="campo-modal" id="campoMetaCalculada" style="display:none;">
+      <span class="etiqueta-campo">Meta calculada</span>
+      <div class="detalle-ingreso-lectura monto-fuente" id="textoMetaCalculada"></div>
+      <div class="nota-campo" id="notaMetaCalculada"></div>
+    </div>
+
+    <div class="campo-modal" id="campoMetaManual" style="display:none;">
+      <span class="etiqueta-campo">Meta (CLP)</span>
+      <input type="text" id="objetivoMetaManual" inputmode="numeric">
+    </div>
+
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Fecha objetivo (opcional)</span>
+      <input type="date" id="objetivoFecha">
+    </div>
+
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Acumulado actual (CLP)</span>
+      <input type="text" id="objetivoAcumulado" inputmode="numeric">
+      <div class="nota-campo">Edítalo directamente, o usa "Agregar monto" abajo para sumar un aporte.</div>
+    </div>
+
+    <button class="boton-primario" onclick="guardarFichaObjetivo()">Guardar</button>
+    <button class="boton-secundario" onclick="cerrarFichaObjetivo()">Cerrar</button>
+
+    <div class="zona-archivar" id="zonaEliminarObjetivo" style="display:none;">
+      <button class="boton-archivar" onclick="solicitarEliminarObjetivo()">Eliminar objetivo</button>
+      <div class="confirmacion-archivar" id="confirmacionEliminarObjetivo" style="display:none;">
+        <p>Este objetivo y su historial de aportes se eliminarán permanentemente. No se puede deshacer.</p>
+        <div class="fila-confirmacion">
+          <button class="boton-confirmar-no" onclick="cancelarEliminarObjetivo()">Cancelar</button>
+          <button class="boton-confirmar-si" onclick="confirmarEliminarObjetivo()">Sí, eliminar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="zona-archivar">
+      <span class="etiqueta-campo">Agregar monto</span>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <input type="text" id="objetivoAporteMonto" inputmode="numeric" placeholder="Monto" style="flex:1; padding:11px 12px; border-radius:11px; border:1px solid var(--borde); font-size:14px;">
+        <button class="boton-medio-pago" style="padding:0 16px; border-radius:11px;" onclick="registrarAporteObjetivo()">Agregar</button>
+      </div>
+      <div id="listaAportesObjetivo" style="margin-top:10px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: EDITAR GASTO (Módulo C)
+     ============================================================ -->
+<div class="fondo-modal" id="fondoModalGasto" onclick="cerrarModalSiFondo(event, 'fondoModalGasto', cerrarModalGasto)">
+  <div class="hoja-modal">
+    <div class="encabezado-modal">
+      <h2>Editar gasto</h2>
+      <button class="cerrar-modal" onclick="cerrarModalGasto()">✕</button>
+    </div>
+
+    <div class="campo-modal-monto-gasto">
+      <input type="text" id="modalGastoMonto" inputmode="numeric">
+    </div>
+
+    <div class="gastos-etiqueta-seccion">Categoría</div>
+    <div class="grid-categorias-gasto" id="modalGastoGridCategorias" style="margin-bottom:16px;"></div>
+
+    <div class="gastos-etiqueta-seccion">Medio de pago</div>
+    <div class="grid-pagos-gasto" id="modalGastoGridPagos" style="margin-bottom:16px;"></div>
+
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Fecha</span>
+      <input type="date" id="modalGastoFecha">
+    </div>
+
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Descripción</span>
+      <input type="text" id="modalGastoDescripcion">
+    </div>
+
+    <button class="boton-primario" onclick="guardarEdicionGasto()">Guardar cambios</button>
+    <button class="boton-secundario" onclick="cerrarModalGasto()">Cancelar</button>
+  </div>
+</div>
+
+<script>
+
+/* ============================================================
+   1. ESTADO Y ALMACENAMIENTO
+   window.storage (persistente entre sesiones en Claude.ai), no
+   localStorage. Datos personales (shared=false).
+
+   CLAVES USADAS POR ESTA APP:
+     - 'pacientes-registros'
+     - 'configuracion-global'
+     - 'consultas-unicas'
+     - 'agenda-eventos'
+     - 'ingresos-registros'
+     - 'objetivos-metas'
+     - 'gastos-registros'
+   ============================================================ */
+// ============================================================
+// COMPATIBILIDAD DE ALMACENAMIENTO — Fuera de Claude.ai (GitHub
+// Pages, etc.) la API window.storage no existe, porque es una
+// función que solo inyecta el sandbox de artefactos. Si no está
+// presente, se reemplaza aquí por un adaptador que usa
+// localStorage del navegador con la MISMA firma (get/set
+// async, devuelve {key, value}) — así ningún módulo necesita
+// cambiar su código de carga/guardado.
+// ============================================================
+if(!window.storage){
+  window.storage = {
+    async get(key){
+      try{
+        const raw = localStorage.getItem(key);
+        return raw === null ? null : { key, value: raw };
+      }catch(e){ return null; }
+    },
+    async set(key, value){
+      try{
+        localStorage.setItem(key, value);
+        return { key, value };
+      }catch(e){ return null; }
+    }
+  };
+}
+
+const CLAVE_PACIENTES = 'pacientes-registros';
+const CLAVE_CONFIG = 'configuracion-global';
+const CLAVE_CONSULTAS = 'consultas-unicas';
+const CLAVE_AGENDA = 'agenda-eventos';
+const CLAVE_INGRESOS = 'ingresos-registros';
+const CLAVE_OBJETIVOS = 'objetivos-metas';
+const CLAVE_GASTOS = 'gastos-registros';
+
+const COLOR_TAB = {
+  pacientes:'#7C2F3E', agenda:'#4F6B5C', gastos:'#B4653A',
+  ingresos:'#6B7A45', objetivos:'#A9741B', dashboard:'#6E4B2A'
+};
+
+const CANALES = [
+  { valor:'directo',    nombre:'Particular directo' },
+  { valor:'entrelazos', nombre:'Entre Lazos' },
+];
+const TIPOS_PAGO = [
+  { valor:'particular', nombre:'Particular', color:'var(--stripe-particular)' },
+  { valor:'fonasa',     nombre:'FONASA',     color:'var(--stripe-fonasa)' },
+];
+const TIPOS_PAGO_CONSULTA = [
+  { valor:'particular',     nombre:'Particular',         color:'var(--stripe-particular)' },
+  { valor:'fonasa_directo', nombre:'FONASA directo',     color:'var(--stripe-fonasa)' },
+  { valor:'fonasa_el',      nombre:'FONASA Entre Lazos', color:'var(--stripe-entrelazos)' },
+];
+
+const ETIQUETAS = [
+  { valor:'atenciones',  nombre:'Atenciones',              color:'var(--et-atenciones)' },
+  { valor:'nel',         nombre:'NEL',                     color:'var(--et-nel)' },
+  { valor:'oficina',     nombre:'Oficina',                 color:'var(--et-oficina)' },
+  { valor:'eventos',     nombre:'Eventos',                 color:'var(--et-eventos)' },
+  { valor:'casa',        nombre:'Casa y hogar',            color:'var(--et-casa)' },
+  { valor:'entrelazos',  nombre:'Entre Lazos (Red)',       color:'var(--et-entrelazos)' },
+  { valor:'analisis',    nombre:'Análisis y Supervisión',  color:'var(--et-analisis)' },
+  { valor:'lecturas',    nombre:'Lecturas',                color:'var(--et-lecturas)' },
+  { valor:'seminarios',  nombre:'Seminarios y Congresos',  color:'var(--et-seminarios)' },
+];
+
+const RECURRENCIAS = [
+  { valor:'ninguna',               nombre:'Ninguna' },
+  { valor:'semanal',               nombre:'Semanal' },
+  { valor:'mensual',               nombre:'Mensual' },
+  { valor:'mensual_personalizada', nombre:'Mensual (día específico)' },
+];
+const SEMANAS_DEL_MES = [
+  { valor:1, nombre:'1°' }, { valor:2, nombre:'2°' }, { valor:3, nombre:'3°' }, { valor:4, nombre:'4°' },
+];
+
+const ESTADOS_SESION = [
+  { valor:'realizada_percibida', nombre:'Realizada y percibida (pagada)' },
+  { valor:'realizada_devengada', nombre:'Realizada y devengada (pendiente de pago)' },
+  { valor:'ausencia_justificada', nombre:'Ausencia justificada (no se cobra)' },
+  { valor:'ausencia_devengada', nombre:'Ausencia devengada (se cobra, pendiente de pago)' },
+  { valor:'ausencia_percibida', nombre:'Ausencia percibida (se cobra, ya pagó)' },
+];
+
+let pacientes = [];
+let consultasUnicas = [];
+let eventosAgenda = [];
+let ingresos = [];
+let objetivos = [];
+let registrosGasto = [];
+let configuracion = { montoFonasa: 0, montoFonasaEL: 0, porcentajeImpuesto: 15.25, porcentajeComisionEL: 10, sueldoDependienteMonto: 0, sueldoDependienteInicio: '' };
+
+let filtroEstado = 'activo';
+let canalSeleccionado = null;
+let tipoPagoSeleccionado = null;
+let idEnEdicion = null;
+
+function generarId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+async function cargarPacientes(){
+  try{ const r = await window.storage.get(CLAVE_PACIENTES, false); pacientes = (r && r.value) ? JSON.parse(r.value) : []; }catch(e){ pacientes = []; }
+}
+async function guardarPacientesEnAlmacenamiento(){
+  try{ const r = await window.storage.set(CLAVE_PACIENTES, JSON.stringify(pacientes), false); if(!r) alert('No se pudo guardar el cambio.'); }catch(e){ alert('No se pudo guardar el cambio.'); }
+}
+async function cargarConsultasUnicas(){
+  try{ const r = await window.storage.get(CLAVE_CONSULTAS, false); consultasUnicas = (r && r.value) ? JSON.parse(r.value) : []; }catch(e){ consultasUnicas = []; }
+}
+async function guardarConsultasEnAlmacenamiento(){
+  try{ const r = await window.storage.set(CLAVE_CONSULTAS, JSON.stringify(consultasUnicas), false); if(!r) alert('No se pudo guardar el cambio.'); }catch(e){ alert('No se pudo guardar el cambio.'); }
+}
+async function cargarEventosAgenda(){
+  try{ const r = await window.storage.get(CLAVE_AGENDA, false); eventosAgenda = (r && r.value) ? JSON.parse(r.value) : []; }catch(e){ eventosAgenda = []; }
+}
+async function guardarEventosEnAlmacenamiento(){
+  try{ const r = await window.storage.set(CLAVE_AGENDA, JSON.stringify(eventosAgenda), false); if(!r) alert('No se pudo guardar el cambio.'); }catch(e){ alert('No se pudo guardar el cambio.'); }
+}
+async function cargarIngresos(){
+  try{ const r = await window.storage.get(CLAVE_INGRESOS, false); ingresos = (r && r.value) ? JSON.parse(r.value) : []; }catch(e){ ingresos = []; }
+}
+async function guardarIngresosEnAlmacenamiento(){
+  try{ const r = await window.storage.set(CLAVE_INGRESOS, JSON.stringify(ingresos), false); if(!r) alert('No se pudo guardar el cambio.'); }catch(e){ alert('No se pudo guardar el cambio.'); }
+}
+function objetivosPorDefecto(){
+  return [
+    { id:'colchon',    nombre:'Colchón meses sin paga',             tipo:'colchon',     fijo:true, acumulado:0, aportes:[], mesesACubrir:3, gastoFijoMensual:0, fechaObjetivo:null },
+    { id:'congreso',   nombre:'Congreso o viaje profesional anual', tipo:'meta_manual', fijo:true, acumulado:0, aportes:[], metaManual:0, fechaObjetivo:null },
+    { id:'emergencia', nombre:'Fondo de emergencia',                tipo:'meta_manual', fijo:true, acumulado:0, aportes:[], metaManual:0, fechaObjetivo:null },
+  ];
+}
+async function cargarObjetivos(){
+  try{ const r = await window.storage.get(CLAVE_OBJETIVOS, false); objetivos = (r && r.value) ? JSON.parse(r.value) : []; }catch(e){ objetivos = []; }
+  if(!Array.isArray(objetivos) || objetivos.length === 0){ objetivos = objetivosPorDefecto(); await guardarObjetivosEnAlmacenamiento(); }
+}
+async function guardarObjetivosEnAlmacenamiento(){
+  try{ const r = await window.storage.set(CLAVE_OBJETIVOS, JSON.stringify(objetivos), false); if(!r) alert('No se pudo guardar el cambio.'); }catch(e){ alert('No se pudo guardar el cambio.'); }
+}
+async function cargarConfiguracion(){
+  try{ const r = await window.storage.get(CLAVE_CONFIG, false); if(r && r.value) configuracion = JSON.parse(r.value); }catch(e){ /* valores por defecto */ }
+}
+async function guardarConfiguracionEnAlmacenamiento(){
+  try{ const r = await window.storage.set(CLAVE_CONFIG, JSON.stringify(configuracion), false); if(!r) alert('No se pudo guardar la configuración.'); }catch(e){ alert('No se pudo guardar la configuración.'); }
+}
+async function cargarRegistrosGasto(){
+  try{ const r = await window.storage.get(CLAVE_GASTOS, false); registrosGasto = (r && r.value) ? JSON.parse(r.value) : []; }catch(e){ registrosGasto = []; }
+}
+async function guardarGastosEnAlmacenamiento(){
+  try{ const r = await window.storage.set(CLAVE_GASTOS, JSON.stringify(registrosGasto), false); if(!r) alert('No se pudo guardar el cambio.'); }catch(e){ alert('No se pudo guardar el cambio.'); }
+}
+
+/* ============================================================
+   2. FORMATO DE MONTOS, FECHAS Y HORA
+   ============================================================ */
+function formatearCLP(numero){
+  if(numero === null || numero === undefined || isNaN(numero)) return '$0';
+  return '$' + Math.round(numero).toLocaleString('es-CL');
+}
+function limpiarMontoTexto(texto){
+  const d = (texto || '').replace(/[^\d]/g,''); return d === '' ? null : parseInt(d, 10);
+}
+function hoyISO(){
+  const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function formatoISO(f){ return `${f.getFullYear()}-${String(f.getMonth()+1).padStart(2,'0')}-${String(f.getDate()).padStart(2,'0')}`; }
+function fechaDesdeISO(s){ const [a,m,d] = s.split('-').map(Number); return new Date(a, m-1, d); }
+const NOMBRES_MES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const NOMBRES_DIA = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+
+function formatearEntradaHora(inputEl){
+  let d = inputEl.value.replace(/[^\d]/g,'').slice(0,4);
+  inputEl.value = d.length >= 3 ? d.slice(0,2) + ':' + d.slice(2) : d;
+}
+function horaEsValida(h){ return /^([01]\d|2[0-3]):[0-5]\d$/.test(h || ''); }
+function escaparHTML(t){ const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+const ICONO_OJO_ABIERTO = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+const ICONO_OJO_CERRADO = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a18.66 18.66 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a18.66 18.66 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>';
+function pintarBotonOjo(idBoton, visible){
+  const el = document.getElementById(idBoton);
+  if(!el) return;
+  el.innerHTML = visible ? ICONO_OJO_ABIERTO : ICONO_OJO_CERRADO;
+  el.classList.toggle('oculto', !visible);
+}
+function textoMontoOculto(monto, visible){ return visible ? formatearCLP(monto) : '$•••••••'; }
+
+/* ============================================================
+   3. NAVEGACIÓN ENTRE PANTALLAS
+   ============================================================ */
+const PANTALLAS = ['pacientes','agenda','gastos','ingresos','objetivos','dashboard'];
+const FAB_POR_PANTALLA = { pacientes:'botonNuevoPaciente', agenda:'botonNuevoEvento', ingresos:'botonNuevoIngreso', objetivos:'botonNuevoObjetivo' };
+
+function irAPantalla(nombre){
+  PANTALLAS.forEach(p => {
+    document.getElementById('pantalla' + p.charAt(0).toUpperCase() + p.slice(1)).style.display = (p === nombre) ? 'block' : 'none';
+    const nav = document.getElementById('nav' + p.charAt(0).toUpperCase() + p.slice(1));
+    if(nav){
+      nav.classList.toggle('activo', p === nombre);
+      nav.querySelector('.texto').style.color = (p === nombre) ? COLOR_TAB[p] : '';
+    }
+  });
+  Object.values(FAB_POR_PANTALLA).forEach(id => document.getElementById(id).style.display = 'none');
+  const fabId = FAB_POR_PANTALLA[nombre];
+  if(fabId){
+    const fab = document.getElementById(fabId);
+    fab.style.display = 'flex';
+    fab.style.background = COLOR_TAB[nombre];
+  }
+
+  if(nombre === 'agenda') renderizarVistaMensual();
+  else if(nombre === 'ingresos') renderizarVistaIngresos();
+  else if(nombre === 'objetivos') renderizarVistaObjetivos();
+  else if(nombre === 'dashboard') renderizarDashboard();
+}
+
+/* ============================================================
+   4. PACIENTES
+   ============================================================ */
+let vPacientes = false;
+function alternarVisibilidadPacientes(){ vPacientes = !vPacientes; renderizarListaPacientes(); }
+
+function cambiarFiltroEstado(estado){
+  filtroEstado = estado;
+  document.getElementById('botonActivos').classList.toggle('activo', estado === 'activo');
+  document.getElementById('botonArchivados').classList.toggle('activo', estado === 'archivado');
+  renderizarListaPacientes();
+}
+function obtenerTipoPago(valor){ return TIPOS_PAGO.find(t => t.valor === valor) || TIPOS_PAGO[0]; }
+
+function renderizarListaPacientes(){
+  const lista = document.getElementById('listaPacientes');
+  const filtrados = pacientes.filter(p => p.estado === filtroEstado).sort((a,b) => a.nombreCompleto.localeCompare(b.nombreCompleto, 'es'));
+  pintarBotonOjo('botonOjoPacientes', vPacientes);
+  lista.innerHTML = '';
+
+  if(filtrados.length === 0){
+    lista.innerHTML = filtroEstado === 'activo'
+      ? '<div class="vacio">Todavía no hay pacientes activos.<br>Toca "+" para agregar el primero.</div>'
+      : '<div class="vacio">Sin pacientes archivados.</div>';
+    return;
+  }
+
+  filtrados.forEach(p => {
+    const tipo = obtenerTipoPago(p.tipoPago);
+    const stripe = p.canal === 'entrelazos' ? 'var(--stripe-entrelazos)' : (p.tipoPago === 'fonasa' ? 'var(--stripe-fonasa)' : 'var(--stripe-particular)');
+    const tarjeta = document.createElement('div');
+    tarjeta.className = 'tarjeta-paciente' + (p.estado === 'archivado' ? ' archivado' : '');
+    tarjeta.onclick = () => abrirFichaEdicion(p.id);
+
+    let badges = `<span class="badge" style="background:color-mix(in srgb, ${tipo.color} 15%, white); color:${tipo.color}">${tipo.nombre}</span>`;
+    if(p.canal === 'entrelazos') badges += `<span class="badge" style="background:rgba(124,47,62,0.10); color:var(--stripe-entrelazos)">Entre Lazos</span>`;
+
+    tarjeta.innerHTML = `
+      <span class="franja" style="background:${stripe}"></span>
+      <div class="cuerpo">
+        <span class="nombre">${escaparHTML(p.nombreCompleto)}</span>
+        <div class="fila-badges">${badges}</div>
+      </div>
+      <span class="monto monto-fuente">${textoMontoOculto(p.montoHabitual, vPacientes)}</span>
+    `;
+    lista.appendChild(tarjeta);
+  });
+}
+
+function pintarSegmentadoCanal(){
+  const c = document.getElementById('segmentadoCanal'); c.innerHTML = '';
+  CANALES.forEach(x => {
+    const b = document.createElement('button');
+    b.className = canalSeleccionado === x.valor ? 'seleccionado' : '';
+    b.textContent = x.nombre;
+    b.onclick = () => { canalSeleccionado = x.valor; pintarSegmentadoCanal(); actualizarCampoMonto(); };
+    c.appendChild(b);
+  });
+}
+function pintarSegmentadoTipoPago(){
+  const c = document.getElementById('segmentadoTipoPago'); c.innerHTML = '';
+  TIPOS_PAGO.forEach(t => {
+    const b = document.createElement('button');
+    b.className = tipoPagoSeleccionado === t.valor ? 'seleccionado' : '';
+    b.style.setProperty('--chip-color', t.color);
+    b.textContent = t.nombre;
+    b.onclick = () => { tipoPagoSeleccionado = t.valor; pintarSegmentadoTipoPago(); actualizarCampoMonto(); };
+    c.appendChild(b);
+  });
+}
+function obtenerMontoFonasaSegunCanal(canal){ return (canal === 'entrelazos') ? (configuracion.montoFonasaEL || 0) : (configuracion.montoFonasa || 0); }
+function actualizarCampoMonto(){
+  const campo = document.getElementById('campoMonto'); const nota = document.getElementById('notaMonto');
+  if(tipoPagoSeleccionado === 'fonasa'){
+    const m = obtenerMontoFonasaSegunCanal(canalSeleccionado);
+    campo.value = m.toLocaleString('es-CL'); campo.disabled = true;
+    nota.textContent = 'Monto fijo, definido en Configuración global.';
+  }else{
+    campo.disabled = false;
+    nota.textContent = 'Monto variable — puedes ajustarlo para este paciente.';
+    if(idEnEdicion === null) campo.value = '';
+  }
+}
+
+function abrirFichaNueva(){
+  idEnEdicion = null; canalSeleccionado = 'directo'; tipoPagoSeleccionado = 'particular';
+  document.getElementById('tituloFicha').textContent = 'Nuevo paciente';
+  document.getElementById('campoNombre').value = '';
+  document.getElementById('zonaArchivar').style.display = 'none';
+  document.getElementById('confirmacionArchivar').style.display = 'none';
+  document.getElementById('botonArchivarPaciente').style.display = 'block';
+  pintarSegmentadoCanal(); pintarSegmentadoTipoPago(); actualizarCampoMonto();
+  document.getElementById('fondoModalFicha').classList.add('abierto');
+}
+function abrirFichaEdicion(id){
+  const p = pacientes.find(x => x.id === id); if(!p) return;
+  idEnEdicion = id; canalSeleccionado = p.canal; tipoPagoSeleccionado = p.tipoPago;
+  document.getElementById('tituloFicha').textContent = 'Editar paciente';
+  document.getElementById('campoNombre').value = p.nombreCompleto;
+  document.getElementById('zonaArchivar').style.display = 'block';
+  document.getElementById('confirmacionArchivar').style.display = 'none';
+  document.getElementById('botonArchivarPaciente').style.display = 'block';
+  document.getElementById('botonArchivarPaciente').textContent = p.estado === 'activo' ? 'Archivar paciente' : 'Reactivar paciente';
+  pintarSegmentadoCanal(); pintarSegmentadoTipoPago();
+  if(p.tipoPago === 'particular'){
+    document.getElementById('campoMonto').value = p.montoHabitual.toLocaleString('es-CL');
+    document.getElementById('campoMonto').disabled = false;
+    document.getElementById('notaMonto').textContent = 'Monto variable — puedes ajustarlo para este paciente.';
+  }else actualizarCampoMonto();
+  document.getElementById('fondoModalFicha').classList.add('abierto');
+}
+async function guardarFicha(){
+  const nombre = document.getElementById('campoNombre').value.trim();
+  if(!nombre){ alert('Ingresa el nombre completo del paciente.'); return; }
+  if(!canalSeleccionado || !tipoPagoSeleccionado){ alert('Selecciona canal de atención y tipo de pago.'); return; }
+  let monto;
+  if(tipoPagoSeleccionado === 'fonasa') monto = obtenerMontoFonasaSegunCanal(canalSeleccionado);
+  else{
+    monto = limpiarMontoTexto(document.getElementById('campoMonto').value);
+    if(monto === null || monto <= 0){ alert('Ingresa un monto habitual válido.'); return; }
+  }
+  if(idEnEdicion === null){
+    pacientes.push({ id: generarId(), nombreCompleto: nombre, canal: canalSeleccionado, tipoPago: tipoPagoSeleccionado, montoHabitual: monto, estado:'activo', creado: Date.now() });
+  }else{
+    const p = pacientes.find(x => x.id === idEnEdicion);
+    if(p){ p.nombreCompleto = nombre; p.canal = canalSeleccionado; p.tipoPago = tipoPagoSeleccionado; p.montoHabitual = monto; }
+  }
+  cerrarFicha(); renderizarListaPacientes(); await guardarPacientesEnAlmacenamiento();
+}
+function cerrarFicha(){ document.getElementById('fondoModalFicha').classList.remove('abierto'); idEnEdicion = null; }
+function solicitarArchivar(){ document.getElementById('botonArchivarPaciente').style.display = 'none'; document.getElementById('confirmacionArchivar').style.display = 'block'; }
+function cancelarArchivar(){ document.getElementById('botonArchivarPaciente').style.display = 'block'; document.getElementById('confirmacionArchivar').style.display = 'none'; }
+async function confirmarArchivar(){
+  const p = pacientes.find(x => x.id === idEnEdicion);
+  if(p) p.estado = (p.estado === 'activo') ? 'archivado' : 'activo';
+  cerrarFicha(); renderizarListaPacientes(); await guardarPacientesEnAlmacenamiento();
+}
+
+/* ============================================================
+   5. CONFIGURACIÓN GLOBAL
+   ============================================================ */
+function abrirConfiguracion(){
+  document.getElementById('configMontoFonasa').value = configuracion.montoFonasa ? configuracion.montoFonasa.toLocaleString('es-CL') : '';
+  document.getElementById('configMontoFonasaEL').value = configuracion.montoFonasaEL ? configuracion.montoFonasaEL.toLocaleString('es-CL') : '';
+  document.getElementById('configImpuesto').value = configuracion.porcentajeImpuesto;
+  document.getElementById('configComisionEL').value = configuracion.porcentajeComisionEL;
+  document.getElementById('configSueldoDependiente').value = configuracion.sueldoDependienteMonto ? configuracion.sueldoDependienteMonto.toLocaleString('es-CL') : '';
+  document.getElementById('configMesInicioSueldo').value = configuracion.sueldoDependienteInicio || '';
+  document.getElementById('fondoModalConfig').classList.add('abierto');
+}
+function cerrarConfiguracion(){ document.getElementById('fondoModalConfig').classList.remove('abierto'); }
+async function guardarConfiguracion(){
+  const montoFonasa = limpiarMontoTexto(document.getElementById('configMontoFonasa').value);
+  const montoFonasaEL = limpiarMontoTexto(document.getElementById('configMontoFonasaEL').value);
+  const impuesto = parseFloat(document.getElementById('configImpuesto').value.replace(',','.'));
+  const comisionEL = parseFloat(document.getElementById('configComisionEL').value.replace(',','.'));
+  const sueldoDependiente = limpiarMontoTexto(document.getElementById('configSueldoDependiente').value) || 0;
+  const mesInicioSueldo = document.getElementById('configMesInicioSueldo').value;
+
+  if(montoFonasa === null || montoFonasa <= 0){ alert('Ingresa un monto FONASA directo válido.'); return; }
+  if(montoFonasaEL === null || montoFonasaEL <= 0){ alert('Ingresa un monto FONASA Entre Lazos válido.'); return; }
+  if(isNaN(impuesto) || impuesto < 0 || impuesto > 100){ alert('Ingresa un porcentaje de impuesto válido.'); return; }
+  if(isNaN(comisionEL) || comisionEL < 0 || comisionEL > 100){ alert('Ingresa un porcentaje de comisión Entre Lazos válido.'); return; }
+  if(sueldoDependiente > 0 && !mesInicioSueldo){ alert('Selecciona el mes de inicio del sueldo fijo.'); return; }
+
+  configuracion.montoFonasa = montoFonasa; configuracion.montoFonasaEL = montoFonasaEL;
+  configuracion.porcentajeImpuesto = impuesto; configuracion.porcentajeComisionEL = comisionEL;
+  configuracion.sueldoDependienteMonto = sueldoDependiente;
+  configuracion.sueldoDependienteInicio = sueldoDependiente > 0 ? mesInicioSueldo : '';
+
+  cerrarConfiguracion(); await guardarConfiguracionEnAlmacenamiento();
+}
+function cerrarModalSiFondo(evento, idFondo, funcionCierre){ if(evento.target.id === idFondo) funcionCierre(); }
+
+/* ============================================================
+   6. AGENDA — GENERACIÓN DE OCURRENCIAS DE EVENTOS RECURRENTES
+   ============================================================ */
+function generarOcurrencias(evento, inicioRangoISO, finRangoISO){
+  const inicioRango = fechaDesdeISO(inicioRangoISO);
+  const finRango = fechaDesdeISO(finRangoISO);
+  const fechaBase = fechaDesdeISO(evento.fecha);
+  const excluidas = evento.fechasExcluidas || [];
+  const resultado = [];
+
+  if(evento.recurrencia === 'ninguna'){
+    if(evento.fecha >= inicioRangoISO && evento.fecha <= finRangoISO && !excluidas.includes(evento.fecha)) resultado.push(evento.fecha);
+    return resultado;
+  }
+
+  if(evento.recurrencia === 'semanal'){
+    const diaSemanaBase = fechaBase.getDay();
+    let cursor = new Date(Math.max(fechaBase.getTime(), inicioRango.getTime()));
+    while(cursor.getDay() !== diaSemanaBase) cursor.setDate(cursor.getDate()+1);
+    while(cursor <= finRango){
+      const fechaStr = formatoISO(cursor);
+      if(fechaStr >= evento.fecha && !excluidas.includes(fechaStr)) resultado.push(fechaStr);
+      cursor.setDate(cursor.getDate()+7);
+    }
+    return resultado;
+  }
+
+  if(evento.recurrencia === 'mensual'){
+    const diaMes = fechaBase.getDate();
+    let anio = inicioRango.getFullYear(), mes = inicioRango.getMonth();
+    if(inicioRango < fechaBase){ anio = fechaBase.getFullYear(); mes = fechaBase.getMonth(); }
+    while(true){
+      const candidato = new Date(anio, mes, diaMes);
+      if(candidato > finRango) break;
+      if(candidato.getMonth() === mes && candidato >= fechaBase && candidato >= inicioRango){
+        const fechaStr = formatoISO(candidato);
+        if(!excluidas.includes(fechaStr)) resultado.push(fechaStr);
+      }
+      mes++; if(mes > 11){ mes = 0; anio++; }
+    }
+    return resultado;
+  }
+
+  if(evento.recurrencia === 'mensual_personalizada'){
+    // N-ésima aparición (1°-4°) de un día de la semana específico en cada mes.
+    const diaSemana = evento.diaSemana;
+    const semanaN = evento.semanaDelMes;
+    let anio = inicioRango.getFullYear(), mes = inicioRango.getMonth();
+    if(inicioRango < fechaBase){ anio = fechaBase.getFullYear(); mes = fechaBase.getMonth(); }
+    let guard = 0;
+    while(guard < 600){
+      guard++;
+      const primerDia = new Date(anio, mes, 1);
+      const offset = (diaSemana - primerDia.getDay() + 7) % 7;
+      const fechaOcurrencia = new Date(anio, mes, 1 + offset + (semanaN-1)*7);
+      if(fechaOcurrencia.getMonth() === mes){
+        if(fechaOcurrencia > finRango) break;
+        if(fechaOcurrencia >= fechaBase && fechaOcurrencia >= inicioRango){
+          const fechaStr = formatoISO(fechaOcurrencia);
+          if(!excluidas.includes(fechaStr)) resultado.push(fechaStr);
+        }
+      }
+      mes++; if(mes > 11){ mes = 0; anio++; }
+      if(new Date(anio, mes, 1) > finRango) break;
+    }
+    return resultado;
+  }
+
+  return resultado;
+}
+
+/* ============================================================
+   7. AGENDA — CONSTRUCCIÓN DE INSTANCIAS VISIBLES EN UN RANGO
+   ============================================================ */
+function obtenerNombreEvento(evento){
+  if(evento.etiqueta === 'atenciones' && evento.pacienteId){
+    const p = pacientes.find(x => x.id === evento.pacienteId);
+    return p ? p.nombreCompleto : '(paciente archivado o eliminado)';
+  }
+  return evento.nombre || '(sin nombre)';
+}
+function obtenerEtiquetaInfo(valor){ return ETIQUETAS.find(e => e.valor === valor) || ETIQUETAS[0]; }
+
+// Eventos con duración (hasDuration) cuyo rango [fecha, endDate] incluye la
+// fecha dada. Solo aplica a eventos sin recurrencia — un rango de días fijo
+// no tiene un sentido claro combinado con repeticiones.
+function obtenerEventosMultidiaEnFecha(fechaStr){
+  return eventosAgenda.filter(ev =>
+    ev.recurrencia === 'ninguna' && ev.hasDuration && ev.endDate && ev.endDate !== ev.fecha &&
+    fechaStr >= ev.fecha && fechaStr <= ev.endDate
+  );
+}
+function obtenerEstadoResuelto(evento, fechaOcurrencia){
+  if(evento.recurrencia === 'ninguna') return evento.estadoSesion || null;
+  return (evento.estadosPorFecha && evento.estadosPorFecha[fechaOcurrencia]) || null;
+}
+function obtenerInstanciasEnRango(inicioRangoISO, finRangoISO){
+  const instancias = [];
+  eventosAgenda.forEach(evento => {
+    generarOcurrencias(evento, inicioRangoISO, finRangoISO).forEach(fechaOcurrencia => {
+      instancias.push({
+        tipoInstancia:'evento', eventoId: evento.id, etiqueta: evento.etiqueta,
+        nombre: obtenerNombreEvento(evento), fecha: fechaOcurrencia, hora: evento.hora || '00:00',
+        estadoSesion: obtenerEstadoResuelto(evento, fechaOcurrencia), esRecurrente: evento.recurrencia !== 'ninguna'
+      });
+    });
+  });
+  consultasUnicas.forEach(consulta => {
+    if(consulta.fecha >= inicioRangoISO && consulta.fecha <= finRangoISO){
+      instancias.push({
+        tipoInstancia:'consulta', consultaId: consulta.id, etiqueta:'atenciones',
+        nombre: consulta.nombre, fecha: consulta.fecha, hora: consulta.hora || '00:00',
+        estadoSesion: consulta.estadoSesion || null, esRecurrente:false
+      });
+    }
+  });
+  instancias.sort((a,b) => (a.fecha+a.hora).localeCompare(b.fecha+b.hora));
+  return instancias;
+}
+
+/* ============================================================
+   8. AGENDA — NAVEGACIÓN, VISTA MENSUAL, PANEL SEMANAL, SWIPE
+   ============================================================ */
+let mesMostrado = new Date().getMonth();
+let anioMostrado = new Date().getFullYear();
+let inicioSemanaMostrada = null;
+let semanaAbierta = false;
+let fechaColumnaSeleccionada = null;
+
+function obtenerLunesDeSemana(fecha){
+  const c = new Date(fecha); const dow = c.getDay(); const off = (dow === 0) ? -6 : 1 - dow;
+  c.setDate(c.getDate() + off); return c;
+}
+function cambiarMes(delta){
+  mesMostrado += delta;
+  if(mesMostrado > 11){ mesMostrado = 0; anioMostrado++; }
+  if(mesMostrado < 0){ mesMostrado = 11; anioMostrado--; }
+  semanaAbierta = false;
+  renderizarVistaMensual();
+}
+
+function irAHoyAgenda(){
+  const ahora = new Date();
+  mesMostrado = ahora.getMonth();
+  anioMostrado = ahora.getFullYear();
+  fechaColumnaSeleccionada = hoyISO();
+  inicioSemanaMostrada = obtenerLunesDeSemana(ahora);
+  semanaAbierta = true;
+  renderizarVistaMensual();
+  renderizarPanelSemana();
+}
+
+function renderizarVistaMensual(){
+  document.getElementById('tituloMes').textContent = NOMBRES_MES[mesMostrado];
+  document.getElementById('agendaAnio').textContent = anioMostrado;
+
+  const primerDiaMes = new Date(anioMostrado, mesMostrado, 1);
+  const ultimoDiaMes = new Date(anioMostrado, mesMostrado+1, 0);
+  const inicioGrilla = obtenerLunesDeSemana(primerDiaMes);
+  const finGrilla = new Date(ultimoDiaMes);
+  const diaSemanaFin = finGrilla.getDay();
+  finGrilla.setDate(finGrilla.getDate() + ((diaSemanaFin === 0) ? 0 : 7 - diaSemanaFin));
+
+  const hoy = hoyISO();
+  const instancias = obtenerInstanciasEnRango(formatoISO(inicioGrilla), formatoISO(finGrilla));
+
+  // Construir todos los días de la grilla (42 celdas)
+  const todosDias = [];
+  let cursor = new Date(inicioGrilla);
+  while(cursor <= finGrilla){
+    todosDias.push(new Date(cursor));
+    cursor.setDate(cursor.getDate()+1);
+  }
+
+  // Calcular inicio de la semana seleccionada
+  const selFecha = fechaColumnaSeleccionada ? fechaDesdeISO(fechaColumnaSeleccionada) : new Date(anioMostrado, mesMostrado, 1);
+  const inicioSemSel = obtenerLunesDeSemana(selFecha);
+
+  // Separar días en arriba, abajo según semana seleccionada
+  let diasArriba, diasAbajo;
+  if(semanaAbierta){
+    const inicioArriba = new Date(inicioSemSel);
+    inicioArriba.setDate(inicioArriba.getDate() - 14);
+    diasArriba = [];
+    for(let i=0; i<14; i++){
+      const d = new Date(inicioArriba);
+      d.setDate(d.getDate() + i);
+      diasArriba.push(d);
+    }
+    const inicioAbajo = new Date(inicioSemSel);
+    inicioAbajo.setDate(inicioAbajo.getDate() + 7);
+    diasAbajo = [];
+    for(let i=0; i<14; i++){
+      const d = new Date(inicioAbajo);
+      d.setDate(d.getDate() + i);
+      diasAbajo.push(d);
+    }
+  }else{
+    diasArriba = todosDias;
+    diasAbajo = [];
+  }
+
+  const ALTO_BARRA = 17; // px por barra multi-día en la banda de la semana
+
+  // Función para crear celda. numBarrasSemana reserva espacio vertical
+  // para la banda de barras absolutas de esa fila de semana.
+  const crearCelda = (fecha, numBarrasSemana) => {
+    const fechaStr = formatoISO(fecha);
+    const dentroDelMes = fecha.getMonth() === mesMostrado;
+    const celda = document.createElement('div');
+    celda.style.cssText = `border-top:1px solid var(--borde); padding:3px 2px 0; display:flex; flex-direction:column; gap:2px; overflow:hidden; touch-action:manipulation; height:100%;`;
+
+    // Los eventos multi-día se dibujan como barras absolutas sobre la fila
+    // de semana (no aquí). Solo se excluyen de los chips normales.
+    const multidiaHoy = obtenerEventosMultidiaEnFecha(fechaStr);
+    const idsMultidia = new Set(multidiaHoy.map(ev => ev.id));
+    const delDia = instancias
+      .filter(i => i.fecha === fechaStr)
+      .filter(i => !(i.tipoInstancia === 'evento' && idsMultidia.has(i.eventoId)))
+      .sort((a,b) => a.hora.localeCompare(b.hora));
+    const limite = semanaAbierta ? 2 : 3;
+
+    const esHoy = fechaStr === hoy;
+    const esSeleccionado = fechaStr === fechaColumnaSeleccionada;
+    const numBg = esHoy ? 'var(--acento)' : esSeleccionado ? '#E5DACA' : 'transparent';
+    const numColor = esHoy ? '#FFF6E8' : dentroDelMes ? 'var(--texto-principal)' : 'var(--texto-cuaternario)';
+    const numWeight = esHoy || esSeleccionado ? '700' : '600';
+    const celdaBg = esSeleccionado ? '#F1EAE0' : 'transparent';
+
+    celda.style.background = celdaBg;
+    celda.innerHTML = `<div style="display:flex; justify-content:center; flex:none;"><div style="min-width:19px; height:19px; padding:0 5px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:11.5px; font-weight:${numWeight}; color:${numColor}; background:${numBg};">${fecha.getDate()}</div></div>`;
+
+    // Espaciador que reserva el alto de la banda de barras de esta semana
+    if(numBarrasSemana > 0){
+      celda.insertAdjacentHTML('beforeend', `<div style="flex:none; height:${numBarrasSemana * ALTO_BARRA}px;"></div>`);
+    }
+
+    // Chips normales, usando los espacios restantes
+    const restantes = Math.max(0, limite - numBarrasSemana);
+    let chipsHTML = '';
+    delDia.slice(0, restantes).forEach(inst => {
+      chipsHTML += `<div class="chip-evento-mes chip-mes-${inst.etiqueta}" style="${!dentroDelMes ? 'opacity:0.55' : ''}">${escaparHTML(inst.nombre)}</div>`;
+    });
+    const ocultos = Math.max(0, delDia.length - restantes);
+    if(ocultos > 0) chipsHTML += `<div class="chip-mas-mes">+${ocultos} más</div>`;
+    celda.insertAdjacentHTML('beforeend', chipsHTML);
+
+    celda.onclick = () => {
+      const selAnterior = fechaColumnaSeleccionada;
+      fechaColumnaSeleccionada = fechaStr;
+      if(fecha.getMonth() !== mesMostrado || fecha.getFullYear() !== anioMostrado){
+        mesMostrado = fecha.getMonth();
+        anioMostrado = fecha.getFullYear();
+      }
+      inicioSemanaMostrada = obtenerLunesDeSemana(fecha);
+      const mismodia = fechaStr === selAnterior;
+      semanaAbierta = !(semanaAbierta && mismodia);
+      renderizarVistaMensual();
+      if(semanaAbierta) renderizarPanelSemana();
+    };
+    return celda;
+  };
+
+  // Crea una fila de semana (7 celdas + banda de barras absolutas continuas)
+  const crearFilaSemana = (diasSemana) => {
+    const fila = document.createElement('div');
+    fila.style.cssText = 'position:relative; display:grid; grid-template-columns:repeat(7,1fr);' +
+      (semanaAbierta ? ' height:74px; flex:none;' : ' flex:1; min-height:60px;');
+
+    // Detectar barras multi-día que atraviesan esta semana, por presencia diaria
+    const presencia = {}; // id -> { ev, cols:[indices] }
+    diasSemana.forEach((fecha, i) => {
+      obtenerEventosMultidiaEnFecha(formatoISO(fecha)).forEach(ev => {
+        if(!presencia[ev.id]) presencia[ev.id] = { ev, cols: [] };
+        presencia[ev.id].cols.push(i);
+      });
+    });
+    const barras = Object.values(presencia).map(p => ({
+      ev: p.ev,
+      colInicio: Math.min.apply(null, p.cols),
+      colFin: Math.max.apply(null, p.cols),
+    }));
+
+    // Celdas
+    diasSemana.forEach(fecha => fila.appendChild(crearCelda(fecha, barras.length)));
+
+    // Barras absolutas continuas (sobre el padding de las celdas)
+    barras.forEach((b, idx) => {
+      const span = b.colFin - b.colInicio + 1;
+      const bar = document.createElement('div');
+      bar.className = `chip-evento-mes chip-mes-${b.ev.etiqueta}`;
+      bar.textContent = b.ev.nombre || '(sin nombre)';
+      bar.style.cssText = `position:absolute; z-index:2; top:${25 + idx * ALTO_BARRA}px;` +
+        ` left:calc(${b.colInicio} * 100% / 7 + 2px);` +
+        ` width:calc(${span} * 100% / 7 - 4px);` +
+        ` height:${ALTO_BARRA - 2}px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; cursor:pointer;`;
+      bar.onclick = (evento) => {
+        evento.stopPropagation();
+        abrirFichaEventoEdicion({ tipoInstancia:'evento', eventoId: b.ev.id, fecha: b.ev.fecha, etiqueta: b.ev.etiqueta, estadoSesion: b.ev.estadoSesion || null, esRecurrente:false });
+      };
+      fila.appendChild(bar);
+    });
+
+    return fila;
+  };
+
+  // Renderizar grid arriba: filas de semana apiladas verticalmente
+  const gridArriba = document.getElementById('gridDiasArriba');
+  gridArriba.innerHTML = '';
+  gridArriba.style.display = 'flex';
+  gridArriba.style.flexDirection = 'column';
+  gridArriba.style.gridAutoRows = '';
+  gridArriba.style.flex = semanaAbierta ? 'none' : '1';
+  for(let i = 0; i < diasArriba.length; i += 7){
+    gridArriba.appendChild(crearFilaSemana(diasArriba.slice(i, i + 7)));
+  }
+
+  // Renderizar grid abajo (solo cuando semana abierta)
+  const gridAbajo = document.getElementById('gridDiasAbajo');
+  gridAbajo.innerHTML = '';
+  gridAbajo.style.display = 'flex';
+  gridAbajo.style.flexDirection = 'column';
+  gridAbajo.style.gridAutoRows = '';
+  gridAbajo.style.flex = 'none';
+  for(let i = 0; i < diasAbajo.length; i += 7){
+    gridAbajo.appendChild(crearFilaSemana(diasAbajo.slice(i, i + 7)));
+  }
+
+  // Panel semanal
+  const panel = document.getElementById('panelSemana');
+  if(semanaAbierta){
+    panel.style.display = 'flex';
+    panel.style.flexDirection = 'column';
+  }else{
+    panel.style.display = 'none';
+  }
+}
+
+function abrirSemanaDesdeFecha(fechaISO){
+  inicioSemanaMostrada = obtenerLunesDeSemana(fechaDesdeISO(fechaISO));
+  fechaColumnaSeleccionada = fechaISO;
+  semanaAbierta = true;
+  renderizarVistaMensual();
+  renderizarPanelSemana();
+}
+function cerrarPanelSemana(){
+  semanaAbierta = false;
+  renderizarVistaMensual();
+}
+function cambiarSemana(delta){
+  inicioSemanaMostrada.setDate(inicioSemanaMostrada.getDate() + (delta*7));
+  renderizarPanelSemana();
+}
+
+function renderizarPanelSemana(){
+  const finSemana = new Date(inicioSemanaMostrada); finSemana.setDate(finSemana.getDate()+6);
+  const desde = `${inicioSemanaMostrada.getDate()} ${NOMBRES_MES[inicioSemanaMostrada.getMonth()].slice(0,3)}`;
+  const hasta = `${finSemana.getDate()} ${NOMBRES_MES[finSemana.getMonth()].slice(0,3)}`;
+  document.getElementById('tituloSemana').textContent = `${desde} – ${hasta}`;
+
+  const instancias = obtenerInstanciasEnRango(formatoISO(inicioSemanaMostrada), formatoISO(finSemana));
+  document.getElementById('conteoSemana').textContent = `${instancias.length} evento${instancias.length===1?'':'s'}`;
+  const hoy = hoyISO();
+
+  const grid = document.getElementById('gridSemana');
+  grid.innerHTML = '';
+  let cursor = new Date(inicioSemanaMostrada);
+  for(let i=0;i<7;i++){
+    const fechaStr = formatoISO(cursor);
+    const multidiaHoy = obtenerEventosMultidiaEnFecha(fechaStr);
+    const idsMultidia = new Set(multidiaHoy.map(ev => ev.id));
+    const delDia = instancias
+      .filter(x => x.fecha === fechaStr)
+      .filter(x => !(x.tipoInstancia === 'evento' && idsMultidia.has(x.eventoId)))
+      .sort((a,b) => a.hora.localeCompare(b.hora));
+    const columna = document.createElement('div');
+    columna.className = 'columna-semana' + (fechaStr === hoy ? ' hoy' : '') + (fechaStr === fechaColumnaSeleccionada ? ' seleccionada' : '');
+    columna.onclick = () => { fechaColumnaSeleccionada = fechaStr; renderizarPanelSemana(); };
+
+    const cabecera = document.createElement('div');
+    cabecera.className = 'columna-semana-cabecera';
+    cabecera.innerHTML = `<span class="columna-semana-dow">${NOMBRES_DIA[cursor.getDay()].slice(0,3)}</span><span class="columna-semana-num">${cursor.getDate()}</span>`;
+    columna.appendChild(cabecera);
+
+    if(delDia.length === 0 && multidiaHoy.length === 0){
+      const vacio = document.createElement('div');
+      vacio.className = 'sin-eventos-columna';
+      vacio.textContent = '—';
+      columna.appendChild(vacio);
+    }else{
+      // Eventos multi-día primero, con el mismo estilo de barra (tint +
+      // texto oscuro) que en la vista mensual.
+      multidiaHoy.forEach(ev => {
+        const bar = document.createElement('div');
+        bar.className = `chip-multidia-semana chip-mes-${ev.etiqueta}`;
+        bar.textContent = ev.nombre || '(sin nombre)';
+        bar.onclick = (evento) => {
+          evento.stopPropagation();
+          abrirFichaEventoEdicion({ tipoInstancia:'evento', eventoId: ev.id, fecha: ev.fecha, etiqueta: ev.etiqueta, estadoSesion: ev.estadoSesion || null, esRecurrente:false });
+        };
+        columna.appendChild(bar);
+      });
+
+      const espaciosRestantes = Math.max(0, 6 - multidiaHoy.length);
+      delDia.slice(0, espaciosRestantes).forEach(inst => {
+        const info = obtenerEtiquetaInfo(inst.etiqueta);
+        const chip = document.createElement('div');
+        chip.className = 'chip-evento-semana';
+        chip.style.background = info.color;
+        chip.innerHTML = `<div class="hora">${inst.hora}</div><div class="titulo">${escaparHTML(inst.nombre)}</div>`;
+        chip.onclick = (evento) => { evento.stopPropagation(); abrirFichaEventoEdicion(inst); };
+        columna.appendChild(chip);
+      });
+      const totalEventosDia = multidiaHoy.length + delDia.length;
+      const totalMostrado = multidiaHoy.length + Math.min(delDia.length, espaciosRestantes);
+      if(totalEventosDia > totalMostrado){
+        const mas = document.createElement('div');
+        mas.className = 'chip-mas-semana';
+        mas.textContent = `+${totalEventosDia - totalMostrado}`;
+        columna.appendChild(mas);
+      }
+    }
+    grid.appendChild(columna);
+    cursor.setDate(cursor.getDate()+1);
+  }
+}
+
+function rerenderizarVistaAgendaActual(){
+  renderizarVistaMensual();
+  if(semanaAbierta) renderizarPanelSemana();
+}
+
+// --- Swipe horizontal: mes y semana ---
+let swipeStartX = 0, swipeStartY = 0;
+function iniciarSwipe(e){
+  const p = e.touches ? e.touches[0] : e;
+  swipeStartX = p.clientX; swipeStartY = p.clientY;
+}
+function finalizarSwipeMes(e){
+  const p = e.changedTouches ? e.changedTouches[0] : e;
+  const dx = p.clientX - swipeStartX, dy = p.clientY - swipeStartY;
+  if(Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) cambiarMes(dx < 0 ? 1 : -1);
+}
+function finalizarSwipeSemana(e){
+  const p = e.changedTouches ? e.changedTouches[0] : e;
+  const dx = p.clientX - swipeStartX, dy = p.clientY - swipeStartY;
+  if(Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) cambiarSemana(dx < 0 ? 1 : -1);
+}
+function activarSwipeAgenda(){
+  const ga = document.getElementById('gridDiasArriba');
+  ga.addEventListener('pointerdown', iniciarSwipe);
+  ga.addEventListener('pointerup', finalizarSwipeMes);
+  const gb = document.getElementById('gridDiasAbajo');
+  gb.addEventListener('pointerdown', iniciarSwipe);
+  gb.addEventListener('pointerup', finalizarSwipeMes);
+  const gs = document.getElementById('gridSemana');
+  gs.addEventListener('pointerdown', iniciarSwipe);
+  gs.addEventListener('pointerup', finalizarSwipeSemana);
+}
+
+/* ============================================================
+   9. AGENDA — FICHA DE EVENTO (crear / editar)
+   ============================================================ */
+let etiquetaEventoSeleccionada = null;
+let subtipoAtencionSeleccionado = null;
+let pacienteEventoSeleccionadoId = null;
+let tipoPagoEventoConsultaSeleccionado = null;
+let recurrenciaEventoSeleccionada = 'ninguna';
+let semanaDelMesEventoSeleccionada = 1;
+let hasDurationEventoSeleccionado = false;
+let estadoSesionEventoSeleccionado = null;
+let eventoEnEdicionId = null;
+let consultaEnEdicionId = null;
+let fechaOcurrenciaEnEdicion = null;
+
+function abrirFichaEventoNueva(){
+  eventoEnEdicionId = null; consultaEnEdicionId = null; fechaOcurrenciaEnEdicion = null;
+  etiquetaEventoSeleccionada = 'atenciones'; subtipoAtencionSeleccionado = 'existente';
+  pacienteEventoSeleccionadoId = null; tipoPagoEventoConsultaSeleccionado = 'particular';
+  recurrenciaEventoSeleccionada = 'ninguna'; semanaDelMesEventoSeleccionada = 1;
+  estadoSesionEventoSeleccionado = null; hasDurationEventoSeleccionado = false;
+
+  document.getElementById('tituloFichaEvento').textContent = 'Nueva atención';
+  document.getElementById('eventoNombreLibre').value = '';
+  document.getElementById('eventoConsultaNombre').value = '';
+  document.getElementById('eventoConsultaMonto').value = '';
+  document.getElementById('campoBusquedaPaciente').value = '';
+  document.getElementById('eventoFecha').value = fechaColumnaSeleccionada || hoyISO();
+  document.getElementById('eventoHora').value = '';
+  document.getElementById('eventoFechaTermino').value = '';
+  document.getElementById('eventoHoraTermino').value = '';
+  document.getElementById('camposDuracionDetalle').style.display = 'none';
+  document.getElementById('resumenDuracionEvento').textContent = '';
+  document.getElementById('zonaEliminarEvento').style.display = 'none';
+  document.getElementById('botonOmitirFechaEvento').style.display = 'none';
+  document.getElementById('confirmacionEliminarEvento').style.display = 'none';
+  document.getElementById('confirmacionOmitirFecha').style.display = 'none';
+  document.getElementById('botonEliminarEvento').style.display = 'block';
+
+  pintarGridEtiquetasEvento(); pintarSegmentadoSubtipoAtencion(); pintarSegmentadoTipoPagoEventoConsulta();
+  pintarSegmentadoRecurrenciaEvento(); pintarSegmentadoSemanaDelMes(); pintarSegmentadoEstadoSesionEvento();
+  pintarSegmentadoDuracion();
+  actualizarCamposSegunEtiqueta(); actualizarMontoEventoConsulta(); renderizarBusquedaPaciente();
+
+  document.getElementById('fondoModalEvento').classList.add('abierto');
+}
+
+function abrirFichaEventoEdicion(instancia){
+  fechaOcurrenciaEnEdicion = instancia.fecha;
+  estadoSesionEventoSeleccionado = instancia.estadoSesion || null;
+
+  if(instancia.tipoInstancia === 'consulta'){
+    consultaEnEdicionId = instancia.consultaId; eventoEnEdicionId = null;
+    const c = consultasUnicas.find(x => x.id === instancia.consultaId); if(!c) return;
+    etiquetaEventoSeleccionada = 'atenciones'; subtipoAtencionSeleccionado = 'consulta';
+    tipoPagoEventoConsultaSeleccionado = c.tipoPago; recurrenciaEventoSeleccionada = 'ninguna';
+    hasDurationEventoSeleccionado = false;
+
+    document.getElementById('tituloFichaEvento').textContent = 'Editar sesión de ingreso';
+    document.getElementById('eventoConsultaNombre').value = c.nombre;
+    document.getElementById('eventoFecha').value = c.fecha;
+    document.getElementById('eventoHora').value = c.hora || '';
+    document.getElementById('zonaEliminarEvento').style.display = 'block';
+    document.getElementById('botonOmitirFechaEvento').style.display = 'none';
+    document.getElementById('botonEliminarEvento').textContent = 'Eliminar registro';
+  }else{
+    eventoEnEdicionId = instancia.eventoId; consultaEnEdicionId = null;
+    const evento = eventosAgenda.find(x => x.id === instancia.eventoId); if(!evento) return;
+    etiquetaEventoSeleccionada = evento.etiqueta; recurrenciaEventoSeleccionada = evento.recurrencia;
+    semanaDelMesEventoSeleccionada = evento.semanaDelMes || 1;
+    hasDurationEventoSeleccionado = evento.hasDuration || false;
+
+    if(evento.etiqueta === 'atenciones' && evento.pacienteId){
+      subtipoAtencionSeleccionado = 'existente'; pacienteEventoSeleccionadoId = evento.pacienteId;
+    }
+
+    document.getElementById('tituloFichaEvento').textContent = 'Editar evento';
+    document.getElementById('eventoNombreLibre').value = evento.nombre || '';
+    document.getElementById('eventoFecha').value = evento.fecha;
+    document.getElementById('eventoHora').value = evento.hora || '';
+    document.getElementById('eventoFechaTermino').value = evento.endDate || evento.fecha;
+    document.getElementById('eventoHoraTermino').value = evento.endTime || '';
+    document.getElementById('camposDuracionDetalle').style.display = hasDurationEventoSeleccionado ? 'block' : 'none';
+    document.getElementById('zonaEliminarEvento').style.display = 'block';
+    document.getElementById('botonOmitirFechaEvento').style.display = evento.recurrencia !== 'ninguna' ? 'block' : 'none';
+    document.getElementById('botonEliminarEvento').textContent = evento.recurrencia !== 'ninguna' ? 'Eliminar toda la serie' : 'Eliminar';
+  }
+
+  document.getElementById('confirmacionEliminarEvento').style.display = 'none';
+  document.getElementById('confirmacionOmitirFecha').style.display = 'none';
+
+  pintarGridEtiquetasEvento(); pintarSegmentadoSubtipoAtencion(); pintarSegmentadoTipoPagoEventoConsulta();
+  pintarSegmentadoRecurrenciaEvento(); pintarSegmentadoSemanaDelMes(); pintarSegmentadoEstadoSesionEvento();
+  pintarSegmentadoDuracion();
+  actualizarCamposSegunEtiqueta();
+  if(subtipoAtencionSeleccionado === 'consulta') actualizarMontoEventoConsulta();
+  actualizarResumenDuracion();
+  renderizarBusquedaPaciente();
+
+  if(subtipoAtencionSeleccionado === 'existente' && pacienteEventoSeleccionadoId){
+    const p = pacientes.find(x => x.id === pacienteEventoSeleccionadoId);
+    document.getElementById('campoBusquedaPaciente').value = p ? p.nombreCompleto : '';
+  }
+
+  document.getElementById('fondoModalEvento').classList.add('abierto');
+}
+
+function cerrarFichaEvento(){
+  document.getElementById('fondoModalEvento').classList.remove('abierto');
+  eventoEnEdicionId = null; consultaEnEdicionId = null; fechaOcurrenciaEnEdicion = null;
+}
+
+function pintarGridEtiquetasEvento(){
+  const grid = document.getElementById('gridEtiquetasEvento'); grid.innerHTML = '';
+  ETIQUETAS.forEach(et => {
+    const chip = document.createElement('button');
+    chip.className = 'chip-etiqueta' + (etiquetaEventoSeleccionada === et.valor ? ' seleccionada' : '');
+    chip.style.setProperty('--chip-color', et.color);
+    chip.innerHTML = `<span class="punto-etiqueta" style="background:${et.color}"></span><span class="nombre-etiqueta">${et.nombre}</span>`;
+    chip.onclick = () => { etiquetaEventoSeleccionada = et.valor; pintarGridEtiquetasEvento(); actualizarCamposSegunEtiqueta(); };
+    grid.appendChild(chip);
+  });
+}
+function pintarSegmentadoSubtipoAtencion(){
+  const c = document.getElementById('segmentadoSubtipoAtencion'); c.innerHTML = '';
+  [{valor:'existente',nombre:'Paciente existente'},{valor:'consulta',nombre:'Sesión de ingreso'}].forEach(op => {
+    const b = document.createElement('button');
+    b.className = subtipoAtencionSeleccionado === op.valor ? 'seleccionado' : '';
+    b.textContent = op.nombre;
+    b.onclick = () => { subtipoAtencionSeleccionado = op.valor; pintarSegmentadoSubtipoAtencion(); actualizarCamposSegunEtiqueta(); };
+    c.appendChild(b);
+  });
+}
+function pintarSegmentadoTipoPagoEventoConsulta(){
+  const c = document.getElementById('segmentadoTipoPagoEventoConsulta'); c.innerHTML = '';
+  TIPOS_PAGO_CONSULTA.forEach(t => {
+    const b = document.createElement('button');
+    b.className = tipoPagoEventoConsultaSeleccionado === t.valor ? 'seleccionado' : '';
+    b.style.setProperty('--chip-color', t.color);
+    b.textContent = t.nombre;
+    b.onclick = () => { tipoPagoEventoConsultaSeleccionado = t.valor; pintarSegmentadoTipoPagoEventoConsulta(); actualizarMontoEventoConsulta(); };
+    c.appendChild(b);
+  });
+}
+function pintarSegmentadoRecurrenciaEvento(){
+  const c = document.getElementById('segmentadoRecurrenciaEvento'); c.innerHTML = '';
+  RECURRENCIAS.forEach(r => {
+    const b = document.createElement('button');
+    b.className = recurrenciaEventoSeleccionada === r.valor ? 'seleccionado' : '';
+    b.textContent = r.nombre;
+    b.onclick = () => { recurrenciaEventoSeleccionada = r.valor; pintarSegmentadoRecurrenciaEvento(); actualizarVisibilidadRecurrenciaPersonalizada(); };
+    c.appendChild(b);
+  });
+  actualizarVisibilidadRecurrenciaPersonalizada();
+}
+function actualizarVisibilidadRecurrenciaPersonalizada(){
+  const esPersonalizada = recurrenciaEventoSeleccionada === 'mensual_personalizada';
+  document.getElementById('campoRecurrenciaPersonalizada').style.display = esPersonalizada ? 'block' : 'none';
+  const fecha = document.getElementById('eventoFecha').value;
+  const nombreDia = fecha ? NOMBRES_DIA[fechaDesdeISO(fecha).getDay()] : '';
+  document.getElementById('notaRecurrenciaEvento').textContent = recurrenciaEventoSeleccionada === 'semanal'
+    ? 'Se repite el mismo día de la semana.'
+    : recurrenciaEventoSeleccionada === 'mensual'
+      ? 'Se repite el mismo número de día del mes.'
+      : recurrenciaEventoSeleccionada === 'mensual_personalizada'
+        ? `Se repite cada mes en su N-ésimo ${nombreDia || 'día de la semana'}.`
+        : '';
+}
+function pintarSegmentadoSemanaDelMes(){
+  const c = document.getElementById('segmentadoSemanaDelMes'); c.innerHTML = '';
+  SEMANAS_DEL_MES.forEach(s => {
+    const b = document.createElement('button');
+    b.className = semanaDelMesEventoSeleccionada === s.valor ? 'seleccionado' : '';
+    b.textContent = s.nombre;
+    b.onclick = () => { semanaDelMesEventoSeleccionada = s.valor; pintarSegmentadoSemanaDelMes(); };
+    c.appendChild(b);
+  });
+}
+function pintarSegmentadoEstadoSesionEvento(){
+  const c = document.getElementById('segmentadoEstadoSesionEvento'); c.innerHTML = '';
+  ESTADOS_SESION.forEach(es => {
+    const b = document.createElement('button');
+    b.className = estadoSesionEventoSeleccionado === es.valor ? 'seleccionado' : '';
+    b.textContent = es.nombre;
+    b.onclick = () => { estadoSesionEventoSeleccionado = (estadoSesionEventoSeleccionado === es.valor) ? null : es.valor; pintarSegmentadoEstadoSesionEvento(); };
+    c.appendChild(b);
+  });
+}
+
+function pintarSegmentadoDuracion(){
+  const c = document.getElementById('segmentadoDuracion'); c.innerHTML = '';
+  [{valor:false,nombre:'Sin duración'},{valor:true,nombre:'Con duración'}].forEach(op => {
+    const b = document.createElement('button');
+    b.className = hasDurationEventoSeleccionado === op.valor ? 'seleccionado' : '';
+    b.textContent = op.nombre;
+    b.onclick = () => {
+      hasDurationEventoSeleccionado = op.valor;
+      pintarSegmentadoDuracion();
+      const detalle = document.getElementById('camposDuracionDetalle');
+      detalle.style.display = hasDurationEventoSeleccionado ? 'block' : 'none';
+      if(hasDurationEventoSeleccionado && !document.getElementById('eventoFechaTermino').value){
+        document.getElementById('eventoFechaTermino').value = document.getElementById('eventoFecha').value;
+      }
+      actualizarResumenDuracion();
+    };
+    c.appendChild(b);
+  });
+}
+function actualizarResumenDuracion(){
+  if(!hasDurationEventoSeleccionado) return;
+  const fechaInicio = document.getElementById('eventoFecha').value;
+  const horaInicio = document.getElementById('eventoHora').value || '--:--';
+  const fechaTermino = document.getElementById('eventoFechaTermino').value || fechaInicio;
+  const horaTermino = document.getElementById('eventoHoraTermino').value || '--:--';
+  const resumen = document.getElementById('resumenDuracionEvento');
+  if(!fechaInicio || !fechaTermino){ resumen.textContent = ''; return; }
+  resumen.textContent = (fechaTermino === fechaInicio)
+    ? `El evento dura de ${horaInicio} a ${horaTermino}, el mismo día.`
+    : `Ocupa desde ${fechaInicio} ${horaInicio} hasta ${fechaTermino} ${horaTermino}.`;
+}
+
+function actualizarCamposSegunEtiqueta(){
+  const esAtenciones = etiquetaEventoSeleccionada === 'atenciones';
+  document.getElementById('campoSubtipoAtencion').style.display = esAtenciones ? 'block' : 'none';
+  document.getElementById('campoNombreLibreEvento').style.display = esAtenciones ? 'none' : 'block';
+  document.getElementById('campoEstadoSesionEvento').style.display = esAtenciones ? 'block' : 'none';
+
+  const esExistente = esAtenciones && subtipoAtencionSeleccionado === 'existente';
+  const esConsulta = esAtenciones && subtipoAtencionSeleccionado === 'consulta';
+  document.getElementById('campoBuscarPaciente').style.display = esExistente ? 'block' : 'none';
+  document.getElementById('camposConsultaUnica').style.display = esConsulta ? 'block' : 'none';
+  document.getElementById('campoRecurrenciaEvento').style.display = esConsulta ? 'none' : 'block';
+  if(esConsulta) recurrenciaEventoSeleccionada = 'ninguna';
+  actualizarVisibilidadRecurrenciaPersonalizada();
+
+  // La duración solo aplica a categorías que no son Atenciones ni
+  // Análisis y Supervisión (sesiones de duración fija, no variable).
+  const mostrarDuracion = etiquetaEventoSeleccionada !== 'atenciones' && etiquetaEventoSeleccionada !== 'analisis';
+  document.getElementById('campoDuracionToggle').style.display = mostrarDuracion ? 'block' : 'none';
+  if(!mostrarDuracion){
+    hasDurationEventoSeleccionado = false;
+    document.getElementById('camposDuracionDetalle').style.display = 'none';
+  }
+}
+
+function manejarEscrituraBusquedaPaciente(){ pacienteEventoSeleccionadoId = null; renderizarBusquedaPaciente(); }
+function seleccionarPacienteBusqueda(id, nombre){
+  pacienteEventoSeleccionadoId = id;
+  document.getElementById('campoBusquedaPaciente').value = nombre;
+  renderizarBusquedaPaciente();
+}
+function renderizarBusquedaPaciente(){
+  const texto = (document.getElementById('campoBusquedaPaciente').value || '').toLowerCase().trim();
+  const activos = pacientes.filter(p => p.estado === 'activo');
+  const filtrados = texto === '' ? activos : activos.filter(p => p.nombreCompleto.toLowerCase().includes(texto));
+  const confirmacion = document.getElementById('pacienteSeleccionadoConfirmacion');
+  const lista = document.getElementById('listaBusquedaPaciente');
+
+  if(pacienteEventoSeleccionadoId){
+    const p = pacientes.find(x => x.id === pacienteEventoSeleccionadoId);
+    confirmacion.innerHTML = p ? `<div class="paciente-confirmado"><span class="check">✓</span> ${escaparHTML(p.nombreCompleto)} seleccionado</div>` : '';
+    lista.innerHTML = ''; return;
+  }
+  confirmacion.innerHTML = ''; lista.innerHTML = '';
+  if(filtrados.length === 0){ lista.innerHTML = '<div class="nota-campo">No se encontraron pacientes activos.</div>'; return; }
+  filtrados.forEach(p => {
+    const fila = document.createElement('div');
+    fila.className = 'fila-paciente-busqueda';
+    fila.textContent = p.nombreCompleto;
+    fila.onclick = () => seleccionarPacienteBusqueda(p.id, p.nombreCompleto);
+    lista.appendChild(fila);
+  });
+}
+
+function actualizarMontoEventoConsulta(){
+  const campo = document.getElementById('eventoConsultaMonto'); const nota = document.getElementById('eventoConsultaNotaMonto');
+  if(tipoPagoEventoConsultaSeleccionado === 'fonasa_directo'){
+    campo.value = (configuracion.montoFonasa || 0).toLocaleString('es-CL'); campo.disabled = true;
+    nota.textContent = 'Monto fijo, definido en Configuración global.';
+  }else if(tipoPagoEventoConsultaSeleccionado === 'fonasa_el'){
+    campo.value = (configuracion.montoFonasaEL || 0).toLocaleString('es-CL'); campo.disabled = true;
+    nota.textContent = 'Monto fijo, definido en Configuración global.';
+  }else{
+    campo.disabled = false; nota.textContent = 'Monto variable para esta sesión.';
+    if(consultaEnEdicionId === null) campo.value = '';
+    else{ const c = consultasUnicas.find(x => x.id === consultaEnEdicionId); if(c) campo.value = c.monto.toLocaleString('es-CL'); }
+  }
+}
+
+async function guardarFichaEvento(){
+  const fecha = document.getElementById('eventoFecha').value;
+  const hora = document.getElementById('eventoHora').value;
+  if(!fecha){ alert('Selecciona la fecha.'); return; }
+  if(!horaEsValida(hora)){ alert('Ingresa una hora válida en formato HH:MM (24 horas).'); return; }
+
+  if(etiquetaEventoSeleccionada === 'atenciones' && subtipoAtencionSeleccionado === 'consulta'){
+    const nombre = document.getElementById('eventoConsultaNombre').value.trim();
+    if(!nombre){ alert('Ingresa el nombre del paciente.'); return; }
+    if(!tipoPagoEventoConsultaSeleccionado){ alert('Selecciona el tipo de pago.'); return; }
+    let monto;
+    if(tipoPagoEventoConsultaSeleccionado === 'fonasa_directo') monto = configuracion.montoFonasa || 0;
+    else if(tipoPagoEventoConsultaSeleccionado === 'fonasa_el') monto = configuracion.montoFonasaEL || 0;
+    else{ monto = limpiarMontoTexto(document.getElementById('eventoConsultaMonto').value); if(monto === null || monto <= 0){ alert('Ingresa un monto válido.'); return; } }
+
+    if(consultaEnEdicionId === null){
+      consultasUnicas.push({ id: generarId(), nombre, tipoPago: tipoPagoEventoConsultaSeleccionado, monto, fecha, hora, estadoSesion: estadoSesionEventoSeleccionado, tipo:'ingreso', creado: Date.now() });
+    }else{
+      const c = consultasUnicas.find(x => x.id === consultaEnEdicionId);
+      if(c){ c.nombre = nombre; c.tipoPago = tipoPagoEventoConsultaSeleccionado; c.monto = monto; c.fecha = fecha; c.hora = hora; c.estadoSesion = estadoSesionEventoSeleccionado; }
+    }
+    cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarConsultasEnAlmacenamiento(); return;
+  }
+
+  if(etiquetaEventoSeleccionada === 'atenciones' && subtipoAtencionSeleccionado === 'existente'){
+    if(!pacienteEventoSeleccionadoId){ alert('Selecciona un paciente de la lista.'); return; }
+    await guardarEventoGenerico(fecha, hora, null, pacienteEventoSeleccionadoId); return;
+  }
+
+  const nombreLibre = document.getElementById('eventoNombreLibre').value.trim();
+  if(!nombreLibre){ alert('Ingresa el nombre del evento.'); return; }
+  await guardarEventoGenerico(fecha, hora, nombreLibre, null);
+}
+
+async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
+  const diaSemana = fechaDesdeISO(fecha).getDay();
+
+  const mostrarDuracion = etiquetaEventoSeleccionada !== 'atenciones' && etiquetaEventoSeleccionada !== 'analisis';
+  const hasDuration = mostrarDuracion && hasDurationEventoSeleccionado;
+  let endDate = '', endTime = '';
+  if(hasDuration){
+    endDate = document.getElementById('eventoFechaTermino').value || fecha;
+    if(endDate < fecha){ alert('La fecha de término no puede ser anterior a la fecha de inicio.'); return; }
+    const horaTerminoTexto = document.getElementById('eventoHoraTermino').value;
+    if(horaTerminoTexto && !horaEsValida(horaTerminoTexto)){ alert('Ingresa una hora de término válida en formato HH:MM (24 horas).'); return; }
+    endTime = horaTerminoTexto || '';
+  }
+
+  if(eventoEnEdicionId === null){
+    eventosAgenda.push({
+      id: generarId(), etiqueta: etiquetaEventoSeleccionada, nombre, pacienteId, fecha, hora,
+      recurrencia: recurrenciaEventoSeleccionada,
+      diaSemana: recurrenciaEventoSeleccionada === 'mensual_personalizada' ? diaSemana : undefined,
+      semanaDelMes: recurrenciaEventoSeleccionada === 'mensual_personalizada' ? semanaDelMesEventoSeleccionada : undefined,
+      fechasExcluidas: [], estadoSesion: recurrenciaEventoSeleccionada === 'ninguna' ? estadoSesionEventoSeleccionado : null,
+      estadosPorFecha: {}, hasDuration, endDate, endTime, creado: Date.now()
+    });
+  }else{
+    const evento = eventosAgenda.find(x => x.id === eventoEnEdicionId);
+    if(evento){
+      evento.etiqueta = etiquetaEventoSeleccionada; evento.nombre = nombre; evento.pacienteId = pacienteId;
+      evento.fecha = fecha; evento.hora = hora; evento.recurrencia = recurrenciaEventoSeleccionada;
+      if(recurrenciaEventoSeleccionada === 'mensual_personalizada'){ evento.diaSemana = diaSemana; evento.semanaDelMes = semanaDelMesEventoSeleccionada; }
+      if(evento.recurrencia === 'ninguna'){ evento.estadoSesion = estadoSesionEventoSeleccionado; }
+      else if(fechaOcurrenciaEnEdicion){
+        evento.estadosPorFecha = evento.estadosPorFecha || {};
+        if(estadoSesionEventoSeleccionado) evento.estadosPorFecha[fechaOcurrenciaEnEdicion] = estadoSesionEventoSeleccionado;
+        else delete evento.estadosPorFecha[fechaOcurrenciaEnEdicion];
+      }
+      evento.hasDuration = hasDuration; evento.endDate = endDate; evento.endTime = endTime;
+    }
+  }
+  cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarEventosEnAlmacenamiento();
+}
+
+function solicitarOmitirFecha(){
+  document.getElementById('botonOmitirFechaEvento').style.display = 'none';
+  document.getElementById('botonEliminarEvento').style.display = 'none';
+  document.getElementById('confirmacionOmitirFecha').style.display = 'block';
+}
+function cancelarOmitirFecha(){
+  document.getElementById('botonOmitirFechaEvento').style.display = 'block';
+  document.getElementById('botonEliminarEvento').style.display = 'block';
+  document.getElementById('confirmacionOmitirFecha').style.display = 'none';
+}
+async function confirmarOmitirFecha(){
+  const evento = eventosAgenda.find(x => x.id === eventoEnEdicionId);
+  if(evento && fechaOcurrenciaEnEdicion){
+    evento.fechasExcluidas = evento.fechasExcluidas || [];
+    if(!evento.fechasExcluidas.includes(fechaOcurrenciaEnEdicion)) evento.fechasExcluidas.push(fechaOcurrenciaEnEdicion);
+  }
+  cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarEventosEnAlmacenamiento();
+}
+function solicitarEliminarEvento(){
+  document.getElementById('botonEliminarEvento').style.display = 'none';
+  document.getElementById('botonOmitirFechaEvento').style.display = 'none';
+  const eventoActual = eventoEnEdicionId !== null ? eventosAgenda.find(x => x.id === eventoEnEdicionId) : null;
+  const esSerie = eventoActual && eventoActual.recurrencia !== 'ninguna';
+  document.getElementById('textoConfirmacionEliminarEvento').textContent = esSerie
+    ? 'Se eliminará toda la serie recurrente, incluyendo sus repeticiones futuras. No se puede deshacer.'
+    : 'Este registro se eliminará permanentemente. No se puede deshacer.';
+  document.getElementById('confirmacionEliminarEvento').style.display = 'block';
+}
+function cancelarEliminarEvento(){
+  document.getElementById('botonEliminarEvento').style.display = 'block';
+  const evento = eventoEnEdicionId !== null ? eventosAgenda.find(x => x.id === eventoEnEdicionId) : null;
+  if(evento && evento.recurrencia !== 'ninguna') document.getElementById('botonOmitirFechaEvento').style.display = 'block';
+  document.getElementById('confirmacionEliminarEvento').style.display = 'none';
+}
+async function confirmarEliminarEvento(){
+  if(consultaEnEdicionId !== null){
+    consultasUnicas = consultasUnicas.filter(x => x.id !== consultaEnEdicionId);
+    cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarConsultasEnAlmacenamiento();
+  }else if(eventoEnEdicionId !== null){
+    eventosAgenda = eventosAgenda.filter(x => x.id !== eventoEnEdicionId);
+    cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarEventosEnAlmacenamiento();
+  }
+}
+
+/* ============================================================
+   10. MÓDULO C — GASTOS (integrado como pestaña)
+   ============================================================ */
+const CATEGORIAS_GASTO = [
+  { codigo:'CF', nombre:'Cuentas fijas',    color:'var(--cat-CF)' },
+  { codigo:'FO', nombre:'Formación',        color:'var(--cat-FO)' },
+  { codigo:'OC', nombre:'Ocio',             color:'var(--cat-OC)' },
+  { codigo:'CO', nombre:'Cotidianos',       color:'var(--cat-CO)' },
+  { codigo:'SP', nombre:'Salud y personal', color:'var(--cat-SP)' },
+  { codigo:'DT', nombre:'Deudas y tarjeta', color:'var(--cat-DT)' },
+];
+const MEDIOS_PAGO_GASTO = ['Efectivo', 'BancoEstado', 'Santander'];
+
+let expresionGasto = '';
+let modoOperadoresGasto = false;
+let categoriaSeleccionadaGasto = null;
+let pagoSeleccionadoGasto = null;
+let mostrarTodosGasto = false;
+let idGastoEnEdicion = null;
+let idMenuAbiertoGasto = null;
+let idConfirmandoEliminarGasto = null;
+
+function teclaGasto(caracter){
+  const esOperador = ['+','−','×','÷'].includes(caracter);
+  const ultimo = expresionGasto.slice(-1);
+  const ultimoEsOperador = ['+','−','×','÷'].includes(ultimo);
+  if(esOperador && expresionGasto === '') return;
+  if(esOperador && ultimoEsOperador){ expresionGasto = expresionGasto.slice(0,-1) + caracter; actualizarPantallaGasto(); return; }
+  if(caracter === '.' && ultimoEsOperador) return;
+  expresionGasto += caracter; actualizarPantallaGasto();
+}
+function borrarGasto(){ expresionGasto = expresionGasto.slice(0,-1); actualizarPantallaGasto(); }
+function limpiarTodoGasto(){ expresionGasto = ''; actualizarPantallaGasto(); }
+function alternarTecladoOperadoresGasto(){
+  modoOperadoresGasto = !modoOperadoresGasto;
+  document.getElementById('gastoFilaOperadores').classList.toggle('visible', modoOperadoresGasto);
+}
+function evaluarExpresionGasto(expr){
+  if(!expr) return null;
+  let limpia = expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-');
+  limpia = limpia.replace(/[+\-*/.]+$/, '');
+  if(limpia === '') return null;
+  if(!/^[0-9+\-*/().]+$/.test(limpia)) return null;
+  try{ const r = Function('"use strict"; return (' + limpia + ')')(); if(typeof r !== 'number' || !isFinite(r)) return null; return Math.round(r); }catch(e){ return null; }
+}
+function actualizarPantallaGasto(){
+  const pantalla = document.getElementById('gastoMontoPantalla'); const preview = document.getElementById('gastoPreviewTotal');
+  if(expresionGasto === ''){ pantalla.textContent = '$0'; preview.textContent = ''; return; }
+  const formateada = expresionGasto.replace(/\d+/g, (g) => { const n = parseInt(g,10); return isNaN(n) ? g : n.toLocaleString('es-CL'); });
+  pantalla.textContent = '$' + formateada;
+  if(/[+−×÷]/.test(expresionGasto)){ const r = evaluarExpresionGasto(expresionGasto); preview.textContent = r !== null ? ('= ' + formatearCLP(r)) : ''; }
+  else preview.textContent = '';
+}
+function pintarCategoriasGasto(contenedorId, seleccionActual, alSeleccionar){
+  const c = document.getElementById(contenedorId); c.innerHTML = '';
+  CATEGORIAS_GASTO.forEach(cat => {
+    const chip = document.createElement('button');
+    chip.className = 'chip-categoria-gasto' + (seleccionActual === cat.codigo ? ' seleccionada' : '');
+    chip.style.setProperty('--chip-color', cat.color);
+    chip.innerHTML = `<div class="fila-punto"><span class="punto-gasto" style="background:${cat.color}"></span><span class="codigo-gasto">${cat.codigo}</span></div><span class="nombre-categoria-gasto">${cat.nombre}</span>`;
+    chip.onclick = () => alSeleccionar(cat.codigo);
+    c.appendChild(chip);
+  });
+}
+function pintarPagosGasto(contenedorId, seleccionActual, alSeleccionar){
+  const c = document.getElementById(contenedorId); c.innerHTML = '';
+  MEDIOS_PAGO_GASTO.forEach(medio => {
+    const chip = document.createElement('button');
+    chip.className = 'chip-pago-gasto' + (seleccionActual === medio ? ' seleccionada' : '');
+    chip.style.setProperty('--chip-color', `var(--pago-${medio})`);
+    chip.textContent = medio;
+    chip.onclick = () => alSeleccionar(medio);
+    c.appendChild(chip);
+  });
+}
+function seleccionarCategoriaPrincipalGasto(codigo){ categoriaSeleccionadaGasto = codigo; pintarCategoriasGasto('gastoGridCategorias', categoriaSeleccionadaGasto, seleccionarCategoriaPrincipalGasto); }
+function seleccionarPagoPrincipalGasto(medio){ pagoSeleccionadoGasto = medio; pintarPagosGasto('gastoGridPagos', pagoSeleccionadoGasto, seleccionarPagoPrincipalGasto); }
+
+async function guardarNuevoGasto(){
+  const monto = evaluarExpresionGasto(expresionGasto);
+  if(monto === null || monto <= 0){ alert('Ingresa un monto válido.'); return; }
+  if(!categoriaSeleccionadaGasto){ alert('Selecciona una categoría.'); return; }
+  if(!pagoSeleccionadoGasto){ alert('Selecciona un medio de pago.'); return; }
+  const nuevoRegistro = { id: generarId(), fecha: document.getElementById('gastoCampoFecha').value, categoria: categoriaSeleccionadaGasto, medioPago: pagoSeleccionadoGasto, monto, descripcion: document.getElementById('gastoCampoDescripcion').value.trim(), creado: Date.now(), sincronizado: false };
+  registrosGasto.push(nuevoRegistro);
+  expresionGasto = ''; categoriaSeleccionadaGasto = null; pagoSeleccionadoGasto = null;
+  document.getElementById('gastoCampoDescripcion').value = ''; document.getElementById('gastoCampoFecha').value = hoyISO();
+  actualizarPantallaGasto();
+  pintarCategoriasGasto('gastoGridCategorias', null, seleccionarCategoriaPrincipalGasto);
+  pintarPagosGasto('gastoGridPagos', null, seleccionarPagoPrincipalGasto);
+  renderizarListaGastos();
+  await guardarGastosEnAlmacenamiento();
+  // El guardado local ya terminó (igual que antes); la sincronización con
+  // Sheets ocurre en segundo plano y no retrasa ni bloquea la pantalla.
+  sincronizarGastoConSheets(nuevoRegistro);
+}
+function obtenerCategoriaGastoPorCodigo(codigo){ return CATEGORIAS_GASTO.find(c => c.codigo === codigo) || { color:'var(--texto-terciario)', nombre:codigo }; }
+function renderizarListaGastos(){
+  const lista = document.getElementById('gastoListaRegistros'); const botonVerTodos = document.getElementById('gastoBotonVerTodos');
+  lista.innerHTML = '';
+  const ordenados = [...registrosGasto].sort((a,b) => b.creado - a.creado);
+  if(ordenados.length === 0){ lista.innerHTML = '<div class="vacio">Todavía no hay gastos registrados.</div>'; botonVerTodos.style.display = 'none'; return; }
+  const aMostrar = mostrarTodosGasto ? ordenados : ordenados.slice(0,5);
+  aMostrar.forEach(reg => {
+    const cat = obtenerCategoriaGastoPorCodigo(reg.categoria);
+    const fila = document.createElement('div'); fila.className = 'fila-registro-gasto';
+    fila.innerHTML = `
+      <div class="franja-categoria-gasto" style="background:${cat.color}"></div>
+      <div class="detalle-registro-gasto">
+        <div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px;">
+          <span class="monto-registro-gasto monto-fuente">${formatearCLP(reg.monto)}</span>
+          <span class="meta-gasto">${formatearFechaCortaGasto(reg.fecha)}</span>
+        </div>
+        <div class="meta-gasto">${cat.nombre} · ${reg.medioPago}${reg.descripcion ? ' · ' + escaparHTML(reg.descripcion) : ''}</div>
+      </div>
+      <button class="boton-menu-gasto" onclick="alternarMenuGasto(event, '${reg.id}')">⋮</button>
+      <div class="menu-contextual-gasto ${idMenuAbiertoGasto === reg.id ? 'abierto' : ''}" id="menuGasto-${reg.id}">
+        ${idConfirmandoEliminarGasto === reg.id ? `
+          <div class="texto-confirmacion-gasto">¿Eliminar este gasto?</div>
+          <button class="opcion-eliminar-gasto" onclick="confirmarEliminacionGasto(event, '${reg.id}')">Sí, eliminar</button>
+          <button onclick="cancelarEliminacionGasto(event)">Cancelar</button>
+        ` : `
+          <button onclick="editarRegistroGasto('${reg.id}')">Editar</button>
+          <button class="opcion-eliminar-gasto" onclick="solicitarEliminarGasto(event, '${reg.id}')">Eliminar</button>
+        `}
+      </div>
+    `;
+    lista.appendChild(fila);
+  });
+  if(ordenados.length > 5){ botonVerTodos.style.display = 'block'; botonVerTodos.textContent = mostrarTodosGasto ? 'Ver menos' : `Ver todos los registros (${ordenados.length})`; }
+  else botonVerTodos.style.display = 'none';
+}
+function formatearFechaCortaGasto(fechaISO){ if(!fechaISO) return ''; const [a,m,d] = fechaISO.split('-'); return `${d}/${m}`; }
+function alternarVerTodosGasto(){ mostrarTodosGasto = !mostrarTodosGasto; renderizarListaGastos(); }
+function alternarMenuGasto(evento, id){ evento.stopPropagation(); idMenuAbiertoGasto = (idMenuAbiertoGasto === id) ? null : id; renderizarListaGastos(); }
+document.addEventListener('click', () => {
+  if(idMenuAbiertoGasto !== null || idConfirmandoEliminarGasto !== null){ idMenuAbiertoGasto = null; idConfirmandoEliminarGasto = null; renderizarListaGastos(); }
+});
+function solicitarEliminarGasto(evento, id){ evento.stopPropagation(); idConfirmandoEliminarGasto = id; renderizarListaGastos(); }
+function cancelarEliminacionGasto(evento){ evento.stopPropagation(); idConfirmandoEliminarGasto = null; renderizarListaGastos(); }
+async function confirmarEliminacionGasto(evento, id){
+  evento.stopPropagation(); idMenuAbiertoGasto = null; idConfirmandoEliminarGasto = null;
+  registrosGasto = registrosGasto.filter(r => r.id !== id); renderizarListaGastos(); await guardarGastosEnAlmacenamiento();
+}
+let categoriaModalGasto = null; let pagoModalGasto = null;
+function editarRegistroGasto(id){
+  idMenuAbiertoGasto = null;
+  const registro = registrosGasto.find(r => r.id === id); if(!registro) return;
+  idGastoEnEdicion = id; categoriaModalGasto = registro.categoria; pagoModalGasto = registro.medioPago;
+  document.getElementById('modalGastoMonto').value = registro.monto;
+  document.getElementById('modalGastoFecha').value = registro.fecha;
+  document.getElementById('modalGastoDescripcion').value = registro.descripcion || '';
+  pintarCategoriasGasto('modalGastoGridCategorias', categoriaModalGasto, seleccionarCategoriaModalGasto);
+  pintarPagosGasto('modalGastoGridPagos', pagoModalGasto, seleccionarPagoModalGasto);
+  document.getElementById('fondoModalGasto').classList.add('abierto');
+  renderizarListaGastos();
+}
+function seleccionarCategoriaModalGasto(codigo){ categoriaModalGasto = codigo; pintarCategoriasGasto('modalGastoGridCategorias', categoriaModalGasto, seleccionarCategoriaModalGasto); }
+function seleccionarPagoModalGasto(medio){ pagoModalGasto = medio; pintarPagosGasto('modalGastoGridPagos', pagoModalGasto, seleccionarPagoModalGasto); }
+async function guardarEdicionGasto(){
+  const registro = registrosGasto.find(r => r.id === idGastoEnEdicion); if(!registro) return;
+  const monto = parseInt(document.getElementById('modalGastoMonto').value.replace(/[^\d]/g,''), 10);
+  if(isNaN(monto) || monto <= 0){ alert('Ingresa un monto válido.'); return; }
+  if(!categoriaModalGasto || !pagoModalGasto){ alert('Selecciona categoría y medio de pago.'); return; }
+  registro.monto = monto; registro.categoria = categoriaModalGasto; registro.medioPago = pagoModalGasto;
+  registro.fecha = document.getElementById('modalGastoFecha').value; registro.descripcion = document.getElementById('modalGastoDescripcion').value.trim();
+  cerrarModalGasto(); renderizarListaGastos(); await guardarGastosEnAlmacenamiento();
+}
+function cerrarModalGasto(){ idGastoEnEdicion = null; document.getElementById('fondoModalGasto').classList.remove('abierto'); }
+function exportarCSVGasto(){
+  if(registrosGasto.length === 0){ alert('No hay registros para exportar.'); return; }
+  const encabezado = ['Fecha','Categoria','MedioPago','Monto','Descripcion'];
+  const filas = [...registrosGasto].sort((a,b) => a.fecha.localeCompare(b.fecha)).map(r => [
+    r.fecha, obtenerCategoriaGastoPorCodigo(r.categoria).nombre, r.medioPago, r.monto,
+    '"' + (r.descripcion || '').replace(/"/g,'""') + '"'
+  ].join(','));
+  const csv = '\uFEFF' + [encabezado.join(','), ...filas].join('\n');
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const enlace = document.createElement('a'); enlace.href = url; enlace.download = `gastos_${hoyISO()}.csv`;
+  document.body.appendChild(enlace); enlace.click(); document.body.removeChild(enlace); URL.revokeObjectURL(url);
+}
+function iniciarModuloGastos(){
+  document.getElementById('gastoCampoFecha').value = hoyISO();
+  pintarCategoriasGasto('gastoGridCategorias', null, seleccionarCategoriaPrincipalGasto);
+  pintarPagosGasto('gastoGridPagos', null, seleccionarPagoPrincipalGasto);
+  actualizarPantallaGasto(); renderizarListaGastos();
+  actualizarBannerSyncGastos();
+}
+
+// ============================================================
+// SINCRONIZACIÓN CON GOOGLE SHEETS (Módulo C — Gastos)
+// Cada gasto se guarda localmente de inmediato (igual que antes) y,
+// por detrás, se intenta enviar a la hoja vía Apps Script. Si falla,
+// reintenta automáticamente hasta 3 veces con espera creciente; si
+// aun así no se logra, el registro queda marcado como pendiente y
+// aparece en el aviso de la parte inferior de la pantalla, con un
+// botón para reintentar manualmente. El dato nunca se pierde: sigue
+// disponible en el listado local pase lo que pase con la conexión.
+// ============================================================
+const URL_APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbzzJgPLSN6igYUJFFdFCTa3ZYk23ebLt-WePCxu4AdvmfQnzA8rFmvBcMeSrPq6U3CY/exec';
+
+async function sincronizarGastoConSheets(registro, intento){
+  intento = intento || 1;
+  try{
+    const respuesta = await fetch(URL_APPS_SCRIPT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita el preflight CORS que Apps Script no responde bien
+      body: JSON.stringify({
+        action: 'crear_gasto',
+        monto: registro.monto,
+        categoria: registro.categoria,
+        medio_pago: registro.medioPago,
+        descripcion: registro.descripcion,
+        fecha_evento: registro.fecha
+      })
+    });
+    if(!respuesta.ok) throw new Error('HTTP ' + respuesta.status);
+    registro.sincronizado = true;
+  }catch(err){
+    if(intento < 3){
+      await new Promise(resolver => setTimeout(resolver, 1000 * intento));
+      await sincronizarGastoConSheets(registro, intento + 1);
+      return;
+    }
+    registro.sincronizado = false;
+  }
+  await guardarGastosEnAlmacenamiento();
+  actualizarBannerSyncGastos();
+}
+
+function actualizarBannerSyncGastos(){
+  const banner = document.getElementById('bannerSyncGastos');
+  const pendientes = registrosGasto.filter(r => r.sincronizado === false);
+  if(pendientes.length === 0){ banner.style.display = 'none'; return; }
+  banner.style.display = 'flex';
+  banner.innerHTML = `
+    <span style="flex:1;">⚠️ ${pendientes.length} gasto${pendientes.length===1?'':'s'} sin sincronizar con Sheets. Se guardaron bien en el celular, solo falta enviarlos.</span>
+    <button onclick="reintentarSyncGastosPendientes()" style="flex:none; border:1px solid #E3D4B4; background:var(--superficie); border-radius:8px; padding:5px 11px; font-size:11px; font-weight:650; color:#8B6516; touch-action:manipulation;">Reintentar</button>
+  `;
+}
+
+function reintentarSyncGastosPendientes(){
+  registrosGasto.filter(r => r.sincronizado === false).forEach(r => sincronizarGastoConSheets(r, 1));
+}
+
+/* ============================================================
+   11. MÓDULO B — INGRESOS
+   ============================================================ */
+const ESTADOS_QUE_GENERAN_INGRESO = ['realizada_percibida', 'ausencia_percibida'];
+function obtenerClaveOrigen(instancia){ return instancia.tipoInstancia === 'consulta' ? `consulta:${instancia.consultaId}` : `evento:${instancia.eventoId}:${instancia.fecha}`; }
+function calcularNeto(montoBruto, esEntreLazos){
+  let monto = montoBruto;
+  if(esEntreLazos) monto = monto * (1 - (configuracion.porcentajeComisionEL/100));
+  monto = monto * (1 - (configuracion.porcentajeImpuesto/100));
+  return Math.round(monto);
+}
+function clasificarInstanciaIngreso(inst){
+  if(inst.tipoInstancia === 'consulta'){
+    const c = consultasUnicas.find(x => x.id === inst.consultaId); if(!c) return null;
+    if(c.tipoPago === 'particular')     return { tipo:'particular',     montoBruto: c.monto, esEntreLazos:false, nombre: c.nombre };
+    if(c.tipoPago === 'fonasa_directo') return { tipo:'fonasa_directo', montoBruto: c.monto, esEntreLazos:false, nombre: c.nombre };
+    if(c.tipoPago === 'fonasa_el')      return { tipo:'entrelazos',     montoBruto: c.monto, esEntreLazos:true,  nombre: c.nombre };
+    return null;
+  }
+  const evento = eventosAgenda.find(e => e.id === inst.eventoId); if(!evento || !evento.pacienteId) return null;
+  const paciente = pacientes.find(p => p.id === evento.pacienteId); if(!paciente) return null;
+  const montoBruto = paciente.tipoPago === 'fonasa' ? obtenerMontoFonasaSegunCanal(paciente.canal) : paciente.montoHabitual;
+  if(paciente.canal === 'entrelazos') return { tipo:'entrelazos', montoBruto, esEntreLazos:true, nombre: paciente.nombreCompleto };
+  return { tipo: (paciente.tipoPago === 'fonasa' ? 'fonasa_directo' : 'particular'), montoBruto, esEntreLazos:false, nombre: paciente.nombreCompleto };
+}
+function obtenerSesionesPagadasHastaHoy(){
+  return obtenerInstanciasEnRango('2000-01-01', hoyISO()).filter(inst => inst.etiqueta === 'atenciones' && ESTADOS_QUE_GENERAN_INGRESO.includes(inst.estadoSesion));
+}
+function obtenerClavesYaImportadas(){ const s = new Set(); ingresos.forEach(i => { if(i.origenClave) s.add(i.origenClave); }); return s; }
+function obtenerClavesYaIncluidasEnBoletas(){
+  const s = new Set();
+  ingresos.filter(i => i.tipo === 'entrelazos' && i.sesionesIncluidas).forEach(i => i.sesionesIncluidas.forEach(c => s.add(c)));
+  return s;
+}
+function obtenerPendientesDirectos(){
+  const ya = obtenerClavesYaImportadas(); const res = [];
+  obtenerSesionesPagadasHastaHoy().forEach(inst => {
+    const clave = obtenerClaveOrigen(inst); if(ya.has(clave)) return;
+    const info = clasificarInstanciaIngreso(inst); if(!info || info.esEntreLazos) return;
+    res.push({ instancia: inst, clave, info });
+  });
+  return res;
+}
+function obtenerPendientesEntreLazos(){
+  const ya = obtenerClavesYaIncluidasEnBoletas(); const res = [];
+  obtenerSesionesPagadasHastaHoy().forEach(inst => {
+    const clave = obtenerClaveOrigen(inst); if(ya.has(clave)) return;
+    const info = clasificarInstanciaIngreso(inst); if(!info || !info.esEntreLazos) return;
+    res.push({ instancia: inst, clave, info });
+  });
+  return res;
+}
+async function autoImportarFonasaDirecto(){
+  const pend = obtenerPendientesDirectos().filter(p => p.info.tipo === 'fonasa_directo'); if(pend.length === 0) return;
+  pend.forEach(p => ingresos.push({ id: generarId(), tipo:'fonasa_directo', origenClave: p.clave, fecha: p.instancia.fecha, montoBruto: p.info.montoBruto, montoNeto: calcularNeto(p.info.montoBruto, false), medioPago: null, descripcion: p.info.nombre, creado: Date.now() }));
+  await guardarIngresosEnAlmacenamiento();
+}
+async function autoImportarSueldoDependiente(){
+  const monto = configuracion.sueldoDependienteMonto || 0; const inicio = configuracion.sueldoDependienteInicio || '';
+  if(monto <= 0 || !inicio) return;
+  const [anioInicio, mesInicio] = inicio.split('-').map(Number);
+  const ahora = new Date(); const anioActual = ahora.getFullYear(); const mesActual = ahora.getMonth()+1;
+  const ya = obtenerClavesYaImportadas();
+  let anio = anioInicio, mes = mesInicio, hubo = false;
+  while(anio < anioActual || (anio === anioActual && mes <= mesActual)){
+    const claveMes = `${anio}-${String(mes).padStart(2,'0')}`; const clave = `sueldo:${claveMes}`;
+    if(!ya.has(clave)){
+      ingresos.push({ id: generarId(), tipo:'trabajo_dependiente', origenClave: clave, fecha: `${claveMes}-01`, montoBruto: monto, montoNeto: monto, medioPago: null, descripcion:'Trabajo dependiente', creado: Date.now() });
+      hubo = true;
+    }
+    mes++; if(mes > 12){ mes = 1; anio++; }
+  }
+  if(hubo) await guardarIngresosEnAlmacenamiento();
+}
+async function confirmarPagoParticular(clave, medioPago){
+  const item = obtenerPendientesDirectos().find(p => p.clave === clave); if(!item) return;
+  ingresos.push({ id: generarId(), tipo: item.info.tipo, origenClave: clave, fecha: item.instancia.fecha, montoBruto: item.info.montoBruto, montoNeto: calcularNeto(item.info.montoBruto, false), medioPago, descripcion: item.info.nombre, creado: Date.now() });
+  await guardarIngresosEnAlmacenamiento(); renderizarVistaIngresos();
+}
+let confirmandoBoleta = false;
+function solicitarConfirmacionBoleta(){ confirmandoBoleta = true; renderizarVistaIngresos(); }
+function cancelarConfirmacionBoleta(){ confirmandoBoleta = false; renderizarVistaIngresos(); }
+async function generarBoletaEntreLazos(){
+  const pend = obtenerPendientesEntreLazos(); if(pend.length === 0){ confirmandoBoleta = false; renderizarVistaIngresos(); return; }
+  const totalBruto = pend.reduce((a,p) => a + p.info.montoBruto, 0);
+  ingresos.push({ id: generarId(), tipo:'entrelazos', origenClave: null, sesionesIncluidas: pend.map(p => p.clave), fecha: hoyISO(), montoBruto: totalBruto, montoNeto: calcularNeto(totalBruto, true), medioPago:'transferencia', descripcion:`Boleta Entre Lazos (${pend.length} sesión${pend.length===1?'':'es'})`, creado: Date.now() });
+  confirmandoBoleta = false; await guardarIngresosEnAlmacenamiento(); renderizarVistaIngresos();
+}
+
+let mesIngresosMostrado = new Date().getMonth();
+let anioIngresosMostrado = new Date().getFullYear();
+function cambiarMesIngresos(delta){
+  mesIngresosMostrado += delta;
+  if(mesIngresosMostrado > 11){ mesIngresosMostrado = 0; anioIngresosMostrado++; }
+  if(mesIngresosMostrado < 0){ mesIngresosMostrado = 11; anioIngresosMostrado--; }
+  renderizarVistaIngresos();
+}
+const NOMBRES_FUENTE_INGRESO = { particular:'Particular', fonasa_directo:'FONASA directo', entrelazos:'Entre Lazos', trabajo_dependiente:'Trabajo dependiente', manual:'Manual' };
+const COLOR_FUENTE_INGRESO = { particular:'var(--fuente-particular)', fonasa_directo:'var(--fuente-fonasa_directo)', entrelazos:'var(--fuente-entrelazos)', trabajo_dependiente:'var(--fuente-trabajo_dependiente)', manual:'var(--fuente-manual)' };
+
+let vIngTotal = false, vIngRecibir = false, vIngLazos = false, vIngMov = false;
+function alternarVisibilidadIngTotal(){ vIngTotal = !vIngTotal; renderizarVistaIngresos(); }
+function alternarVisibilidadIngRecibir(){ vIngRecibir = !vIngRecibir; renderizarVistaIngresos(); }
+function alternarVisibilidadIngLazos(){ vIngLazos = !vIngLazos; renderizarVistaIngresos(); }
+function alternarVisibilidadIngMov(){ vIngMov = !vIngMov; renderizarVistaIngresos(); }
+
+async function renderizarVistaIngresos(){
+  document.getElementById('tituloMesIngresos').textContent = `${NOMBRES_MES[mesIngresosMostrado]} ${anioIngresosMostrado}`;
+  await autoImportarFonasaDirecto(); await autoImportarSueldoDependiente();
+
+  const inicioMes = formatoISO(new Date(anioIngresosMostrado, mesIngresosMostrado, 1));
+  const finMes = formatoISO(new Date(anioIngresosMostrado, mesIngresosMostrado+1, 0));
+  const delMes = ingresos.filter(i => i.fecha >= inicioMes && i.fecha <= finMes).sort((a,b) => b.fecha.localeCompare(a.fecha));
+
+  const totales = { particular:0, fonasa_directo:0, entrelazos:0, trabajo_dependiente:0, manual:0 };
+  delMes.forEach(i => { totales[i.tipo] = (totales[i.tipo]||0) + i.montoNeto; });
+  const totalMes = delMes.reduce((a,i) => a + i.montoNeto, 0);
+
+  pintarBotonOjo('botonOjoIngTotal', vIngTotal);
+  document.getElementById('totalMesIngresos').textContent = textoMontoOculto(totalMes, vIngTotal);
+  document.getElementById('resumenPorFuente').innerHTML = Object.keys(NOMBRES_FUENTE_INGRESO).map(k => `
+    <div class="fila-fuente">
+      <span class="punto" style="background:${COLOR_FUENTE_INGRESO[k]}"></span>
+      <span class="nombre">${NOMBRES_FUENTE_INGRESO[k]}</span>
+      <span class="monto monto-fuente">${textoMontoOculto(totales[k]||0, vIngTotal)}</span>
+    </div>`).join('');
+
+  // Cuentas por cobrar
+  const pendientesParticular = obtenerPendientesDirectos().filter(p => p.info.tipo === 'particular');
+  pintarBotonOjo('botonOjoIngRecibir', vIngRecibir);
+  const totalRecibir = pendientesParticular.reduce((a,p)=>a+p.info.montoBruto,0);
+  document.getElementById('recibirTotalMonto').textContent = textoMontoOculto(totalRecibir, vIngRecibir);
+  document.getElementById('recibirNota').textContent = pendientesParticular.length === 0 ? 'No hay pagos particulares pendientes de confirmar.' : `${pendientesParticular.length} sesión${pendientesParticular.length===1?'':'es'} particular${pendientesParticular.length===1?'':'es'} por confirmar`;
+  const seccionPend = document.getElementById('seccionPendientesPago');
+  seccionPend.innerHTML = pendientesParticular.map(p => `
+    <div class="fila-pendiente-pago">
+      <div class="fila-top">
+        <span class="nombre">${escaparHTML(p.info.nombre)}</span>
+        <span class="monto monto-fuente">${textoMontoOculto(p.info.montoBruto, vIngRecibir)}</span>
+      </div>
+      <div class="fila-bottom">
+        <span class="fecha">${p.instancia.fecha}</span>
+        <button class="boton-medio-pago" onclick="confirmarPagoParticular('${p.clave}','efectivo')">Efectivo</button>
+        <button class="boton-medio-pago" onclick="confirmarPagoParticular('${p.clave}','transferencia')">Transferencia</button>
+      </div>
+    </div>
+  `).join('');
+
+  // Boleta Entre Lazos
+  const pendientesEL = obtenerPendientesEntreLazos();
+  const tarjetaLazos = document.getElementById('tarjetaLazos');
+  if(pendientesEL.length === 0){
+    tarjetaLazos.style.display = 'none';
+  }else{
+    tarjetaLazos.style.display = 'block';
+    pintarBotonOjo('botonOjoIngLazos', vIngLazos);
+    const totalBrutoEL = pendientesEL.reduce((a,p)=>a+p.info.montoBruto,0);
+    document.getElementById('lazosMontoTotal').textContent = textoMontoOculto(totalBrutoEL, vIngLazos) + ' bruto';
+    document.getElementById('lazosNota').textContent = `${pendientesEL.length} sesión${pendientesEL.length===1?'':'es'} pendiente${pendientesEL.length===1?'':'s'} de boleta`;
+    const seccionBoleta = document.getElementById('seccionPendientesBoleta');
+    seccionBoleta.innerHTML = confirmandoBoleta ? `
+      <div class="nota-campo" style="margin:8px 0;">Se generará una boleta por este total, fechada hoy (${NOMBRES_MES[new Date().getMonth()]}).</div>
+      <div class="fila-confirmacion">
+        <button class="boton-confirmar-no" onclick="cancelarConfirmacionBoleta()">Cancelar</button>
+        <button class="boton-confirmar-si" onclick="generarBoletaEntreLazos()">Sí, generar</button>
+      </div>
+    ` : `<button class="boton-generar-boleta" onclick="solicitarConfirmacionBoleta()">Generar boleta de ${NOMBRES_MES[new Date().getMonth()]}</button>`;
+  }
+
+  // Movimientos del mes
+  pintarBotonOjo('botonOjoIngMov', vIngMov);
+  document.getElementById('conteoMovimientos').textContent = delMes.length;
+  const lista = document.getElementById('listaIngresosMes');
+  if(delMes.length === 0){ lista.innerHTML = '<div class="vacio" style="padding:24px;">No hay ingresos registrados este mes.</div>'; }
+  else{
+    lista.innerHTML = '';
+    delMes.forEach(i => {
+      const fila = document.createElement('div'); fila.className = 'fila-ingreso'; fila.onclick = () => abrirDetalleIngreso(i.id);
+      fila.innerHTML = `
+        <div class="detalle">
+          <span class="nombre">${escaparHTML(i.descripcion || '')}</span>
+          <div class="fila-meta">
+            <span class="badge-fuente" style="background:color-mix(in srgb, ${COLOR_FUENTE_INGRESO[i.tipo]||'var(--fuente-manual)'} 15%, white); color:${COLOR_FUENTE_INGRESO[i.tipo]||'var(--fuente-manual)'}">${NOMBRES_FUENTE_INGRESO[i.tipo] || i.tipo}</span>
+            <span class="fecha">${i.fecha}</span>
+          </div>
+        </div>
+        <div class="derecha">
+          <span class="monto monto-fuente">${textoMontoOculto(i.montoNeto, vIngMov)}</span>
+          <span class="nota-neto">${i.medioPago ? (i.medioPago==='efectivo'?'Efectivo':'Transferencia') : 'neto'}</span>
+        </div>
+      `;
+      lista.appendChild(fila);
+    });
+  }
+}
+
+let ingresoEnEdicionId = null; let medioPagoManualSeleccionado = null;
+function pintarSegmentadoMedioPagoManual(){
+  const c = document.getElementById('segmentadoMedioPagoManual'); c.innerHTML = '';
+  [{valor:'efectivo',nombre:'Efectivo'},{valor:'transferencia',nombre:'Transferencia'}].forEach(op => {
+    const b = document.createElement('button');
+    b.className = medioPagoManualSeleccionado === op.valor ? 'seleccionado' : '';
+    b.textContent = op.nombre;
+    b.onclick = () => { medioPagoManualSeleccionado = op.valor; pintarSegmentadoMedioPagoManual(); };
+    c.appendChild(b);
+  });
+}
+function abrirFichaIngresoManual(){
+  ingresoEnEdicionId = null; medioPagoManualSeleccionado = 'efectivo';
+  document.getElementById('tituloFichaIngreso').textContent = 'Nuevo ingreso manual';
+  document.getElementById('detalleIngresoSoloLectura').style.display = 'none';
+  document.getElementById('detalleIngresoSoloLectura').innerHTML = '';
+  document.getElementById('camposIngresoManual').style.display = 'block';
+  document.getElementById('botonGuardarIngresoManual').style.display = 'block';
+  document.getElementById('ingresoManualDescripcion').value = '';
+  document.getElementById('ingresoManualMonto').value = '';
+  document.getElementById('ingresoManualFecha').value = hoyISO();
+  pintarSegmentadoMedioPagoManual();
+  document.getElementById('zonaEliminarIngreso').style.display = 'none';
+  document.getElementById('confirmacionEliminarIngreso').style.display = 'none';
+  document.getElementById('fondoModalIngreso').classList.add('abierto');
+}
+async function guardarIngresoManual(){
+  const descripcion = document.getElementById('ingresoManualDescripcion').value.trim();
+  const monto = limpiarMontoTexto(document.getElementById('ingresoManualMonto').value);
+  const fecha = document.getElementById('ingresoManualFecha').value;
+  if(!descripcion){ alert('Ingresa una descripción.'); return; }
+  if(monto === null || monto <= 0){ alert('Ingresa un monto válido.'); return; }
+  if(!fecha){ alert('Selecciona la fecha.'); return; }
+  if(!medioPagoManualSeleccionado){ alert('Selecciona el medio de pago.'); return; }
+  ingresos.push({ id: generarId(), tipo:'manual', origenClave:null, fecha, montoBruto: monto, montoNeto: monto, medioPago: medioPagoManualSeleccionado, descripcion, creado: Date.now() });
+  cerrarFichaIngreso(); renderizarVistaIngresos(); await guardarIngresosEnAlmacenamiento();
+}
+function abrirDetalleIngreso(id){
+  const ing = ingresos.find(i => i.id === id); if(!ing) return;
+  ingresoEnEdicionId = id;
+  document.getElementById('tituloFichaIngreso').textContent = 'Detalle del ingreso';
+  document.getElementById('camposIngresoManual').style.display = 'none';
+  document.getElementById('botonGuardarIngresoManual').style.display = 'none';
+  const detalle = document.getElementById('detalleIngresoSoloLectura'); detalle.style.display = 'block';
+  detalle.innerHTML = `
+    <div class="campo-modal"><span class="etiqueta-campo">Fuente</span><div class="detalle-ingreso-lectura">${NOMBRES_FUENTE_INGRESO[ing.tipo] || ing.tipo}</div></div>
+    <div class="campo-modal"><span class="etiqueta-campo">Descripción</span><div class="detalle-ingreso-lectura">${escaparHTML(ing.descripcion || '')}</div></div>
+    <div class="campo-modal"><span class="etiqueta-campo">Monto bruto</span><div class="detalle-ingreso-lectura">${formatearCLP(ing.montoBruto)}</div></div>
+    <div class="campo-modal"><span class="etiqueta-campo">Monto neto</span><div class="detalle-ingreso-lectura">${formatearCLP(ing.montoNeto)}</div></div>
+    <div class="campo-modal"><span class="etiqueta-campo">Fecha</span><div class="detalle-ingreso-lectura">${ing.fecha}</div></div>
+    ${ing.medioPago ? `<div class="campo-modal"><span class="etiqueta-campo">Medio de pago</span><div class="detalle-ingreso-lectura">${ing.medioPago==='efectivo'?'Efectivo':'Transferencia'}</div></div>` : ''}
+  `;
+  document.getElementById('zonaEliminarIngreso').style.display = 'block';
+  document.getElementById('confirmacionEliminarIngreso').style.display = 'none';
+  document.getElementById('fondoModalIngreso').classList.add('abierto');
+}
+function cerrarFichaIngreso(){ document.getElementById('fondoModalIngreso').classList.remove('abierto'); ingresoEnEdicionId = null; }
+function solicitarEliminarIngreso(){ document.getElementById('confirmacionEliminarIngreso').style.display = 'block'; }
+function cancelarEliminarIngreso(){ document.getElementById('confirmacionEliminarIngreso').style.display = 'none'; }
+async function confirmarEliminarIngreso(){
+  ingresos = ingresos.filter(i => i.id !== ingresoEnEdicionId);
+  cerrarFichaIngreso(); renderizarVistaIngresos(); await guardarIngresosEnAlmacenamiento();
+}
+
+/* ============================================================
+   12. MÓDULO D — OBJETIVOS DE AHORRO
+   ============================================================ */
+function obtenerSueldoFijoVigenteHoy(){
+  const monto = configuracion.sueldoDependienteMonto || 0; const inicio = configuracion.sueldoDependienteInicio || '';
+  if(monto <= 0 || !inicio) return 0;
+  return hoyISO().slice(0,7) >= inicio ? monto : 0;
+}
+function obtenerMetaObjetivo(obj){
+  if(obj.tipo === 'colchon'){
+    const sueldo = obtenerSueldoFijoVigenteHoy();
+    const brecha = Math.max(0, (obj.gastoFijoMensual||0) - sueldo);
+    return (obj.mesesACubrir||0) * brecha;
+  }
+  return obj.metaManual || 0;
+}
+function formatearFechaLarga(fechaISO){ const f = fechaDesdeISO(fechaISO); return `${f.getDate()} de ${NOMBRES_MES[f.getMonth()]} de ${f.getFullYear()}`; }
+
+const COLOR_OBJETIVO = { colchon:'var(--obj-colchon)', congreso:'var(--obj-congreso)', emergencia:'var(--obj-emergencia)' };
+let vObjetivos = false;
+function alternarVisibilidadObjetivos(){ vObjetivos = !vObjetivos; renderizarVistaObjetivos(); }
+
+function renderizarVistaObjetivos(){
+  pintarBotonOjo('botonOjoObjetivos', vObjetivos);
+  const contenedor = document.getElementById('listaObjetivos'); contenedor.innerHTML = '';
+  objetivos.forEach(obj => {
+    const meta = obtenerMetaObjetivo(obj);
+    const falta = Math.max(0, meta - (obj.acumulado||0));
+    const pct = meta > 0 ? Math.min(100, Math.round(((obj.acumulado||0)/meta)*100)) : 0;
+    const color = COLOR_OBJETIVO[obj.id] || '#7C2F3E';
+    const tarjeta = document.createElement('div'); tarjeta.className = 'tarjeta-objetivo'; tarjeta.onclick = () => abrirFichaObjetivo(obj.id);
+    tarjeta.innerHTML = `
+      <div class="tarjeta-objetivo-cabecera">
+        <span class="punto" style="background:${color}"></span>
+        <span class="nombre">${escaparHTML(obj.nombre)}</span>
+        <span class="flecha">›</span>
+      </div>
+      <div class="barra-progreso-objetivo"><div class="relleno-progreso-objetivo" style="width:${pct}%; background:${color}"></div></div>
+      <div class="grid-datos-objetivo">
+        <div class="dato-objetivo"><span class="etiqueta-dato">ACUMULADO</span><span class="valor-dato monto-fuente" style="color:${color}">${textoMontoOculto(obj.acumulado||0, vObjetivos)}</span></div>
+        <div class="dato-objetivo con-borde"><span class="etiqueta-dato">META</span><span class="valor-dato meta monto-fuente">${textoMontoOculto(meta, vObjetivos)}</span></div>
+        <div class="dato-objetivo con-borde"><span class="etiqueta-dato">FALTA</span><span class="valor-dato monto-fuente" style="color:${color}">${falta<=0 ? 'Cumplida' : textoMontoOculto(falta, vObjetivos)}</span></div>
+      </div>
+      <div class="pie-objetivo">
+        <div class="info">
+          <span class="fecha-label">${obj.fechaObjetivo ? formatearFechaLarga(obj.fechaObjetivo) : 'Sin fecha objetivo'}</span>
+        </div>
+        <button class="boton-agregar-monto" style="border-color:${color}; color:${color};" onclick="event.stopPropagation(); abrirFichaObjetivo('${obj.id}');">+ Agregar monto</button>
+      </div>
+    `;
+    contenedor.appendChild(tarjeta);
+  });
+}
+
+let objetivoEnEdicionId = null;
+function actualizarMetaCalculadaColchon(){
+  const meses = parseInt(document.getElementById('objetivoMesesACubrir').value) || 0;
+  const gasto = limpiarMontoTexto(document.getElementById('objetivoGastoFijoMensual').value) || 0;
+  const sueldo = obtenerSueldoFijoVigenteHoy();
+  const brecha = Math.max(0, gasto - sueldo);
+  const meta = meses * brecha;
+  document.getElementById('textoMetaCalculada').textContent = formatearCLP(meta);
+  document.getElementById('notaMetaCalculada').textContent = sueldo > 0
+    ? `${meses} meses × (${formatearCLP(gasto)} gasto fijo − ${formatearCLP(sueldo)} sueldo fijo vigente)`
+    : `${meses} meses × ${formatearCLP(gasto)} gasto fijo (el sueldo fijo todavía no está vigente)`;
+}
+function renderizarAportesObjetivo(obj){
+  const lista = document.getElementById('listaAportesObjetivo');
+  const aportes = [...(obj.aportes||[])].sort((a,b) => b.creado - a.creado);
+  if(aportes.length === 0){ lista.innerHTML = ''; return; }
+  lista.innerHTML = aportes.map(a => `<div class="fila-pendiente-pago" style="background:var(--superficie);"><div class="fila-top"><span class="nombre">${formatearCLP(a.monto)}</span><span class="fecha">${a.fecha}</span></div></div>`).join('');
+}
+function abrirFichaObjetivoNueva(){
+  objetivoEnEdicionId = null;
+  document.getElementById('tituloFichaObjetivo').textContent = 'Nuevo objetivo';
+  document.getElementById('campoNombreObjetivo').style.display = 'block';
+  document.getElementById('objetivoNombre').value = ''; document.getElementById('objetivoNombre').disabled = false;
+  document.getElementById('campoMesesACubrir').style.display = 'none';
+  document.getElementById('campoGastoFijoMensual').style.display = 'none';
+  document.getElementById('campoMetaCalculada').style.display = 'none';
+  document.getElementById('campoMetaManual').style.display = 'block';
+  document.getElementById('objetivoMetaManual').value = '';
+  document.getElementById('objetivoFecha').value = '';
+  document.getElementById('objetivoAcumulado').value = '0';
+  document.getElementById('objetivoAporteMonto').value = '';
+  document.getElementById('listaAportesObjetivo').innerHTML = '';
+  document.getElementById('zonaEliminarObjetivo').style.display = 'none';
+  document.getElementById('confirmacionEliminarObjetivo').style.display = 'none';
+  document.getElementById('fondoModalObjetivo').classList.add('abierto');
+}
+function abrirFichaObjetivo(id){
+  const obj = objetivos.find(o => o.id === id); if(!obj) return;
+  objetivoEnEdicionId = id;
+  document.getElementById('tituloFichaObjetivo').textContent = obj.nombre;
+  document.getElementById('campoNombreObjetivo').style.display = obj.fijo ? 'none' : 'block';
+  document.getElementById('objetivoNombre').value = obj.nombre;
+  document.getElementById('objetivoNombre').disabled = !!obj.fijo;
+  const esColchon = obj.tipo === 'colchon';
+  document.getElementById('campoMesesACubrir').style.display = esColchon ? 'block' : 'none';
+  document.getElementById('campoGastoFijoMensual').style.display = esColchon ? 'block' : 'none';
+  document.getElementById('campoMetaCalculada').style.display = esColchon ? 'block' : 'none';
+  document.getElementById('campoMetaManual').style.display = esColchon ? 'none' : 'block';
+  if(esColchon){
+    document.getElementById('objetivoMesesACubrir').value = obj.mesesACubrir || '';
+    document.getElementById('objetivoGastoFijoMensual').value = obj.gastoFijoMensual ? obj.gastoFijoMensual.toLocaleString('es-CL') : '';
+    actualizarMetaCalculadaColchon();
+  }else{
+    document.getElementById('objetivoMetaManual').value = obj.metaManual ? obj.metaManual.toLocaleString('es-CL') : '';
+  }
+  document.getElementById('objetivoFecha').value = obj.fechaObjetivo || '';
+  document.getElementById('objetivoAcumulado').value = (obj.acumulado||0).toLocaleString('es-CL');
+  document.getElementById('objetivoAporteMonto').value = '';
+  renderizarAportesObjetivo(obj);
+  document.getElementById('zonaEliminarObjetivo').style.display = obj.fijo ? 'none' : 'block';
+  document.getElementById('confirmacionEliminarObjetivo').style.display = 'none';
+  document.getElementById('fondoModalObjetivo').classList.add('abierto');
+}
+async function guardarFichaObjetivo(){
+  const esNuevo = objetivoEnEdicionId === null; let obj;
+  if(esNuevo){
+    const nombre = document.getElementById('objetivoNombre').value.trim();
+    if(!nombre){ alert('Ingresa un nombre para el objetivo.'); return; }
+    obj = { id: generarId(), nombre, tipo:'meta_manual', fijo:false, acumulado:0, aportes:[], metaManual:0, fechaObjetivo:null };
+  }else{
+    obj = objetivos.find(o => o.id === objetivoEnEdicionId); if(!obj) return;
+    if(!obj.fijo){ const nombre = document.getElementById('objetivoNombre').value.trim(); if(!nombre){ alert('Ingresa un nombre para el objetivo.'); return; } obj.nombre = nombre; }
+  }
+  if(obj.tipo === 'colchon'){
+    const meses = parseInt(document.getElementById('objetivoMesesACubrir').value);
+    const gasto = limpiarMontoTexto(document.getElementById('objetivoGastoFijoMensual').value);
+    if(isNaN(meses) || meses <= 0){ alert('Ingresa un número de meses válido.'); return; }
+    if(gasto === null || gasto < 0){ alert('Ingresa un gasto fijo mensual válido.'); return; }
+    obj.mesesACubrir = meses; obj.gastoFijoMensual = gasto;
+  }else{
+    const meta = limpiarMontoTexto(document.getElementById('objetivoMetaManual').value);
+    if(meta === null || meta < 0){ alert('Ingresa una meta válida.'); return; }
+    obj.metaManual = meta;
+  }
+  obj.fechaObjetivo = document.getElementById('objetivoFecha').value || null;
+  const acumulado = limpiarMontoTexto(document.getElementById('objetivoAcumulado').value);
+  obj.acumulado = acumulado === null ? 0 : acumulado;
+  if(esNuevo) objetivos.push(obj);
+  cerrarFichaObjetivo(); renderizarVistaObjetivos(); await guardarObjetivosEnAlmacenamiento();
+}
+function solicitarEliminarObjetivo(){ document.getElementById('confirmacionEliminarObjetivo').style.display = 'block'; }
+function cancelarEliminarObjetivo(){ document.getElementById('confirmacionEliminarObjetivo').style.display = 'none'; }
+async function confirmarEliminarObjetivo(){
+  objetivos = objetivos.filter(o => o.id !== objetivoEnEdicionId);
+  cerrarFichaObjetivo(); renderizarVistaObjetivos(); await guardarObjetivosEnAlmacenamiento();
+}
+async function registrarAporteObjetivo(){
+  if(objetivoEnEdicionId === null){ alert('Guarda el objetivo primero.'); return; }
+  const monto = limpiarMontoTexto(document.getElementById('objetivoAporteMonto').value);
+  if(monto === null || monto <= 0){ alert('Ingresa un monto válido para el aporte.'); return; }
+  const obj = objetivos.find(o => o.id === objetivoEnEdicionId); if(!obj) return;
+  obj.aportes = obj.aportes || []; obj.aportes.push({ id: generarId(), monto, fecha: hoyISO(), creado: Date.now() });
+  obj.acumulado = (obj.acumulado||0) + monto;
+  document.getElementById('objetivoAcumulado').value = obj.acumulado.toLocaleString('es-CL');
+  document.getElementById('objetivoAporteMonto').value = '';
+  renderizarAportesObjetivo(obj);
+  await guardarObjetivosEnAlmacenamiento(); renderizarVistaObjetivos();
+}
+function cerrarFichaObjetivo(){ document.getElementById('fondoModalObjetivo').classList.remove('abierto'); objetivoEnEdicionId = null; }
+
+/* ============================================================
+   13. MÓDULO E — DASHBOARD
+   ============================================================ */
+let vDashResumen = false, vDashPendiente = false;
+function alternarVisibilidadResumen(){ vDashResumen = !vDashResumen; renderizarDashboard(); }
+function alternarVisibilidadPendiente(){ vDashPendiente = !vDashPendiente; renderizarDashboard(); }
+
+function renderizarDashboard(){
+  const ahora = new Date();
+  const inicioMes = formatoISO(new Date(ahora.getFullYear(), ahora.getMonth(), 1));
+  const finMes = formatoISO(new Date(ahora.getFullYear(), ahora.getMonth()+1, 0));
+  const diasEnMes = new Date(ahora.getFullYear(), ahora.getMonth()+1, 0).getDate();
+  document.getElementById('dashMesActual').textContent = NOMBRES_MES[ahora.getMonth()];
+  document.getElementById('dashAnioActual').textContent = ahora.getFullYear();
+  document.getElementById('dashDiaActual').textContent = `día ${ahora.getDate()} de ${diasEnMes}`;
+
+  const ingreseEsteMes = ingresos.filter(i => i.fecha >= inicioMes && i.fecha <= finMes).reduce((a,i) => a + i.montoNeto, 0);
+  const gasteEsteMes = registrosGasto.filter(r => r.fecha >= inicioMes && r.fecha <= finMes).reduce((a,r) => a + r.monto, 0);
+  const disponible = ingreseEsteMes - gasteEsteMes;
+
+  pintarBotonOjo('dashBotonOjoResumen', vDashResumen);
+  document.getElementById('dashIngrese').textContent = textoMontoOculto(ingreseEsteMes, vDashResumen);
+  document.getElementById('dashGaste').textContent = textoMontoOculto(gasteEsteMes, vDashResumen);
+  document.getElementById('dashDisponible').textContent = textoMontoOculto(disponible, vDashResumen);
+
+  const instanciasPendientes = obtenerInstanciasEnRango('2000-01-01', hoyISO()).filter(inst => inst.etiqueta === 'atenciones' && ['realizada_devengada','ausencia_devengada'].includes(inst.estadoSesion));
+  let totalPendiente = 0; const pacientesConDeuda = new Set();
+  instanciasPendientes.forEach(inst => {
+    const info = clasificarInstanciaIngreso(inst); if(!info) return;
+    totalPendiente += info.montoBruto;
+    pacientesConDeuda.add(inst.tipoInstancia === 'consulta' ? ('consulta:'+inst.consultaId) : info.nombre);
+  });
+  pintarBotonOjo('dashBotonOjoPendiente', vDashPendiente);
+  document.getElementById('dashMontoPendiente').textContent = textoMontoOculto(totalPendiente, vDashPendiente);
+  document.getElementById('dashNumeroPacientes').textContent = pacientesConDeuda.size;
+}
+
+/* ============================================================
+   14. INICIALIZACIÓN
+   ============================================================ */
+async function iniciar(){
+  await Promise.all([cargarPacientes(), cargarConfiguracion(), cargarConsultasUnicas(), cargarEventosAgenda(), cargarIngresos(), cargarObjetivos(), cargarRegistrosGasto()]);
+  renderizarListaPacientes();
+  renderizarVistaMensual();
+  iniciarModuloGastos();
+  activarSwipeAgenda();
+}
+iniciar();
+
+</script>
+</body>
+</html>
