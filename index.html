@@ -902,16 +902,6 @@ input{ font-family:inherit; }
        hay gastos que no se pudieron enviar (el guardado local nunca
        se pierde; esto solo avisa que falta reflejarlo en la hoja).
        ============================================================ -->
-  <!-- ============================================================
-       DIAGNÓSTICO TEMPORAL — Confirma que fetch() ya no está
-       bloqueado ahora que la app corre en GitHub Pages, fuera del
-       sandbox de Claude.ai. Se quita una vez confirmado.
-       ============================================================ -->
-  <div style="margin-top:14px; padding-top:12px; border-top:1px dashed var(--borde);">
-    <button class="boton-ver-todos-gasto" style="width:100%;" onclick="probarConexionAppsScript()">🔧 Probar conexión con Google Sheets (diagnóstico)</button>
-    <div class="nota-campo" id="resultadoDiagnosticoAppsScript" style="margin-top:8px; text-align:center;"></div>
-  </div>
-
   <div id="bannerSyncGastos" style="display:none; margin-top:14px; padding:10px 12px; border-radius:12px; background:#FBF3E2; border:1px solid #EBDCBC; font-size:12px; color:#8B6516; display:flex; align-items:center; gap:8px;"></div>
 
 </div>
@@ -2900,23 +2890,6 @@ function iniciarModuloGastos(){
 // ============================================================
 const URL_APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbzzJgPLSN6igYUJFFdFCTa3ZYk23ebLt-WePCxu4AdvmfQnzA8rFmvBcMeSrPq6U3CY/exec';
 
-// DIAGNÓSTICO TEMPORAL — usa GET (no crea filas en la hoja) solo para
-// confirmar que el navegador deja salir la solicitud en este entorno.
-async function probarConexionAppsScript(){
-  const resultado = document.getElementById('resultadoDiagnosticoAppsScript');
-  resultado.textContent = 'Probando conexión…';
-  resultado.style.color = 'var(--texto-secundario)';
-  try{
-    const respuesta = await fetch(URL_APPS_SCRIPT, { method:'GET' });
-    const texto = await respuesta.text();
-    resultado.style.color = 'var(--tab-agenda)';
-    resultado.textContent = `✅ Conexión exitosa (status ${respuesta.status}). Respuesta: ${texto.slice(0,200)}`;
-  }catch(err){
-    resultado.style.color = '#9B4A4A';
-    resultado.textContent = `❌ Falló la conexión: ${err.message}.`;
-  }
-}
-
 async function sincronizarGastoConSheets(registro, intento){
   intento = intento || 1;
   try{
@@ -2924,12 +2897,15 @@ async function sincronizarGastoConSheets(registro, intento){
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita el preflight CORS que Apps Script no responde bien
       body: JSON.stringify({
-        action: 'crear_gasto',
-        monto: registro.monto,
-        categoria: registro.categoria,
-        medio_pago: registro.medioPago,
-        descripcion: registro.descripcion,
-        fecha_evento: registro.fecha
+        clave: '74269571',
+        accion: 'crear_gasto',
+        datos: {
+          monto: registro.monto,
+          categoria: registro.categoria,
+          medio_pago: registro.medioPago,
+          descripcion: registro.descripcion,
+          fecha_evento: registro.fecha
+        }
       })
     });
     if(!respuesta.ok) throw new Error('HTTP ' + respuesta.status);
