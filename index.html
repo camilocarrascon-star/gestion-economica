@@ -1774,9 +1774,9 @@ async function guardarFicha(){
   let pacienteGuardado;
   if(idEnEdicion === null){
     pacienteGuardado = {
-      id: generarId(), nombreCompleto: nombre, canal: canalSeleccionado, tipoPago: tipoPagoSeleccionado,
+      id: generarIdPaciente(), nombreCompleto: nombre, canal: canalSeleccionado, tipoPago: tipoPagoSeleccionado,
       montoHabitual: monto, estado:'activo', creado: Date.now(),
-      idSheets: null, pendienteSync: false, colaSync: []
+      pendienteSync: false, colaSync: []
     };
     pacienteGuardado.colaSync.push({ accion:'crear_paciente', datosBase: construirDatosPacienteBase(pacienteGuardado) });
     pacientes.push(pacienteGuardado);
@@ -1823,15 +1823,21 @@ async function confirmarArchivar(){
 // COLA de acciones (crear/editar/archivar/tarifa) que se procesan
 // en orden estricto — así, si editas un paciente recién creado
 // antes de que "crear_paciente" haya terminado de sincronizar, la
-// edición espera su turno en vez de fallar por no tener todavía el
-// id_paciente que devuelve el servidor.
+// edición espera su turno en vez de fallar por no tener todavía
+// confirmación del servidor.
 //
-// El id local (generarId()) NUNCA cambia — es lo que usan Agenda y
-// el resto de la app para referenciar al paciente. El id_paciente
-// que devuelve el servidor se guarda aparte, en `idSheets`, solo
-// para que la app y la planilla hablen del mismo paciente.
+// El id del paciente lo genera la app misma, de inmediato, con
+// formato "PAC-xxxxxxxx" — es el MISMO id que se manda al Apps
+// Script al crear el paciente (dentro de datos.id_paciente), así
+// que no hace falta reconciliar dos números distintos: la app y la
+// planilla hablan del mismo paciente desde el primer instante.
 // ============================================================
 const CLAVE_APPS_SCRIPT = '74269571';
+
+function generarIdPaciente(){
+  const unico = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : generarId() + generarId();
+  return 'PAC-' + unico.replace(/-/g,'').slice(0,8);
+}
 
 // Divide el nombre completo en nombre/apellido para el formato que
 // espera el Apps Script (nuestro modelo interno guarda un solo
@@ -1870,9 +1876,7 @@ async function procesarColaPacienteInterno(paciente, intento){
   }
 
   const item = paciente.colaSync[0];
-  const datos = (item.accion === 'crear_paciente')
-    ? item.datosBase
-    : Object.assign({ id_paciente: paciente.idSheets }, item.datosBase);
+  const datos = Object.assign({ id_paciente: paciente.id }, item.datosBase);
 
   try{
     const respuesta = await fetch(URL_APPS_SCRIPT, {
@@ -1881,11 +1885,6 @@ async function procesarColaPacienteInterno(paciente, intento){
       body: JSON.stringify({ clave: CLAVE_APPS_SCRIPT, accion: item.accion, datos })
     });
     if(!respuesta.ok) throw new Error('HTTP ' + respuesta.status);
-
-    if(item.accion === 'crear_paciente'){
-      const cuerpo = await respuesta.json().catch(() => null);
-      if(cuerpo && cuerpo.id_paciente) paciente.idSheets = cuerpo.id_paciente;
-    }
 
     paciente.colaSync.shift();
     await procesarColaPacienteInterno(paciente, 1); // sigue con el siguiente pendiente, si hay
