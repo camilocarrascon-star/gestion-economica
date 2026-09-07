@@ -790,6 +790,8 @@ input{ font-family:inherit; }
     <button id="botonArchivados" onclick="cambiarFiltroEstado('archivado')">Archivados</button>
   </div>
 
+  <div id="bannerSyncPacientes" style="display:none; margin-bottom:4px; padding:10px 12px; border-radius:12px; background:#FBF3E2; border:1px solid #EBDCBC; font-size:12px; color:#8B6516; align-items:center; gap:8px;"></div>
+
   <div class="lista-scroll" id="listaPacientes"><div class="vacio">Cargando pacientes…</div></div>
 </div>
 
@@ -1533,6 +1535,7 @@ function generarId(){ return Date.now().toString(36) + Math.random().toString(36
 
 async function cargarPacientes(){
   try{ const r = await window.storage.get(CLAVE_PACIENTES, false); pacientes = (r && r.value) ? JSON.parse(r.value) : []; }catch(e){ pacientes = []; }
+  pacientes.forEach(p => { p._procesando = false; }); // el bloqueo de sincronización es solo en memoria, nunca debe empezar "trabado"
 }
 async function guardarPacientesEnAlmacenamiento(){
   try{ const r = await window.storage.set(CLAVE_PACIENTES, JSON.stringify(pacientes), false); if(!r) alert('No se pudo guardar el cambio.'); }catch(e){ alert('No se pudo guardar el cambio.'); }
@@ -1767,21 +1770,150 @@ async function guardarFicha(){
     monto = limpiarMontoTexto(document.getElementById('campoMonto').value);
     if(monto === null || monto <= 0){ alert('Ingresa un monto habitual válido.'); return; }
   }
+
+  let pacienteGuardado;
   if(idEnEdicion === null){
-    pacientes.push({ id: generarId(), nombreCompleto: nombre, canal: canalSeleccionado, tipoPago: tipoPagoSeleccionado, montoHabitual: monto, estado:'activo', creado: Date.now() });
+    pacienteGuardado = {
+      id: generarId(), nombreCompleto: nombre, canal: canalSeleccionado, tipoPago: tipoPagoSeleccionado,
+      montoHabitual: monto, estado:'activo', creado: Date.now(),
+      idSheets: null, pendienteSync: false, colaSync: []
+    };
+    pacienteGuardado.colaSync.push({ accion:'crear_paciente', datosBase: construirDatosPacienteBase(pacienteGuardado) });
+    pacientes.push(pacienteGuardado);
   }else{
     const p = pacientes.find(x => x.id === idEnEdicion);
-    if(p){ p.nombreCompleto = nombre; p.canal = canalSeleccionado; p.tipoPago = tipoPagoSeleccionado; p.montoHabitual = monto; }
+    if(p){
+      const montoAnterior = p.montoHabitual;
+      p.nombreCompleto = nombre; p.canal = canalSeleccionado; p.tipoPago = tipoPagoSeleccionado; p.montoHabitual = monto;
+      p.colaSync = p.colaSync || [];
+      p.colaSync.push({ accion:'editar_paciente', datosBase: construirDatosPacienteBase(p) });
+      // Cambio de tarifa particular: se registra como historial nuevo,
+      // sin sobrescribir sesiones pasadas.
+      if(tipoPagoSeleccionado === 'particular' && montoAnterior !== monto){
+        p.colaSync.push({ accion:'nueva_tarifa_paciente', datosBase: { monto: monto, vigente_desde: hoyISO() } });
+      }
+      pacienteGuardado = p;
+    }
   }
+
   cerrarFicha(); renderizarListaPacientes(); await guardarPacientesEnAlmacenamiento();
+  if(pacienteGuardado) procesarColaPaciente(pacienteGuardado);
 }
 function cerrarFicha(){ document.getElementById('fondoModalFicha').classList.remove('abierto'); idEnEdicion = null; }
 function solicitarArchivar(){ document.getElementById('botonArchivarPaciente').style.display = 'none'; document.getElementById('confirmacionArchivar').style.display = 'block'; }
 function cancelarArchivar(){ document.getElementById('botonArchivarPaciente').style.display = 'block'; document.getElementById('confirmacionArchivar').style.display = 'none'; }
 async function confirmarArchivar(){
   const p = pacientes.find(x => x.id === idEnEdicion);
-  if(p) p.estado = (p.estado === 'activo') ? 'archivado' : 'activo';
+  if(p){
+    const seArchiva = p.estado === 'activo';
+    p.estado = seArchiva ? 'archivado' : 'activo';
+    p.colaSync = p.colaSync || [];
+    p.colaSync.push({ accion: seArchiva ? 'archivar_paciente' : 'reactivar_paciente', datosBase: {} });
+  }
   cerrarFicha(); renderizarListaPacientes(); await guardarPacientesEnAlmacenamiento();
+  if(p) procesarColaPaciente(p);
+}
+
+// ============================================================
+// SINCRONIZACIÓN CON GOOGLE SHEETS (Módulo P — Pacientes)
+// Mismo patrón que Gastos: guardado local instantáneo, envío en
+// segundo plano, reintentos automáticos, y aviso visual si falla.
+//
+// Diferencia clave frente a Gastos: cada paciente tiene su propia
+// COLA de acciones (crear/editar/archivar/tarifa) que se procesan
+// en orden estricto — así, si editas un paciente recién creado
+// antes de que "crear_paciente" haya terminado de sincronizar, la
+// edición espera su turno en vez de fallar por no tener todavía el
+// id_paciente que devuelve el servidor.
+//
+// El id local (generarId()) NUNCA cambia — es lo que usan Agenda y
+// el resto de la app para referenciar al paciente. El id_paciente
+// que devuelve el servidor se guarda aparte, en `idSheets`, solo
+// para que la app y la planilla hablen del mismo paciente.
+// ============================================================
+const CLAVE_APPS_SCRIPT = '74269571';
+
+// Divide el nombre completo en nombre/apellido para el formato que
+// espera el Apps Script (nuestro modelo interno guarda un solo
+// campo "nombreCompleto" y eso no cambia).
+function dividirNombreApellido(nombreCompleto){
+  const partes = (nombreCompleto || '').trim().split(/\s+/);
+  return { nombre: partes[0] || '', apellido: partes.slice(1).join(' ') || '' };
+}
+
+function construirDatosPacienteBase(paciente){
+  const { nombre, apellido } = dividirNombreApellido(paciente.nombreCompleto);
+  const datos = { nombre, apellido, canal_atencion: paciente.canal, tipo_pago: paciente.tipoPago };
+  if(paciente.tipoPago === 'particular') datos.monto_particular = paciente.montoHabitual;
+  return datos;
+}
+
+async function procesarColaPaciente(paciente){
+  // Bloqueo por paciente: si ya hay un procesamiento en curso (por ejemplo,
+  // esperando la respuesta de crear_paciente), no se inicia otro en
+  // paralelo — los ítems nuevos que se agreguen mientras tanto los recoge
+  // solo el procesamiento que ya está corriendo, en su turno.
+  if(paciente._procesando) return;
+  paciente._procesando = true;
+  await procesarColaPacienteInterno(paciente, 1);
+  paciente._procesando = false;
+}
+
+async function procesarColaPacienteInterno(paciente, intento){
+  intento = intento || 1;
+  paciente.colaSync = paciente.colaSync || [];
+  if(paciente.colaSync.length === 0){
+    paciente.pendienteSync = false;
+    await guardarPacientesEnAlmacenamiento();
+    actualizarBannerSyncPacientes();
+    return;
+  }
+
+  const item = paciente.colaSync[0];
+  const datos = (item.accion === 'crear_paciente')
+    ? item.datosBase
+    : Object.assign({ id_paciente: paciente.idSheets }, item.datosBase);
+
+  try{
+    const respuesta = await fetch(URL_APPS_SCRIPT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ clave: CLAVE_APPS_SCRIPT, accion: item.accion, datos })
+    });
+    if(!respuesta.ok) throw new Error('HTTP ' + respuesta.status);
+
+    if(item.accion === 'crear_paciente'){
+      const cuerpo = await respuesta.json().catch(() => null);
+      if(cuerpo && cuerpo.id_paciente) paciente.idSheets = cuerpo.id_paciente;
+    }
+
+    paciente.colaSync.shift();
+    await procesarColaPacienteInterno(paciente, 1); // sigue con el siguiente pendiente, si hay
+  }catch(err){
+    if(intento < 3){
+      await new Promise(resolver => setTimeout(resolver, 1000 * intento));
+      await procesarColaPacienteInterno(paciente, intento + 1);
+      return;
+    }
+    paciente.pendienteSync = true;
+    await guardarPacientesEnAlmacenamiento();
+    actualizarBannerSyncPacientes();
+  }
+}
+
+function actualizarBannerSyncPacientes(){
+  const banner = document.getElementById('bannerSyncPacientes');
+  const pendientes = pacientes.filter(p => p.pendienteSync);
+  if(pendientes.length === 0){ banner.style.display = 'none'; return; }
+  banner.style.display = 'flex';
+  banner.innerHTML = `
+    <span style="flex:1;">⚠️ ${pendientes.length} paciente${pendientes.length===1?'':'s'} sin sincronizar con Sheets. Los datos están guardados en el celular, solo falta enviarlos.</span>
+    <button onclick="reintentarSyncPacientesPendientes()" style="flex:none; border:1px solid #E3D4B4; background:var(--superficie); border-radius:8px; padding:5px 11px; font-size:11px; font-weight:650; color:#8B6516; touch-action:manipulation;">Reintentar</button>
+  `;
+}
+
+function reintentarSyncPacientesPendientes(){
+  pacientes.filter(p => p.pendienteSync).forEach(p => { p.pendienteSync = false; procesarColaPaciente(p, 1); });
 }
 
 /* ============================================================
@@ -3404,6 +3536,10 @@ function renderizarDashboard(){
 async function iniciar(){
   await Promise.all([cargarPacientes(), cargarConfiguracion(), cargarConsultasUnicas(), cargarEventosAgenda(), cargarIngresos(), cargarObjetivos(), cargarRegistrosGasto()]);
   renderizarListaPacientes();
+  actualizarBannerSyncPacientes();
+  // Retoma automáticamente cualquier cola de sincronización que haya
+  // quedado a medias (por ejemplo, si se cerró la app con la conexión caída).
+  pacientes.filter(p => (p.colaSync && p.colaSync.length > 0)).forEach(p => procesarColaPaciente(p, 1));
   renderizarVistaMensual();
   iniciarModuloGastos();
   activarSwipeAgenda();
