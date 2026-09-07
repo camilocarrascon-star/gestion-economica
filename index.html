@@ -809,6 +809,8 @@ input{ font-family:inherit; }
     <button class="boton-hoy-agenda" onclick="irAHoyAgenda()">Hoy</button>
   </div>
 
+  <div id="bannerSyncAgenda" style="display:none; margin-bottom:6px; padding:9px 12px; border-radius:12px; background:#FBF3E2; border:1px solid #EBDCBC; font-size:11.5px; color:#8B6516; align-items:center; gap:8px;"></div>
+
   <div class="grid-dow">
     <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
   </div>
@@ -1147,7 +1149,7 @@ input{ font-family:inherit; }
     <button class="boton-primario" onclick="guardarConfiguracion()">Guardar</button>
     <button class="boton-secundario" onclick="cerrarConfiguracion()">Cancelar</button>
 
-    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v1.0 — 6 sep 2026, 19:40</div>
+    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v1.6 — 6 sep 2026, 21:45</div>
   </div>
 </div>
 
@@ -1544,12 +1546,14 @@ async function guardarPacientesEnAlmacenamiento(){
 }
 async function cargarConsultasUnicas(){
   try{ const r = await window.storage.get(CLAVE_CONSULTAS, false); consultasUnicas = (r && r.value) ? JSON.parse(r.value) : []; }catch(e){ consultasUnicas = []; }
+  consultasUnicas.forEach(c => { c._procesando = false; });
 }
 async function guardarConsultasEnAlmacenamiento(){
   try{ const r = await window.storage.set(CLAVE_CONSULTAS, JSON.stringify(consultasUnicas), false); if(!r) alert('No se pudo guardar el cambio.'); }catch(e){ alert('No se pudo guardar el cambio.'); }
 }
 async function cargarEventosAgenda(){
   try{ const r = await window.storage.get(CLAVE_AGENDA, false); eventosAgenda = (r && r.value) ? JSON.parse(r.value) : []; }catch(e){ eventosAgenda = []; }
+  eventosAgenda.forEach(e => { e._procesando = false; });
 }
 async function guardarEventosEnAlmacenamiento(){
   try{ const r = await window.storage.set(CLAVE_AGENDA, JSON.stringify(eventosAgenda), false); if(!r) alert('No se pudo guardar el cambio.'); }catch(e){ alert('No se pudo guardar el cambio.'); }
@@ -1917,6 +1921,61 @@ function reintentarSyncPacientesPendientes(){
   pacientes.filter(p => p.pendienteSync).forEach(p => { p.pendienteSync = false; procesarColaPaciente(p, 1); });
 }
 
+// ============================================================
+// RECUPERACIÓN DESDE SHEETS — si Safari borra el almacenamiento
+// local (puede pasar en iPhone sin aviso) y la lista de pacientes
+// queda vacía al iniciar, se reconstruye completa desde la hoja
+// pidiendo 'obtener_pacientes'. Se guarda de inmediato en local
+// para no depender de la red la próxima vez.
+//
+// Nota: esta función asume que la respuesta trae, por paciente, los
+// mismos campos que usa crear_paciente (nombre, apellido,
+// canal_atencion, tipo_pago, monto_particular) más id_paciente y un
+// campo de estado. Si el formato real difiere, avísame para ajustar
+// el mapeo — no tengo forma de verificarlo sin probarlo en vivo.
+// ============================================================
+function mapearPacienteDesdeServidor(fila){
+  const nombreCompleto = `${fila.nombre || ''} ${fila.apellido || ''}`.trim();
+  const canal = fila.canal_atencion || 'directo';
+  const tipoPago = fila.tipo_pago || 'particular';
+  const montoHabitual = tipoPago === 'fonasa'
+    ? obtenerMontoFonasaSegunCanal(canal)
+    : (fila.monto_particular || 0);
+  return {
+    id: fila.id_paciente,
+    nombreCompleto,
+    canal,
+    tipoPago,
+    montoHabitual,
+    estado: fila.estado === 'archivado' ? 'archivado' : 'activo',
+    creado: Date.now(),
+    pendienteSync: false,
+    colaSync: []
+  };
+}
+
+async function recuperarPacientesDesdeSheets(){
+  try{
+    const respuesta = await fetch(URL_APPS_SCRIPT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ clave: CLAVE_APPS_SCRIPT, accion: 'obtener_pacientes' })
+    });
+    if(!respuesta.ok) throw new Error('HTTP ' + respuesta.status);
+    const cuerpo = await respuesta.json();
+    const filas = Array.isArray(cuerpo) ? cuerpo : (cuerpo.pacientes || cuerpo.datos || []);
+    if(!Array.isArray(filas) || filas.length === 0) return;
+
+    pacientes = filas.map(mapearPacienteDesdeServidor).filter(p => p.id);
+    await guardarPacientesEnAlmacenamiento();
+    renderizarListaPacientes();
+  }catch(err){
+    // Sin conexión o sin datos en la hoja: la app sigue con la lista
+    // vacía, igual que antes de que existiera esta recuperación.
+    console.error('No se pudo recuperar pacientes desde Sheets:', err);
+  }
+}
+
 /* ============================================================
    5. CONFIGURACIÓN GLOBAL
    ============================================================ */
@@ -2035,6 +2094,260 @@ function obtenerNombreEvento(evento){
   return evento.nombre || '(sin nombre)';
 }
 function obtenerEtiquetaInfo(valor){ return ETIQUETAS.find(e => e.valor === valor) || ETIQUETAS[0]; }
+
+// ============================================================
+// SINCRONIZACIÓN CON GOOGLE SHEETS (Módulo A+F — Agenda)
+// Mismo patrón que Pacientes: el id lo genera la app de inmediato
+// (formato EVT-xxxxxxxx) y se manda desde el primer crear_evento —
+// sin reconciliación posterior. Se usa una cola por entidad (evento
+// o consulta única, comparten el mismo motor) con bloqueo
+// anti-duplicados y reintentos, igual que en Pacientes y Gastos.
+// ============================================================
+function generarIdEvento(){
+  const unico = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : generarId() + generarId();
+  return 'EVT-' + unico.replace(/-/g,'').slice(0,8);
+}
+
+const COLOR_HEX_ETIQUETA = {
+  atenciones:'#4F6B5C', nel:'#7C2F3E', oficina:'#A9741B', eventos:'#B4653A', casa:'#6B7A45',
+  entrelazos:'#8C5A2B', analisis:'#6E4B2A', lecturas:'#8C7A63', seminarios:'#5C6B7A'
+};
+
+// Detalle completo de la recurrencia como JSON, para que una futura
+// recuperación desde Sheets pueda reconstruirla exacta (semanal,
+// mensual, o personalizada con día y semana del mes) en vez de
+// asumir un tipo por defecto.
+function construirReglaRecurrencia(evento){
+  if(evento.recurrencia === 'ninguna') return null;
+  const regla = { tipo: evento.recurrencia };
+  if(evento.recurrencia === 'mensual_personalizada'){
+    regla.diaSemana = evento.diaSemana;
+    regla.semanaDelMes = evento.semanaDelMes;
+  }
+  return JSON.stringify(regla);
+}
+
+// Datos base de crear_evento/editar_evento para un evento de Agenda
+// (con o sin paciente vinculado). "tipo" es la etiqueta/categoría.
+function construirDatosEventoBase(evento){
+  const datos = {
+    tipo: evento.etiqueta,
+    fecha_evento: evento.fecha,
+    hora_inicio: evento.hora,
+    hora_fin: evento.hasDuration ? (evento.endTime || '') : '',
+    color_etiqueta: COLOR_HEX_ETIQUETA[evento.etiqueta] || '',
+  };
+  if(evento.etiqueta === 'atenciones' && evento.pacienteId){
+    const paciente = pacientes.find(p => p.id === evento.pacienteId);
+    if(paciente) datos.id_paciente = paciente.id;
+  }else{
+    datos.nombre_temporal = evento.nombre || '';
+  }
+  if(evento.recurrencia !== 'ninguna'){
+    datos.id_recurrencia = evento.id;
+    datos.regla_recurrencia = construirReglaRecurrencia(evento);
+  }
+  if(evento.hasDuration && evento.endDate && evento.endDate !== evento.fecha) datos.fecha_fin = evento.endDate;
+  return datos;
+}
+
+// Datos base para una consulta única — tipo propio 'consulta_unica'
+// (no 'atenciones'), incluyendo monto y tipo de pago pactados para
+// que una recuperación futura no los pierda.
+function construirDatosConsultaBase(consulta){
+  return {
+    tipo: 'consulta_unica',
+    nombre_temporal: consulta.nombre || '',
+    fecha_evento: consulta.fecha,
+    hora_inicio: consulta.hora || '',
+    hora_fin: '',
+    color_etiqueta: COLOR_HEX_ETIQUETA.atenciones,
+    monto_pactado: consulta.monto,
+    tipo_pago_consulta: consulta.tipoPago,
+  };
+}
+
+// Cola genérica: sirve tanto para eventos de agenda-eventos como
+// para consultas únicas, porque ambas comparten la misma forma
+// (id, colaSync, pendienteSync, _procesando) y el mismo servidor
+// las trata como "eventos".
+async function procesarColaEntidadAgenda(entidad, guardarFn){
+  if(entidad._procesando) return;
+  entidad._procesando = true;
+  await procesarColaEntidadAgendaInterno(entidad, 1, guardarFn);
+  entidad._procesando = false;
+}
+async function procesarColaEntidadAgendaInterno(entidad, intento, guardarFn){
+  entidad.colaSync = entidad.colaSync || [];
+  if(entidad.colaSync.length === 0){
+    entidad.pendienteSync = false;
+    await guardarFn();
+    actualizarBannerSyncAgenda();
+    return;
+  }
+  const item = entidad.colaSync[0];
+  try{
+    const respuesta = await fetch(URL_APPS_SCRIPT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ clave: CLAVE_APPS_SCRIPT, accion: item.accion, datos: item.datosBase })
+    });
+    if(!respuesta.ok) throw new Error('HTTP ' + respuesta.status);
+
+    if(item.accion === 'actualizar_estado_sesion' && item.generaIngreso){
+      const cuerpo = await respuesta.json().catch(() => null);
+      if(cuerpo && cuerpo.id_ingreso){
+        if(item.fechaOcurrencia){
+          entidad.idsIngresoPorFecha = entidad.idsIngresoPorFecha || {};
+          entidad.idsIngresoPorFecha[item.fechaOcurrencia] = cuerpo.id_ingreso;
+        }else{
+          entidad.idIngresoSheets = cuerpo.id_ingreso;
+        }
+      }
+    }
+
+    entidad.colaSync.shift();
+    await procesarColaEntidadAgendaInterno(entidad, 1, guardarFn);
+  }catch(err){
+    if(intento < 3){
+      await new Promise(resolver => setTimeout(resolver, 1000 * intento));
+      await procesarColaEntidadAgendaInterno(entidad, intento + 1, guardarFn);
+      return;
+    }
+    entidad.pendienteSync = true;
+    await guardarFn();
+    actualizarBannerSyncAgenda();
+  }
+}
+
+function actualizarBannerSyncAgenda(){
+  const banner = document.getElementById('bannerSyncAgenda');
+  if(!banner) return;
+  const pendientes = eventosAgenda.filter(e => e.pendienteSync).length + consultasUnicas.filter(c => c.pendienteSync).length;
+  if(pendientes === 0){ banner.style.display = 'none'; return; }
+  banner.style.display = 'flex';
+  banner.innerHTML = `
+    <span style="flex:1;">⚠️ ${pendientes} evento${pendientes===1?'':'s'} sin sincronizar con Sheets.</span>
+    <button onclick="reintentarSyncAgendaPendientes()" style="flex:none; border:1px solid #E3D4B4; background:var(--superficie); border-radius:8px; padding:5px 11px; font-size:11px; font-weight:650; color:#8B6516; touch-action:manipulation;">Reintentar</button>
+  `;
+}
+function reintentarSyncAgendaPendientes(){
+  eventosAgenda.filter(e => e.pendienteSync).forEach(e => { e.pendienteSync = false; procesarColaEntidadAgenda(e, guardarEventosEnAlmacenamiento); });
+  consultasUnicas.filter(c => c.pendienteSync).forEach(c => { c.pendienteSync = false; procesarColaEntidadAgenda(c, guardarConsultasEnAlmacenamiento); });
+}
+
+// ============================================================
+// RECUPERACIÓN DESDE SHEETS — igual que en Pacientes: si la agenda
+// local queda vacía (por ejemplo, Safari borró los datos), se
+// reconstruye pidiendo obtener_eventos. Las consultas únicas se
+// identifican por tipo:'consulta_unica' (no por ausencia de
+// id_paciente), y la recurrencia se reconstruye exacta a partir de
+// regla_recurrencia en vez de asumir un tipo por defecto.
+// ============================================================
+function mapearEventoDesdeServidor(fila){
+  const esAtencionConPaciente = fila.tipo === 'atenciones' && !!fila.id_paciente;
+  let recurrencia = 'ninguna', diaSemana, semanaDelMes;
+  if(fila.regla_recurrencia){
+    try{
+      const regla = JSON.parse(fila.regla_recurrencia);
+      recurrencia = regla.tipo || 'ninguna';
+      diaSemana = regla.diaSemana;
+      semanaDelMes = regla.semanaDelMes;
+    }catch(e){ recurrencia = fila.id_recurrencia ? 'semanal' : 'ninguna'; } // respaldo si el JSON viniera mal formado
+  }else if(fila.id_recurrencia){
+    recurrencia = 'semanal'; // respaldo si no viene regla_recurrencia (dato antiguo)
+  }
+  return {
+    id: fila.id_evento,
+    etiqueta: fila.tipo || 'eventos',
+    nombre: esAtencionConPaciente ? null : (fila.nombre_temporal || ''),
+    pacienteId: esAtencionConPaciente ? fila.id_paciente : null,
+    fecha: fila.fecha_evento,
+    hora: fila.hora_inicio || '00:00',
+    recurrencia, diaSemana, semanaDelMes,
+    fechasExcluidas: [],
+    estadoSesion: fila.estado_sesion || null,
+    estadosPorFecha: {},
+    hasDuration: !!fila.fecha_fin,
+    endDate: fila.fecha_fin || '',
+    endTime: fila.hora_fin || '',
+    creado: Date.now(),
+    pendienteSync: false, colaSync: []
+  };
+}
+function mapearConsultaDesdeServidor(fila){
+  return {
+    id: fila.id_evento,
+    nombre: fila.nombre_temporal || '',
+    tipoPago: fila.tipo_pago_consulta || 'particular',
+    monto: fila.monto_pactado || 0,
+    fecha: fila.fecha_evento,
+    hora: fila.hora_inicio || '',
+    estadoSesion: fila.estado_sesion || null,
+    tipo: 'ingreso', creado: Date.now(),
+    pendienteSync:false, colaSync:[]
+  };
+}
+
+async function recuperarAgendaDesdeSheets(){
+  try{
+    const respuesta = await fetch(URL_APPS_SCRIPT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ clave: CLAVE_APPS_SCRIPT, accion: 'obtener_eventos' })
+    });
+    if(!respuesta.ok) throw new Error('HTTP ' + respuesta.status);
+    const cuerpo = await respuesta.json();
+    const filas = Array.isArray(cuerpo) ? cuerpo : (cuerpo.eventos || cuerpo.datos || []);
+    if(!Array.isArray(filas) || filas.length === 0) return;
+
+    const nuevosEventos = [];
+    const nuevasConsultas = [];
+    filas.forEach(fila => {
+      if(!fila.id_evento) return;
+      if(fila.tipo === 'consulta_unica') nuevasConsultas.push(mapearConsultaDesdeServidor(fila));
+      else nuevosEventos.push(mapearEventoDesdeServidor(fila));
+    });
+
+    eventosAgenda = nuevosEventos;
+    consultasUnicas = nuevasConsultas;
+    await guardarEventosEnAlmacenamiento();
+    await guardarConsultasEnAlmacenamiento();
+  }catch(err){
+    console.error('No se pudo recuperar la agenda desde Sheets:', err);
+  }
+}
+
+// Calcula el monto bruto y si es canal Entre Lazos, para una sesión
+// de Atenciones vinculada a un paciente existente (no aplica a
+// consultas única, que ya traen su propio monto/tipoPago).
+function calcularMontoBrutoParaPaciente(pacienteId){
+  const p = pacientes.find(x => x.id === pacienteId);
+  if(!p) return null;
+  const montoBruto = p.tipoPago === 'fonasa' ? obtenerMontoFonasaSegunCanal(p.canal) : p.montoHabitual;
+  return { montoBruto, esEntreLazos: p.canal === 'entrelazos' };
+}
+
+// Encola actualizar_estado_sesion y, si corresponde, generar_ingreso.
+// Las sesiones de canal Entre Lazos NO mandan generar_ingreso acá,
+// porque su ingreso se genera de forma agrupada al emitir la boleta
+// mensual (Módulo B) — mandar un ingreso individual por sesión
+// duplicaría ese monto cuando se genere la boleta.
+function encolarActualizarEstadoSesion(entidad, fechaOcurrencia, estado, montoInfo){
+  if(!estado) return;
+  const datosBase = { id_evento: entidad.id, estado_sesion: estado };
+  let generaIngreso = false;
+  if(montoInfo && !montoInfo.esEntreLazos && ESTADOS_QUE_GENERAN_INGRESO.includes(estado)){
+    const montoNeto = calcularNeto(montoInfo.montoBruto, false);
+    datosBase.monto_congelado = montoNeto;
+    datosBase.generar_ingreso = { monto_bruto: montoInfo.montoBruto, monto_neto: montoNeto, forma_pago: '', categoria_manual: null };
+    generaIngreso = true;
+  }else if(montoInfo){
+    datosBase.monto_congelado = calcularNeto(montoInfo.montoBruto, montoInfo.esEntreLazos);
+  }
+  entidad.colaSync = entidad.colaSync || [];
+  entidad.colaSync.push({ accion:'actualizar_estado_sesion', datosBase, fechaOcurrencia: fechaOcurrencia || null, generaIngreso });
+}
 
 // Eventos con duración (hasDuration) cuyo rango [fecha, endDate] incluye la
 // fecha dada. Solo aplica a eventos sin recurrencia — un rango de días fijo
@@ -2717,13 +3030,27 @@ async function guardarFichaEvento(){
     else if(tipoPagoEventoConsultaSeleccionado === 'fonasa_el') monto = configuracion.montoFonasaEL || 0;
     else{ monto = limpiarMontoTexto(document.getElementById('eventoConsultaMonto').value); if(monto === null || monto <= 0){ alert('Ingresa un monto válido.'); return; } }
 
+    let consultaGuardada;
     if(consultaEnEdicionId === null){
-      consultasUnicas.push({ id: generarId(), nombre, tipoPago: tipoPagoEventoConsultaSeleccionado, monto, fecha, hora, estadoSesion: estadoSesionEventoSeleccionado, tipo:'ingreso', creado: Date.now() });
+      consultaGuardada = { id: generarIdEvento(), nombre, tipoPago: tipoPagoEventoConsultaSeleccionado, monto, fecha, hora, estadoSesion: estadoSesionEventoSeleccionado, tipo:'ingreso', creado: Date.now(), pendienteSync:false, colaSync:[] };
+      consultaGuardada.colaSync.push({ accion:'crear_evento', datosBase: construirDatosConsultaBase(consultaGuardada) });
+      consultasUnicas.push(consultaGuardada);
     }else{
       const c = consultasUnicas.find(x => x.id === consultaEnEdicionId);
-      if(c){ c.nombre = nombre; c.tipoPago = tipoPagoEventoConsultaSeleccionado; c.monto = monto; c.fecha = fecha; c.hora = hora; c.estadoSesion = estadoSesionEventoSeleccionado; }
+      if(c){
+        c.nombre = nombre; c.tipoPago = tipoPagoEventoConsultaSeleccionado; c.monto = monto; c.fecha = fecha; c.hora = hora; c.estadoSesion = estadoSesionEventoSeleccionado;
+        c.colaSync = c.colaSync || [];
+        c.colaSync.push({ accion:'editar_evento', datosBase: construirDatosConsultaBase(c) });
+        consultaGuardada = c;
+      }
     }
-    cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarConsultasEnAlmacenamiento(); return;
+    if(consultaGuardada){
+      const esEntreLazos = tipoPagoEventoConsultaSeleccionado === 'fonasa_el';
+      encolarActualizarEstadoSesion(consultaGuardada, null, estadoSesionEventoSeleccionado, { montoBruto: monto, esEntreLazos });
+    }
+    cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarConsultasEnAlmacenamiento();
+    if(consultaGuardada) procesarColaEntidadAgenda(consultaGuardada, guardarConsultasEnAlmacenamiento);
+    return;
   }
 
   if(etiquetaEventoSeleccionada === 'atenciones' && subtipoAtencionSeleccionado === 'existente'){
@@ -2750,31 +3077,46 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
     endTime = horaTerminoTexto || '';
   }
 
+  let evento;
+  let fechaOcurrenciaAfectada = null;
   if(eventoEnEdicionId === null){
-    eventosAgenda.push({
-      id: generarId(), etiqueta: etiquetaEventoSeleccionada, nombre, pacienteId, fecha, hora,
+    evento = {
+      id: generarIdEvento(), etiqueta: etiquetaEventoSeleccionada, nombre, pacienteId, fecha, hora,
       recurrencia: recurrenciaEventoSeleccionada,
       diaSemana: recurrenciaEventoSeleccionada === 'mensual_personalizada' ? diaSemana : undefined,
       semanaDelMes: recurrenciaEventoSeleccionada === 'mensual_personalizada' ? semanaDelMesEventoSeleccionada : undefined,
       fechasExcluidas: [], estadoSesion: recurrenciaEventoSeleccionada === 'ninguna' ? estadoSesionEventoSeleccionado : null,
-      estadosPorFecha: {}, hasDuration, endDate, endTime, creado: Date.now()
-    });
+      estadosPorFecha: {}, hasDuration, endDate, endTime, creado: Date.now(),
+      pendienteSync:false, colaSync:[]
+    };
+    evento.colaSync.push({ accion:'crear_evento', datosBase: construirDatosEventoBase(evento) });
+    eventosAgenda.push(evento);
+    fechaOcurrenciaAfectada = evento.recurrencia === 'ninguna' ? evento.fecha : null;
   }else{
-    const evento = eventosAgenda.find(x => x.id === eventoEnEdicionId);
+    evento = eventosAgenda.find(x => x.id === eventoEnEdicionId);
     if(evento){
       evento.etiqueta = etiquetaEventoSeleccionada; evento.nombre = nombre; evento.pacienteId = pacienteId;
       evento.fecha = fecha; evento.hora = hora; evento.recurrencia = recurrenciaEventoSeleccionada;
       if(recurrenciaEventoSeleccionada === 'mensual_personalizada'){ evento.diaSemana = diaSemana; evento.semanaDelMes = semanaDelMesEventoSeleccionada; }
-      if(evento.recurrencia === 'ninguna'){ evento.estadoSesion = estadoSesionEventoSeleccionado; }
+      if(evento.recurrencia === 'ninguna'){ evento.estadoSesion = estadoSesionEventoSeleccionado; fechaOcurrenciaAfectada = evento.fecha; }
       else if(fechaOcurrenciaEnEdicion){
         evento.estadosPorFecha = evento.estadosPorFecha || {};
         if(estadoSesionEventoSeleccionado) evento.estadosPorFecha[fechaOcurrenciaEnEdicion] = estadoSesionEventoSeleccionado;
         else delete evento.estadosPorFecha[fechaOcurrenciaEnEdicion];
+        fechaOcurrenciaAfectada = fechaOcurrenciaEnEdicion;
       }
       evento.hasDuration = hasDuration; evento.endDate = endDate; evento.endTime = endTime;
+      evento.colaSync = evento.colaSync || [];
+      evento.colaSync.push({ accion:'editar_evento', datosBase: construirDatosEventoBase(evento) });
     }
   }
+
+  if(evento && etiquetaEventoSeleccionada === 'atenciones' && pacienteId && estadoSesionEventoSeleccionado){
+    encolarActualizarEstadoSesion(evento, evento.recurrencia === 'ninguna' ? null : fechaOcurrenciaAfectada, estadoSesionEventoSeleccionado, calcularMontoBrutoParaPaciente(pacienteId));
+  }
+
   cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarEventosEnAlmacenamiento();
+  if(evento) procesarColaEntidadAgenda(evento, guardarEventosEnAlmacenamiento);
 }
 
 function solicitarOmitirFecha(){
@@ -2792,8 +3134,11 @@ async function confirmarOmitirFecha(){
   if(evento && fechaOcurrenciaEnEdicion){
     evento.fechasExcluidas = evento.fechasExcluidas || [];
     if(!evento.fechasExcluidas.includes(fechaOcurrenciaEnEdicion)) evento.fechasExcluidas.push(fechaOcurrenciaEnEdicion);
+    evento.colaSync = evento.colaSync || [];
+    evento.colaSync.push({ accion:'omitir_fecha_evento', datosBase: { id_evento: evento.id, fecha_omitida: fechaOcurrenciaEnEdicion } });
   }
   cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarEventosEnAlmacenamiento();
+  if(evento) procesarColaEntidadAgenda(evento, guardarEventosEnAlmacenamiento);
 }
 function solicitarEliminarEvento(){
   document.getElementById('botonEliminarEvento').style.display = 'none';
@@ -2811,13 +3156,40 @@ function cancelarEliminarEvento(){
   if(evento && evento.recurrencia !== 'ninguna') document.getElementById('botonOmitirFechaEvento').style.display = 'block';
   document.getElementById('confirmacionEliminarEvento').style.display = 'none';
 }
+// Envío puntual con reintentos, para acciones que no necesitan una
+// cola persistente por entidad (por ejemplo, eliminar — el registro
+// ya no existe localmente para poder "esperar su turno" después).
+async function enviarAccionAgendaConReintentos(accion, datos, intento){
+  intento = intento || 1;
+  try{
+    const respuesta = await fetch(URL_APPS_SCRIPT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ clave: CLAVE_APPS_SCRIPT, accion, datos })
+    });
+    if(!respuesta.ok) throw new Error('HTTP ' + respuesta.status);
+    return await respuesta.json().catch(() => null);
+  }catch(err){
+    if(intento < 3){
+      await new Promise(resolver => setTimeout(resolver, 1000 * intento));
+      return enviarAccionAgendaConReintentos(accion, datos, intento + 1);
+    }
+    console.error('No se pudo sincronizar la acción "' + accion + '" con Sheets:', err);
+    return null;
+  }
+}
+
 async function confirmarEliminarEvento(){
   if(consultaEnEdicionId !== null){
+    const consulta = consultasUnicas.find(x => x.id === consultaEnEdicionId);
     consultasUnicas = consultasUnicas.filter(x => x.id !== consultaEnEdicionId);
     cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarConsultasEnAlmacenamiento();
+    if(consulta) enviarAccionAgendaConReintentos('eliminar_evento', { id_evento: consulta.id });
   }else if(eventoEnEdicionId !== null){
+    const evento = eventosAgenda.find(x => x.id === eventoEnEdicionId);
     eventosAgenda = eventosAgenda.filter(x => x.id !== eventoEnEdicionId);
     cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarEventosEnAlmacenamiento();
+    if(evento) enviarAccionAgendaConReintentos('eliminar_evento', { id_evento: evento.id });
   }
 }
 
@@ -3122,9 +3494,24 @@ function obtenerPendientesEntreLazos(){
   });
   return res;
 }
+// Busca si la sesión que originó este ingreso ya tiene un id_ingreso
+// del servidor (guardado cuando se sincronizó actualizar_estado_sesion
+// + generar_ingreso desde Agenda), para poder enlazar el registro
+// local con el de la planilla.
+function obtenerIdIngresoSheetsDeInstancia(inst){
+  if(inst.tipoInstancia === 'consulta'){
+    const c = consultasUnicas.find(x => x.id === inst.consultaId);
+    return c ? (c.idIngresoSheets || null) : null;
+  }
+  const ev = eventosAgenda.find(x => x.id === inst.eventoId);
+  if(!ev) return null;
+  if(ev.recurrencia === 'ninguna') return ev.idIngresoSheets || null;
+  return (ev.idsIngresoPorFecha && ev.idsIngresoPorFecha[inst.fecha]) || null;
+}
+
 async function autoImportarFonasaDirecto(){
   const pend = obtenerPendientesDirectos().filter(p => p.info.tipo === 'fonasa_directo'); if(pend.length === 0) return;
-  pend.forEach(p => ingresos.push({ id: generarId(), tipo:'fonasa_directo', origenClave: p.clave, fecha: p.instancia.fecha, montoBruto: p.info.montoBruto, montoNeto: calcularNeto(p.info.montoBruto, false), medioPago: null, descripcion: p.info.nombre, creado: Date.now() }));
+  pend.forEach(p => ingresos.push({ id: generarId(), tipo:'fonasa_directo', origenClave: p.clave, fecha: p.instancia.fecha, montoBruto: p.info.montoBruto, montoNeto: calcularNeto(p.info.montoBruto, false), medioPago: null, descripcion: p.info.nombre, idIngresoSheets: obtenerIdIngresoSheetsDeInstancia(p.instancia), creado: Date.now() }));
   await guardarIngresosEnAlmacenamiento();
 }
 async function autoImportarSueldoDependiente(){
@@ -3146,8 +3533,13 @@ async function autoImportarSueldoDependiente(){
 }
 async function confirmarPagoParticular(clave, medioPago){
   const item = obtenerPendientesDirectos().find(p => p.clave === clave); if(!item) return;
-  ingresos.push({ id: generarId(), tipo: item.info.tipo, origenClave: clave, fecha: item.instancia.fecha, montoBruto: item.info.montoBruto, montoNeto: calcularNeto(item.info.montoBruto, false), medioPago, descripcion: item.info.nombre, creado: Date.now() });
+  const idIngresoSheets = obtenerIdIngresoSheetsDeInstancia(item.instancia);
+  ingresos.push({ id: generarId(), tipo: item.info.tipo, origenClave: clave, fecha: item.instancia.fecha, montoBruto: item.info.montoBruto, montoNeto: calcularNeto(item.info.montoBruto, false), medioPago, descripcion: item.info.nombre, idIngresoSheets, creado: Date.now() });
   await guardarIngresosEnAlmacenamiento(); renderizarVistaIngresos();
+  // El monto y el estado ya se sincronizaron desde Agenda al marcar la
+  // sesión como pagada; acá solo falta completar la forma de pago que
+  // recién ahora eligió el usuario.
+  if(idIngresoSheets) enviarAccionAgendaConReintentos('editar_ingreso', { id_ingreso: idIngresoSheets, forma_pago: medioPago });
 }
 let confirmandoBoleta = false;
 function solicitarConfirmacionBoleta(){ confirmandoBoleta = true; renderizarVistaIngresos(); }
@@ -3536,11 +3928,16 @@ function renderizarDashboard(){
    ============================================================ */
 async function iniciar(){
   await Promise.all([cargarPacientes(), cargarConfiguracion(), cargarConsultasUnicas(), cargarEventosAgenda(), cargarIngresos(), cargarObjetivos(), cargarRegistrosGasto()]);
+  if(pacientes.length === 0) await recuperarPacientesDesdeSheets();
+  if(eventosAgenda.length === 0 && consultasUnicas.length === 0) await recuperarAgendaDesdeSheets();
   renderizarListaPacientes();
   actualizarBannerSyncPacientes();
+  actualizarBannerSyncAgenda();
   // Retoma automáticamente cualquier cola de sincronización que haya
   // quedado a medias (por ejemplo, si se cerró la app con la conexión caída).
   pacientes.filter(p => (p.colaSync && p.colaSync.length > 0)).forEach(p => procesarColaPaciente(p, 1));
+  eventosAgenda.filter(e => (e.colaSync && e.colaSync.length > 0)).forEach(e => procesarColaEntidadAgenda(e, guardarEventosEnAlmacenamiento));
+  consultasUnicas.filter(c => (c.colaSync && c.colaSync.length > 0)).forEach(c => procesarColaEntidadAgenda(c, guardarConsultasEnAlmacenamiento));
   renderizarVistaMensual();
   iniciarModuloGastos();
   activarSwipeAgenda();
