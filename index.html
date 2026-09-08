@@ -1149,7 +1149,7 @@ input{ font-family:inherit; }
     <button class="boton-primario" onclick="guardarConfiguracion()">Guardar</button>
     <button class="boton-secundario" onclick="cerrarConfiguracion()">Cancelar</button>
 
-    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v1.6 — 6 sep 2026, 21:45</div>
+    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v1.7 — 6 sep 2026, 22:05</div>
   </div>
 </div>
 
@@ -2131,6 +2131,7 @@ function construirReglaRecurrencia(evento){
 // (con o sin paciente vinculado). "tipo" es la etiqueta/categoría.
 function construirDatosEventoBase(evento){
   const datos = {
+    id_evento: evento.id,
     tipo: evento.etiqueta,
     fecha_evento: evento.fecha,
     hora_inicio: evento.hora,
@@ -2156,6 +2157,7 @@ function construirDatosEventoBase(evento){
 // que una recuperación futura no los pierda.
 function construirDatosConsultaBase(consulta){
   return {
+    id_evento: consulta.id,
     tipo: 'consulta_unica',
     nombre_temporal: consulta.nombre || '',
     fecha_evento: consulta.fecha,
