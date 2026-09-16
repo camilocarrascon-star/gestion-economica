@@ -1149,7 +1149,7 @@ input{ font-family:inherit; }
     <button class="boton-primario" onclick="guardarConfiguracion()">Guardar</button>
     <button class="boton-secundario" onclick="cerrarConfiguracion()">Cancelar</button>
 
-    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v1.9 — 15 sep 2026 — Fase 1 (contrato con Sheets + fechas)</div>
+    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.0 — 15 sep 2026 — Fase 2 (upsert + gastos sincronizados)</div>
   </div>
 </div>
 
@@ -1484,7 +1484,7 @@ if(!window.storage){
 // ============================================================
 const URL_APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbzzJgPLSN6igYUJFFdFCTa3ZYk23ebLt-WePCxu4AdvmfQnzA8rFmvBcMeSrPq6U3CY/exec';
 const CLAVE_APPS_SCRIPT = '74269571';
-const TIEMPO_LIMITE_SCRIPT = 15000; // 15 segundos
+const TIEMPO_LIMITE_SCRIPT = 30000; // 30 segundos (subido de 15s: en pruebas reales, Apps Script a veces tarda más en responder aunque ya terminó de guardar)
 
 async function llamarScript(accion, datos){
   const controlador = new AbortController();
@@ -1640,6 +1640,7 @@ async function guardarConfiguracionEnAlmacenamiento(){
 }
 async function cargarRegistrosGasto(){
   try{ const r = await window.storage.get(CLAVE_GASTOS, false); registrosGasto = (r && r.value) ? JSON.parse(r.value) : []; }catch(e){ registrosGasto = []; }
+  registrosGasto.forEach(r => { r._procesando = false; });
 }
 async function guardarGastosEnAlmacenamiento(){
   try{ const r = await window.storage.set(CLAVE_GASTOS, JSON.stringify(registrosGasto), false); if(!r) alert('No se pudo guardar el cambio.'); }catch(e){ alert('No se pudo guardar el cambio.'); }
@@ -3304,7 +3305,8 @@ async function guardarNuevoGasto(){
   if(monto === null || monto <= 0){ alert('Ingresa un monto válido.'); return; }
   if(!categoriaSeleccionadaGasto){ alert('Selecciona una categoría.'); return; }
   if(!pagoSeleccionadoGasto){ alert('Selecciona un medio de pago.'); return; }
-  const nuevoRegistro = { id: generarId(), fecha: document.getElementById('gastoCampoFecha').value, categoria: categoriaSeleccionadaGasto, medioPago: pagoSeleccionadoGasto, monto, descripcion: document.getElementById('gastoCampoDescripcion').value.trim(), creado: Date.now(), sincronizado: false };
+  const nuevoRegistro = { id: generarId(), fecha: document.getElementById('gastoCampoFecha').value, categoria: categoriaSeleccionadaGasto, medioPago: pagoSeleccionadoGasto, monto, descripcion: document.getElementById('gastoCampoDescripcion').value.trim(), creado: Date.now(), pendienteSync:false, colaSync:[] };
+  nuevoRegistro.colaSync.push({ accion:'crear_gasto', datosBase: construirDatosGastoBase(nuevoRegistro) });
   registrosGasto.push(nuevoRegistro);
   expresionGasto = ''; categoriaSeleccionadaGasto = null; pagoSeleccionadoGasto = null;
   document.getElementById('gastoCampoDescripcion').value = ''; document.getElementById('gastoCampoFecha').value = hoyISO();
@@ -3315,7 +3317,7 @@ async function guardarNuevoGasto(){
   await guardarGastosEnAlmacenamiento();
   // El guardado local ya terminó (igual que antes); la sincronización con
   // Sheets ocurre en segundo plano y no retrasa ni bloquea la pantalla.
-  sincronizarGastoConSheets(nuevoRegistro);
+  procesarColaGasto(nuevoRegistro);
 }
 function obtenerCategoriaGastoPorCodigo(codigo){ return CATEGORIAS_GASTO.find(c => c.codigo === codigo) || { color:'var(--texto-terciario)', nombre:codigo }; }
 function renderizarListaGastos(){
@@ -3364,6 +3366,7 @@ function cancelarEliminacionGasto(evento){ evento.stopPropagation(); idConfirman
 async function confirmarEliminacionGasto(evento, id){
   evento.stopPropagation(); idMenuAbiertoGasto = null; idConfirmandoEliminarGasto = null;
   registrosGasto = registrosGasto.filter(r => r.id !== id); renderizarListaGastos(); await guardarGastosEnAlmacenamiento();
+  enviarAccionAgendaConReintentos('eliminar_gasto', { id_gasto: id });
 }
 let categoriaModalGasto = null; let pagoModalGasto = null;
 function editarRegistroGasto(id){
@@ -3387,7 +3390,10 @@ async function guardarEdicionGasto(){
   if(!categoriaModalGasto || !pagoModalGasto){ alert('Selecciona categoría y medio de pago.'); return; }
   registro.monto = monto; registro.categoria = categoriaModalGasto; registro.medioPago = pagoModalGasto;
   registro.fecha = document.getElementById('modalGastoFecha').value; registro.descripcion = document.getElementById('modalGastoDescripcion').value.trim();
+  registro.colaSync = registro.colaSync || [];
+  registro.colaSync.push({ accion:'editar_gasto', datosBase: construirDatosGastoBase(registro) });
   cerrarModalGasto(); renderizarListaGastos(); await guardarGastosEnAlmacenamiento();
+  procesarColaGasto(registro);
 }
 function cerrarModalGasto(){ idGastoEnEdicion = null; document.getElementById('fondoModalGasto').classList.remove('abierto'); }
 function exportarCSVGasto(){
@@ -3414,42 +3420,66 @@ function iniciarModuloGastos(){
 // ============================================================
 // SINCRONIZACIÓN CON GOOGLE SHEETS (Módulo C — Gastos)
 // Cada gasto se guarda localmente de inmediato (igual que antes) y,
-// por detrás, se intenta enviar a la hoja vía Apps Script. Si falla,
-// reintenta automáticamente hasta 3 veces con espera creciente; si
-// aun así no se logra, el registro queda marcado como pendiente y
-// aparece en el aviso de la parte inferior de la pantalla, con un
-// botón para reintentar manualmente. El dato nunca se pierde: sigue
-// disponible en el listado local pase lo que pase con la conexión.
+// por detrás, se sincroniza con la hoja vía Apps Script usando la
+// misma cola por registro que ya usan Pacientes y Agenda: crear,
+// editar y eliminar esperan su turno en orden, y con el servidor ya
+// actualizado (Fase 2) un reintento encuentra la fila por su id y la
+// actualiza, nunca la duplica. Si falla, reintenta automáticamente
+// hasta 3 veces con espera creciente; si aun así no se logra, el
+// registro queda marcado como pendiente y aparece en el aviso de la
+// parte inferior de la pantalla, con un botón para reintentar
+// manualmente. El dato nunca se pierde: sigue disponible en el
+// listado local pase lo que pase con la conexión.
 // ============================================================
 // La URL y la clave del Apps Script están declaradas arriba, junto a
 // llamarScript(), que es por donde pasan todas las llamadas.
 
-async function sincronizarGastoConSheets(registro, intento){
+function construirDatosGastoBase(registro){
+  return {
+    monto: registro.monto,
+    categoria: registro.categoria,
+    medio_pago: registro.medioPago,
+    descripcion: registro.descripcion,
+    fecha_evento: registro.fecha
+  };
+}
+
+async function procesarColaGasto(registro){
+  if(registro._procesando) return;
+  registro._procesando = true;
+  await procesarColaGastoInterno(registro, 1);
+  registro._procesando = false;
+}
+async function procesarColaGastoInterno(registro, intento){
   intento = intento || 1;
+  registro.colaSync = registro.colaSync || [];
+  if(registro.colaSync.length === 0){
+    registro.pendienteSync = false;
+    await guardarGastosEnAlmacenamiento();
+    actualizarBannerSyncGastos();
+    return;
+  }
+  const item = registro.colaSync[0];
+  const datos = Object.assign({ id_gasto: registro.id }, item.datosBase);
   try{
-    await llamarScript('crear_gasto', {
-      monto: registro.monto,
-      categoria: registro.categoria,
-      medio_pago: registro.medioPago,
-      descripcion: registro.descripcion,
-      fecha_evento: registro.fecha
-    });
-    registro.sincronizado = true;
+    await llamarScript(item.accion, datos);
+    registro.colaSync.shift();
+    await procesarColaGastoInterno(registro, 1);
   }catch(err){
     if(intento < 3){
       await new Promise(resolver => setTimeout(resolver, 1000 * intento));
-      await sincronizarGastoConSheets(registro, intento + 1);
+      await procesarColaGastoInterno(registro, intento + 1);
       return;
     }
-    registro.sincronizado = false;
+    registro.pendienteSync = true;
+    await guardarGastosEnAlmacenamiento();
+    actualizarBannerSyncGastos();
   }
-  await guardarGastosEnAlmacenamiento();
-  actualizarBannerSyncGastos();
 }
 
 function actualizarBannerSyncGastos(){
   const banner = document.getElementById('bannerSyncGastos');
-  const pendientes = registrosGasto.filter(r => r.sincronizado === false);
+  const pendientes = registrosGasto.filter(r => r.pendienteSync);
   if(pendientes.length === 0){ banner.style.display = 'none'; return; }
   banner.style.display = 'flex';
   banner.innerHTML = `
@@ -3459,7 +3489,7 @@ function actualizarBannerSyncGastos(){
 }
 
 function reintentarSyncGastosPendientes(){
-  registrosGasto.filter(r => r.sincronizado === false).forEach(r => sincronizarGastoConSheets(r, 1));
+  registrosGasto.filter(r => r.pendienteSync).forEach(r => { r.pendienteSync = false; procesarColaGasto(r); });
 }
 
 /* ============================================================
