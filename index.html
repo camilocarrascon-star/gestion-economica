@@ -1149,7 +1149,7 @@ input{ font-family:inherit; }
     <button class="boton-primario" onclick="guardarConfiguracion()">Guardar</button>
     <button class="boton-secundario" onclick="cerrarConfiguracion()">Cancelar</button>
 
-    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.0 — 15 sep 2026 — Fase 2 (upsert + gastos sincronizados)</div>
+    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.1 — 15 sep 2026 — Ingreso único por sesión (id fijo)</div>
   </div>
 </div>
 
@@ -2367,7 +2367,11 @@ function calcularMontoBrutoParaPaciente(pacienteId){
 // porque su ingreso se genera de forma agrupada al emitir la boleta
 // mensual (Módulo B) — mandar un ingreso individual por sesión
 // duplicaría ese monto cuando se genere la boleta.
-function encolarActualizarEstadoSesion(entidad, fechaOcurrencia, estado, montoInfo){
+// "idIngreso" es el id determinista (ver idIngresoDeterministico, más
+// abajo): siempre el mismo para la misma sesión, así que si esta orden
+// se repite (una corrección, un reintento), el servidor actualiza la
+// misma fila en vez de crear una nueva.
+function encolarActualizarEstadoSesion(entidad, fechaOcurrencia, estado, montoInfo, idIngreso){
   if(!estado) return;
   const fechaEvento = fechaOcurrencia || entidad.fecha;
   const datosBase = { id_evento: entidad.id, fecha_evento: fechaEvento, estado_sesion: estado };
@@ -2375,13 +2379,23 @@ function encolarActualizarEstadoSesion(entidad, fechaOcurrencia, estado, montoIn
   if(montoInfo && !montoInfo.esEntreLazos && ESTADOS_QUE_GENERAN_INGRESO.includes(estado)){
     const montoNeto = calcularNeto(montoInfo.montoBruto, false);
     datosBase.monto_congelado = montoNeto;
-    datosBase.generar_ingreso = { monto_bruto: montoInfo.montoBruto, monto_neto: montoNeto, forma_pago: '', categoria_manual: null };
+    datosBase.generar_ingreso = { id_ingreso: idIngreso, monto_bruto: montoInfo.montoBruto, monto_neto: montoNeto, forma_pago: '', categoria_manual: null };
     generaIngreso = true;
   }else if(montoInfo){
     datosBase.monto_congelado = calcularNeto(montoInfo.montoBruto, montoInfo.esEntreLazos);
   }
   entidad.colaSync = entidad.colaSync || [];
   entidad.colaSync.push({ accion:'actualizar_estado_sesion', datosBase, fechaOcurrencia: fechaOcurrencia || null, generaIngreso });
+}
+
+// Si una sesión deja de estar en un estado que genera ingreso (por
+// ejemplo, pasa de "pagada" a "ausencia justificada"), o si se elimina
+// el evento o consulta, el ingreso que ya se había generado queda
+// huérfano en la planilla si nadie avisa. Esto encola esa eliminación,
+// con el mismo id determinista con el que se había creado.
+function encolarEliminarIngresoDeSesion(entidad, idIngreso){
+  entidad.colaSync = entidad.colaSync || [];
+  entidad.colaSync.push({ accion:'eliminar_ingreso', datosBase: { id_ingreso: idIngreso } });
 }
 
 // Eventos con duración (hasDuration) cuyo rango [fecha, endDate] incluye la
@@ -3066,6 +3080,7 @@ async function guardarFichaEvento(){
     else{ monto = limpiarMontoTexto(document.getElementById('eventoConsultaMonto').value); if(monto === null || monto <= 0){ alert('Ingresa un monto válido.'); return; } }
 
     let consultaGuardada;
+    let estadoAnteriorConsulta = null, montoAnteriorConsulta = null;
     if(consultaEnEdicionId === null){
       consultaGuardada = { id: generarIdEvento(), nombre, tipoPago: tipoPagoEventoConsultaSeleccionado, monto, fecha, hora, estadoSesion: estadoSesionEventoSeleccionado, tipo:'ingreso', creado: Date.now(), pendienteSync:false, colaSync:[] };
       consultaGuardada.colaSync.push({ accion:'crear_evento', datosBase: construirDatosConsultaBase(consultaGuardada) });
@@ -3073,6 +3088,7 @@ async function guardarFichaEvento(){
     }else{
       const c = consultasUnicas.find(x => x.id === consultaEnEdicionId);
       if(c){
+        estadoAnteriorConsulta = c.estadoSesion || null; montoAnteriorConsulta = c.monto;
         c.nombre = nombre; c.tipoPago = tipoPagoEventoConsultaSeleccionado; c.monto = monto; c.fecha = fecha; c.hora = hora; c.estadoSesion = estadoSesionEventoSeleccionado;
         c.colaSync = c.colaSync || [];
         c.colaSync.push({ accion:'editar_evento', datosBase: construirDatosConsultaBase(c) });
@@ -3081,7 +3097,22 @@ async function guardarFichaEvento(){
     }
     if(consultaGuardada){
       const esEntreLazos = tipoPagoEventoConsultaSeleccionado === 'fonasa_el';
-      encolarActualizarEstadoSesion(consultaGuardada, null, estadoSesionEventoSeleccionado, { montoBruto: monto, esEntreLazos });
+      const idIngreso = idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'consulta', consultaId: consultaGuardada.id }));
+      const cambioEstado = estadoAnteriorConsulta !== estadoSesionEventoSeleccionado;
+      const siguePagada = ESTADOS_QUE_GENERAN_INGRESO.includes(estadoSesionEventoSeleccionado);
+      const cambioMontoEnPagada = siguePagada && montoAnteriorConsulta !== monto;
+      // Solo se avisa a Ingresos si el estado cambió, o si sigue pagada
+      // pero el monto se corrigió. Editar solo el nombre, por ejemplo,
+      // ya no vuelve a generar un ingreso.
+      if(cambioEstado || cambioMontoEnPagada){
+        encolarActualizarEstadoSesion(consultaGuardada, null, estadoSesionEventoSeleccionado, { montoBruto: monto, esEntreLazos }, idIngreso);
+      }
+      // Si dejó de estar pagada (y antes sí lo estaba, y no era Entre
+      // Lazos), el ingreso que ya existía en la planilla queda huérfano
+      // si no se borra.
+      if(cambioEstado && !esEntreLazos && !siguePagada && estadoAnteriorConsulta && ESTADOS_QUE_GENERAN_INGRESO.includes(estadoAnteriorConsulta)){
+        encolarEliminarIngresoDeSesion(consultaGuardada, idIngreso);
+      }
     }
     cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarConsultasEnAlmacenamiento();
     if(consultaGuardada) procesarColaEntidadAgenda(consultaGuardada, guardarConsultasEnAlmacenamiento);
@@ -3114,6 +3145,7 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
 
   let evento;
   let fechaOcurrenciaAfectada = null;
+  let estadoAnteriorEvento = null;
   if(eventoEnEdicionId === null){
     evento = {
       id: generarIdEvento(), etiqueta: etiquetaEventoSeleccionada, nombre, pacienteId, fecha, hora,
@@ -3133,9 +3165,13 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
       evento.etiqueta = etiquetaEventoSeleccionada; evento.nombre = nombre; evento.pacienteId = pacienteId;
       evento.fecha = fecha; evento.hora = hora; evento.recurrencia = recurrenciaEventoSeleccionada;
       if(recurrenciaEventoSeleccionada === 'mensual_personalizada'){ evento.diaSemana = diaSemana; evento.semanaDelMes = semanaDelMesEventoSeleccionada; }
-      if(evento.recurrencia === 'ninguna'){ evento.estadoSesion = estadoSesionEventoSeleccionado; fechaOcurrenciaAfectada = evento.fecha; }
+      if(evento.recurrencia === 'ninguna'){
+        estadoAnteriorEvento = evento.estadoSesion || null;
+        evento.estadoSesion = estadoSesionEventoSeleccionado; fechaOcurrenciaAfectada = evento.fecha;
+      }
       else if(fechaOcurrenciaEnEdicion){
         evento.estadosPorFecha = evento.estadosPorFecha || {};
+        estadoAnteriorEvento = evento.estadosPorFecha[fechaOcurrenciaEnEdicion] || null;
         if(estadoSesionEventoSeleccionado) evento.estadosPorFecha[fechaOcurrenciaEnEdicion] = estadoSesionEventoSeleccionado;
         else delete evento.estadosPorFecha[fechaOcurrenciaEnEdicion];
         fechaOcurrenciaAfectada = fechaOcurrenciaEnEdicion;
@@ -3147,7 +3183,22 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
   }
 
   if(evento && etiquetaEventoSeleccionada === 'atenciones' && pacienteId && estadoSesionEventoSeleccionado){
-    encolarActualizarEstadoSesion(evento, evento.recurrencia === 'ninguna' ? null : fechaOcurrenciaAfectada, estadoSesionEventoSeleccionado, calcularMontoBrutoParaPaciente(pacienteId));
+    const montoInfo = calcularMontoBrutoParaPaciente(pacienteId);
+    const fechaClaveOrigen = evento.recurrencia === 'ninguna' ? evento.fecha : fechaOcurrenciaAfectada;
+    const idIngreso = idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaClaveOrigen }));
+    const siguePagada = ESTADOS_QUE_GENERAN_INGRESO.includes(estadoSesionEventoSeleccionado);
+    // Solo se avisa a Ingresos si el estado de esa fecha realmente
+    // cambió. Corregir otro dato de la ficha ya no vuelve a generar
+    // un ingreso para esa sesión.
+    if(estadoAnteriorEvento !== estadoSesionEventoSeleccionado){
+      encolarActualizarEstadoSesion(evento, evento.recurrencia === 'ninguna' ? null : fechaOcurrenciaAfectada, estadoSesionEventoSeleccionado, montoInfo, idIngreso);
+      // Si esa fecha dejó de estar pagada (y no era Entre Lazos), el
+      // ingreso que ya existía en la planilla queda huérfano si no se
+      // borra.
+      if(!siguePagada && montoInfo && !montoInfo.esEntreLazos && estadoAnteriorEvento && ESTADOS_QUE_GENERAN_INGRESO.includes(estadoAnteriorEvento)){
+        encolarEliminarIngresoDeSesion(evento, idIngreso);
+      }
+    }
   }
 
   cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarEventosEnAlmacenamiento();
@@ -3208,17 +3259,43 @@ async function enviarAccionAgendaConReintentos(accion, datos, intento){
   }
 }
 
+// Si el evento o consulta que se está eliminando ya tenía alguna
+// sesión marcada como pagada, ese ingreso queda huérfano en la
+// planilla si no se avisa. Devuelve la lista de ids de ingreso (con el
+// mismo esquema determinista) que hay que eliminar junto con él.
+function idsIngresoAEliminar(entidad, esConsulta){
+  if(esConsulta){
+    if(entidad.tipoPago === 'fonasa_el') return [];
+    if(!ESTADOS_QUE_GENERAN_INGRESO.includes(entidad.estadoSesion)) return [];
+    return [idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'consulta', consultaId: entidad.id }))];
+  }
+  if(!entidad.pacienteId) return [];
+  const paciente = pacientes.find(p => p.id === entidad.pacienteId);
+  if(!paciente || paciente.canal === 'entrelazos') return [];
+  if(entidad.recurrencia === 'ninguna'){
+    if(!ESTADOS_QUE_GENERAN_INGRESO.includes(entidad.estadoSesion)) return [];
+    return [idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: entidad.id, fecha: entidad.fecha }))];
+  }
+  const fechas = Object.keys(entidad.estadosPorFecha || {}).filter(f => ESTADOS_QUE_GENERAN_INGRESO.includes(entidad.estadosPorFecha[f]));
+  return fechas.map(f => idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: entidad.id, fecha: f })));
+}
 async function confirmarEliminarEvento(){
   if(consultaEnEdicionId !== null){
     const consulta = consultasUnicas.find(x => x.id === consultaEnEdicionId);
     consultasUnicas = consultasUnicas.filter(x => x.id !== consultaEnEdicionId);
     cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarConsultasEnAlmacenamiento();
-    if(consulta) enviarAccionAgendaConReintentos('eliminar_evento', { id_evento: consulta.id });
+    if(consulta){
+      enviarAccionAgendaConReintentos('eliminar_evento', { id_evento: consulta.id });
+      idsIngresoAEliminar(consulta, true).forEach(id => enviarAccionAgendaConReintentos('eliminar_ingreso', { id_ingreso: id }));
+    }
   }else if(eventoEnEdicionId !== null){
     const evento = eventosAgenda.find(x => x.id === eventoEnEdicionId);
     eventosAgenda = eventosAgenda.filter(x => x.id !== eventoEnEdicionId);
     cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarEventosEnAlmacenamiento();
-    if(evento) enviarAccionAgendaConReintentos('eliminar_evento', { id_evento: evento.id });
+    if(evento){
+      enviarAccionAgendaConReintentos('eliminar_evento', { id_evento: evento.id });
+      idsIngresoAEliminar(evento, false).forEach(id => enviarAccionAgendaConReintentos('eliminar_ingreso', { id_ingreso: id }));
+    }
   }
 }
 
@@ -3497,6 +3574,11 @@ function reintentarSyncGastosPendientes(){
    ============================================================ */
 const ESTADOS_QUE_GENERAN_INGRESO = ['realizada_percibida', 'ausencia_percibida'];
 function obtenerClaveOrigen(instancia){ return instancia.tipoInstancia === 'consulta' ? `consulta:${instancia.consultaId}` : `evento:${instancia.eventoId}:${instancia.fecha}`; }
+// Convierte esa clave en un id fijo para el ingreso de esa sesión. La
+// misma sesión siempre produce el mismo id, así que si la orden de
+// generar ingreso se repite (una corrección, un reintento), el
+// servidor actualiza la misma fila en la planilla en vez de duplicarla.
+function idIngresoDeterministico(claveOrigen){ return 'ING-' + claveOrigen.replace(/[^a-zA-Z0-9]/g, '_'); }
 function calcularNeto(montoBruto, esEntreLazos){
   let monto = montoBruto;
   if(esEntreLazos) monto = monto * (1 - (configuracion.porcentajeComisionEL/100));
