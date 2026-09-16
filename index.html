@@ -933,7 +933,7 @@ input{ font-family:inherit; }
 
   <div class="tarjeta-recibir">
     <div class="tarjeta-recibir-encabezado">
-      <span class="tarjeta-recibir-titulo">Cuentas por cobrar</span>
+      <span class="tarjeta-recibir-titulo">Pagos por confirmar</span>
       <button class="boton-ojo" id="botonOjoIngRecibir" onclick="alternarVisibilidadIngRecibir()"></button>
       <span class="tarjeta-recibir-monto monto-fuente" id="recibirTotalMonto"></span>
     </div>
@@ -1149,7 +1149,7 @@ input{ font-family:inherit; }
     <button class="boton-primario" onclick="guardarConfiguracion()">Guardar</button>
     <button class="boton-secundario" onclick="cerrarConfiguracion()">Cancelar</button>
 
-    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.1 — 15 sep 2026 — Ingreso único por sesión (id fijo)</div>
+    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.2 — 15 sep 2026 — Ingreso nace al marcar pagada (punto 4)</div>
   </div>
 </div>
 
@@ -3113,6 +3113,18 @@ async function guardarFichaEvento(){
       if(cambioEstado && !esEntreLazos && !siguePagada && estadoAnteriorConsulta && ESTADOS_QUE_GENERAN_INGRESO.includes(estadoAnteriorConsulta)){
         encolarEliminarIngresoDeSesion(consultaGuardada, idIngreso);
       }
+      // El ingreso local vive desde que la sesión queda pagada, no
+      // recién cuando se confirma el medio de pago. Se actualiza en
+      // cada guardado (aunque solo cambie el nombre), y se borra si la
+      // sesión deja de estar pagada.
+      if(!esEntreLazos){
+        if(siguePagada){
+          sincronizarIngresoLocalDeSesion(idIngreso, { tipo: tipoPagoEventoConsultaSeleccionado === 'fonasa_directo' ? 'fonasa_directo' : 'particular', claveOrigen: obtenerClaveOrigen({ tipoInstancia:'consulta', consultaId: consultaGuardada.id }), fecha, montoBruto: monto, montoNeto: calcularNeto(monto, false), nombre });
+        }else{
+          sincronizarIngresoLocalDeSesion(idIngreso, null);
+        }
+        await guardarIngresosEnAlmacenamiento();
+      }
     }
     cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarConsultasEnAlmacenamiento();
     if(consultaGuardada) procesarColaEntidadAgenda(consultaGuardada, guardarConsultasEnAlmacenamiento);
@@ -3198,6 +3210,18 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
       if(!siguePagada && montoInfo && !montoInfo.esEntreLazos && estadoAnteriorEvento && ESTADOS_QUE_GENERAN_INGRESO.includes(estadoAnteriorEvento)){
         encolarEliminarIngresoDeSesion(evento, idIngreso);
       }
+    }
+    // El ingreso local vive desde que la sesión queda pagada, no recién
+    // cuando se confirma el medio de pago. Se actualiza en cada
+    // guardado, y se borra si esa fecha deja de estar pagada.
+    if(montoInfo && !montoInfo.esEntreLazos){
+      if(siguePagada){
+        const paciente = pacientes.find(p => p.id === pacienteId);
+        sincronizarIngresoLocalDeSesion(idIngreso, { tipo: paciente && paciente.tipoPago === 'fonasa' ? 'fonasa_directo' : 'particular', claveOrigen: obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaClaveOrigen }), fecha: fechaClaveOrigen, montoBruto: montoInfo.montoBruto, montoNeto: calcularNeto(montoInfo.montoBruto, false), nombre: paciente ? paciente.nombreCompleto : '' });
+      }else{
+        sincronizarIngresoLocalDeSesion(idIngreso, null);
+      }
+      await guardarIngresosEnAlmacenamiento();
     }
   }
 
@@ -3286,7 +3310,9 @@ async function confirmarEliminarEvento(){
     cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarConsultasEnAlmacenamiento();
     if(consulta){
       enviarAccionAgendaConReintentos('eliminar_evento', { id_evento: consulta.id });
-      idsIngresoAEliminar(consulta, true).forEach(id => enviarAccionAgendaConReintentos('eliminar_ingreso', { id_ingreso: id }));
+      const ids = idsIngresoAEliminar(consulta, true);
+      ids.forEach(id => enviarAccionAgendaConReintentos('eliminar_ingreso', { id_ingreso: id }));
+      if(ids.length){ ids.forEach(id => sincronizarIngresoLocalDeSesion(id, null)); await guardarIngresosEnAlmacenamiento(); }
     }
   }else if(eventoEnEdicionId !== null){
     const evento = eventosAgenda.find(x => x.id === eventoEnEdicionId);
@@ -3294,7 +3320,9 @@ async function confirmarEliminarEvento(){
     cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarEventosEnAlmacenamiento();
     if(evento){
       enviarAccionAgendaConReintentos('eliminar_evento', { id_evento: evento.id });
-      idsIngresoAEliminar(evento, false).forEach(id => enviarAccionAgendaConReintentos('eliminar_ingreso', { id_ingreso: id }));
+      const ids = idsIngresoAEliminar(evento, false);
+      ids.forEach(id => enviarAccionAgendaConReintentos('eliminar_ingreso', { id_ingreso: id }));
+      if(ids.length){ ids.forEach(id => sincronizarIngresoLocalDeSesion(id, null)); await guardarIngresosEnAlmacenamiento(); }
     }
   }
 }
@@ -3579,6 +3607,28 @@ function obtenerClaveOrigen(instancia){ return instancia.tipoInstancia === 'cons
 // generar ingreso se repite (una corrección, un reintento), el
 // servidor actualiza la misma fila en la planilla en vez de duplicarla.
 function idIngresoDeterministico(claveOrigen){ return 'ING-' + claveOrigen.replace(/[^a-zA-Z0-9]/g, '_'); }
+// Mantiene el ingreso LOCAL (el que ve el teléfono) sincronizado con
+// lo que acaba de pasar en la sesión. Usa como id el mismo id
+// determinista que se manda al servidor, así que ambos hablan siempre
+// del mismo registro, sin necesidad de esperar ninguna respuesta.
+// - Si la sesión sigue pagada, crea el registro si no existía (con
+//   medio de pago vacío) o le actualiza el monto y la descripción si
+//   ya existía, sin tocar el medio de pago que el usuario ya eligió.
+// - Si "datos" es null (la sesión ya no genera ingreso), borra el
+//   registro local si existía.
+function sincronizarIngresoLocalDeSesion(idIngreso, datos){
+  const existente = ingresos.find(i => i.id === idIngreso);
+  if(!datos){
+    if(existente) ingresos = ingresos.filter(i => i.id !== idIngreso);
+    return;
+  }
+  if(existente){
+    existente.montoBruto = datos.montoBruto; existente.montoNeto = datos.montoNeto;
+    existente.descripcion = datos.nombre; existente.fecha = datos.fecha;
+  }else{
+    ingresos.push({ id: idIngreso, tipo: datos.tipo, origenClave: datos.claveOrigen, fecha: datos.fecha, montoBruto: datos.montoBruto, montoNeto: datos.montoNeto, medioPago: null, descripcion: datos.nombre, creado: Date.now() });
+  }
+}
 function calcularNeto(montoBruto, esEntreLazos){
   let monto = montoBruto;
   if(esEntreLazos) monto = monto * (1 - (configuracion.porcentajeComisionEL/100));
@@ -3612,14 +3662,10 @@ function obtenerClavesYaIncluidasEnBoletas(){
   ingresos.filter(i => i.tipo === 'entrelazos' && i.sesionesIncluidas).forEach(i => i.sesionesIncluidas.forEach(c => s.add(c)));
   return s;
 }
-function obtenerPendientesDirectos(){
-  const ya = obtenerClavesYaImportadas(); const res = [];
-  obtenerSesionesPagadasHastaHoy().forEach(inst => {
-    const clave = obtenerClaveOrigen(inst); if(ya.has(clave)) return;
-    const info = clasificarInstanciaIngreso(inst); if(!info || info.esEntreLazos) return;
-    res.push({ instancia: inst, clave, info });
-  });
-  return res;
+// Sesiones particulares o FONASA directo ya pagadas cuyo ingreso local
+// todavía no tiene medio de pago confirmado (efectivo/transferencia).
+function obtenerIngresosPendientesConfirmar(){
+  return ingresos.filter(i => i.tipo === 'particular' && i.medioPago === null);
 }
 function obtenerPendientesEntreLazos(){
   const ya = obtenerClavesYaIncluidasEnBoletas(); const res = [];
@@ -3630,26 +3676,7 @@ function obtenerPendientesEntreLazos(){
   });
   return res;
 }
-// Busca si la sesión que originó este ingreso ya tiene un id_ingreso
-// del servidor (guardado cuando se sincronizó actualizar_estado_sesion
-// + generar_ingreso desde Agenda), para poder enlazar el registro
-// local con el de la planilla.
-function obtenerIdIngresoSheetsDeInstancia(inst){
-  if(inst.tipoInstancia === 'consulta'){
-    const c = consultasUnicas.find(x => x.id === inst.consultaId);
-    return c ? (c.idIngresoSheets || null) : null;
-  }
-  const ev = eventosAgenda.find(x => x.id === inst.eventoId);
-  if(!ev) return null;
-  if(ev.recurrencia === 'ninguna') return ev.idIngresoSheets || null;
-  return (ev.idsIngresoPorFecha && ev.idsIngresoPorFecha[inst.fecha]) || null;
-}
 
-async function autoImportarFonasaDirecto(){
-  const pend = obtenerPendientesDirectos().filter(p => p.info.tipo === 'fonasa_directo'); if(pend.length === 0) return;
-  pend.forEach(p => ingresos.push({ id: generarId(), tipo:'fonasa_directo', origenClave: p.clave, fecha: p.instancia.fecha, montoBruto: p.info.montoBruto, montoNeto: calcularNeto(p.info.montoBruto, false), medioPago: null, descripcion: p.info.nombre, idIngresoSheets: obtenerIdIngresoSheetsDeInstancia(p.instancia), creado: Date.now() }));
-  await guardarIngresosEnAlmacenamiento();
-}
 async function autoImportarSueldoDependiente(){
   const monto = configuracion.sueldoDependienteMonto || 0; const inicio = configuracion.sueldoDependienteInicio || '';
   if(monto <= 0 || !inicio) return;
@@ -3667,15 +3694,15 @@ async function autoImportarSueldoDependiente(){
   }
   if(hubo) await guardarIngresosEnAlmacenamiento();
 }
-async function confirmarPagoParticular(clave, medioPago){
-  const item = obtenerPendientesDirectos().find(p => p.clave === clave); if(!item) return;
-  const idIngresoSheets = obtenerIdIngresoSheetsDeInstancia(item.instancia);
-  ingresos.push({ id: generarId(), tipo: item.info.tipo, origenClave: clave, fecha: item.instancia.fecha, montoBruto: item.info.montoBruto, montoNeto: calcularNeto(item.info.montoBruto, false), medioPago, descripcion: item.info.nombre, idIngresoSheets, creado: Date.now() });
+// El ingreso ya existe desde que la sesión quedó pagada (se creó en
+// guardarEventoGenerico o en el guardado de consulta única). Confirmar
+// el medio de pago ahora es solo completar ese mismo registro, tanto
+// local como en la planilla, no crear uno nuevo.
+async function confirmarPagoParticular(idIngreso, medioPago){
+  const ing = ingresos.find(i => i.id === idIngreso); if(!ing) return;
+  ing.medioPago = medioPago;
   await guardarIngresosEnAlmacenamiento(); renderizarVistaIngresos();
-  // El monto y el estado ya se sincronizaron desde Agenda al marcar la
-  // sesión como pagada; acá solo falta completar la forma de pago que
-  // recién ahora eligió el usuario.
-  if(idIngresoSheets) enviarAccionAgendaConReintentos('editar_ingreso', { id_ingreso: idIngresoSheets, forma_pago: medioPago });
+  enviarAccionAgendaConReintentos('editar_ingreso', { id_ingreso: idIngreso, forma_pago: medioPago });
 }
 let confirmandoBoleta = false;
 function solicitarConfirmacionBoleta(){ confirmandoBoleta = true; renderizarVistaIngresos(); }
@@ -3706,7 +3733,7 @@ function alternarVisibilidadIngMov(){ vIngMov = !vIngMov; renderizarVistaIngreso
 
 async function renderizarVistaIngresos(){
   document.getElementById('tituloMesIngresos').textContent = `${NOMBRES_MES[mesIngresosMostrado]} ${anioIngresosMostrado}`;
-  await autoImportarFonasaDirecto(); await autoImportarSueldoDependiente();
+  await autoImportarSueldoDependiente();
 
   const inicioMes = formatoISO(new Date(anioIngresosMostrado, mesIngresosMostrado, 1));
   const finMes = formatoISO(new Date(anioIngresosMostrado, mesIngresosMostrado+1, 0));
@@ -3725,23 +3752,23 @@ async function renderizarVistaIngresos(){
       <span class="monto monto-fuente">${textoMontoOculto(totales[k]||0, vIngTotal)}</span>
     </div>`).join('');
 
-  // Cuentas por cobrar
-  const pendientesParticular = obtenerPendientesDirectos().filter(p => p.info.tipo === 'particular');
+  // Pagos por confirmar (sesiones ya pagadas a las que falta el medio de pago)
+  const pendientesParticular = obtenerIngresosPendientesConfirmar();
   pintarBotonOjo('botonOjoIngRecibir', vIngRecibir);
-  const totalRecibir = pendientesParticular.reduce((a,p)=>a+p.info.montoBruto,0);
+  const totalRecibir = pendientesParticular.reduce((a,i)=>a+i.montoBruto,0);
   document.getElementById('recibirTotalMonto').textContent = textoMontoOculto(totalRecibir, vIngRecibir);
   document.getElementById('recibirNota').textContent = pendientesParticular.length === 0 ? 'No hay pagos particulares pendientes de confirmar.' : `${pendientesParticular.length} sesión${pendientesParticular.length===1?'':'es'} particular${pendientesParticular.length===1?'':'es'} por confirmar`;
   const seccionPend = document.getElementById('seccionPendientesPago');
-  seccionPend.innerHTML = pendientesParticular.map(p => `
+  seccionPend.innerHTML = pendientesParticular.map(i => `
     <div class="fila-pendiente-pago">
       <div class="fila-top">
-        <span class="nombre">${escaparHTML(p.info.nombre)}</span>
-        <span class="monto monto-fuente">${textoMontoOculto(p.info.montoBruto, vIngRecibir)}</span>
+        <span class="nombre">${escaparHTML(i.descripcion || '')}</span>
+        <span class="monto monto-fuente">${textoMontoOculto(i.montoBruto, vIngRecibir)}</span>
       </div>
       <div class="fila-bottom">
-        <span class="fecha">${p.instancia.fecha}</span>
-        <button class="boton-medio-pago" onclick="confirmarPagoParticular('${p.clave}','efectivo')">Efectivo</button>
-        <button class="boton-medio-pago" onclick="confirmarPagoParticular('${p.clave}','transferencia')">Transferencia</button>
+        <span class="fecha">${i.fecha}</span>
+        <button class="boton-medio-pago" onclick="confirmarPagoParticular('${i.id}','efectivo')">Efectivo</button>
+        <button class="boton-medio-pago" onclick="confirmarPagoParticular('${i.id}','transferencia')">Transferencia</button>
       </div>
     </div>
   `).join('');
@@ -3838,6 +3865,7 @@ function abrirDetalleIngreso(id){
   document.getElementById('camposIngresoManual').style.display = 'none';
   document.getElementById('botonGuardarIngresoManual').style.display = 'none';
   const detalle = document.getElementById('detalleIngresoSoloLectura'); detalle.style.display = 'block';
+  const derivadoDeSesion = ing.tipo === 'particular' || ing.tipo === 'fonasa_directo';
   detalle.innerHTML = `
     <div class="campo-modal"><span class="etiqueta-campo">Fuente</span><div class="detalle-ingreso-lectura">${NOMBRES_FUENTE_INGRESO[ing.tipo] || ing.tipo}</div></div>
     <div class="campo-modal"><span class="etiqueta-campo">Descripción</span><div class="detalle-ingreso-lectura">${escaparHTML(ing.descripcion || '')}</div></div>
@@ -3845,8 +3873,9 @@ function abrirDetalleIngreso(id){
     <div class="campo-modal"><span class="etiqueta-campo">Monto neto</span><div class="detalle-ingreso-lectura">${formatearCLP(ing.montoNeto)}</div></div>
     <div class="campo-modal"><span class="etiqueta-campo">Fecha</span><div class="detalle-ingreso-lectura">${ing.fecha}</div></div>
     ${ing.medioPago ? `<div class="campo-modal"><span class="etiqueta-campo">Medio de pago</span><div class="detalle-ingreso-lectura">${ing.medioPago==='efectivo'?'Efectivo':'Transferencia'}</div></div>` : ''}
+    ${derivadoDeSesion ? `<div class="nota-campo" style="margin-top:12px;">Este ingreso depende de una sesión de Agenda. Para quitarlo, cambia el estado de esa sesión ahí.</div>` : ''}
   `;
-  document.getElementById('zonaEliminarIngreso').style.display = 'block';
+  document.getElementById('zonaEliminarIngreso').style.display = derivadoDeSesion ? 'none' : 'block';
   document.getElementById('confirmacionEliminarIngreso').style.display = 'none';
   document.getElementById('fondoModalIngreso').classList.add('abierto');
 }
