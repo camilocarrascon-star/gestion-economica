@@ -1149,7 +1149,11 @@ input{ font-family:inherit; }
     <button class="boton-primario" onclick="guardarConfiguracion()">Guardar</button>
     <button class="boton-secundario" onclick="cerrarConfiguracion()">Cancelar</button>
 
-    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.2 — 15 sep 2026 — Ingreso nace al marcar pagada (punto 4)</div>
+    <div class="nota-campo" style="margin-top:18px;">Si la agenda del teléfono se perdió o quedó distinta a la planilla, esto la vuelve a descargar completa desde Google Sheets. Reemplaza solo la agenda local (eventos y consultas únicas); no toca pacientes, gastos, ingresos ni objetivos.</div>
+    <button class="boton-secundario" id="botonRecuperarAgenda" onclick="recuperarAgendaManualmente()">Recuperar agenda desde Sheets</button>
+    <div class="nota-campo" id="notaRecuperarAgenda" style="margin-top:6px;"></div>
+
+    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.3 — 16 sep 2026 — Pestaña Sesiones (estado por fecha al recuperar)</div>
   </div>
 </div>
 
@@ -2306,7 +2310,11 @@ function mapearEventoDesdeServidor(fila){
     fecha: fila.fecha_evento,
     hora: fila.hora_inicio || '00:00',
     recurrencia, diaSemana, semanaDelMes,
-    fechasExcluidas: [],
+    // Parte A (v2.3): fechas_omitidas siempre se guardó bien en la
+    // planilla pero nunca se leía de vuelta. Viene como texto separado
+    // por comas ("2026-09-03,2026-09-10"); si hay una sola fecha, Sheets
+    // puede devolverla como fecha y el script ya la normaliza a texto.
+    fechasExcluidas: String(fila.fechas_omitidas || '').split(',').map(f => f.trim()).filter(Boolean),
     estadoSesion: fila.estado_sesion || null,
     estadosPorFecha: {},
     hasDuration: !!fila.fecha_fin,
@@ -2330,10 +2338,24 @@ function mapearConsultaDesdeServidor(fila){
   };
 }
 
+// Devuelve true si la agenda local quedó reemplazada por la de Sheets,
+// false si no se pudo (sin conexión, planilla vacía, error).
 async function recuperarAgendaDesdeSheets(){
   try{
     const filas = await llamarScript('obtener_eventos', {});
-    if(!Array.isArray(filas) || filas.length === 0) return;
+    if(!Array.isArray(filas) || filas.length === 0) return false;
+
+    // Parte B (v2.3): la pestaña Sesiones guarda el estado de cada
+    // fecha por separado (la hoja Eventos solo recuerda el último
+    // estado de la serie completa). Si esta llamada falla, se sigue
+    // con lo que dice Eventos, que es lo que había hasta v2.2.
+    let sesiones = [];
+    try{
+      const respuestaSesiones = await llamarScript('obtener_sesiones', {});
+      if(Array.isArray(respuestaSesiones)) sesiones = respuestaSesiones;
+    }catch(errSesiones){
+      console.error('No se pudieron recuperar las sesiones por fecha:', errSesiones);
+    }
 
     const nuevosEventos = [];
     const nuevasConsultas = [];
@@ -2343,12 +2365,55 @@ async function recuperarAgendaDesdeSheets(){
       else nuevosEventos.push(mapearEventoDesdeServidor(fila));
     });
 
+    // Aplica el estado por fecha que viene de Sesiones sobre lo recién
+    // reconstruido. Para eventos sin recurrencia y consultas se guarda
+    // en estadoSesion; para series recurrentes, en estadosPorFecha
+    // bajo su fecha, que es lo que lee obtenerEstadoResuelto.
+    sesiones.forEach(ses => {
+      if(!ses || !ses.id_evento || !ses.estado_sesion) return;
+      const consulta = nuevasConsultas.find(c => c.id === ses.id_evento);
+      if(consulta){ consulta.estadoSesion = ses.estado_sesion; return; }
+      const evento = nuevosEventos.find(e => e.id === ses.id_evento);
+      if(!evento) return;
+      if(evento.recurrencia === 'ninguna'){ evento.estadoSesion = ses.estado_sesion; return; }
+      if(!ses.fecha_evento) return;
+      evento.estadosPorFecha = evento.estadosPorFecha || {};
+      evento.estadosPorFecha[ses.fecha_evento] = ses.estado_sesion;
+    });
+
     eventosAgenda = nuevosEventos;
     consultasUnicas = nuevasConsultas;
     await guardarEventosEnAlmacenamiento();
     await guardarConsultasEnAlmacenamiento();
+    return true;
   }catch(err){
     console.error('No se pudo recuperar la agenda desde Sheets:', err);
+    return false;
+  }
+}
+
+// Botón "Recuperar agenda desde Sheets" en Configuración. Sirve para
+// probar la recuperación sin borrar los datos del teléfono a mano, y
+// para volver a alinear el teléfono con la planilla si divergen.
+// Se niega a correr si hay cambios de agenda todavía sin enviar,
+// porque reemplazar la agenda local los perdería.
+async function recuperarAgendaManualmente(){
+  const nota = document.getElementById('notaRecuperarAgenda');
+  const boton = document.getElementById('botonRecuperarAgenda');
+  const pendientes = eventosAgenda.filter(e => e.colaSync && e.colaSync.length > 0).length
+                   + consultasUnicas.filter(c => c.colaSync && c.colaSync.length > 0).length;
+  if(pendientes > 0){
+    nota.textContent = `Hay ${pendientes} cambio${pendientes===1?'':'s'} de agenda sin enviar a Sheets todavía. Espera a que se sincronicen (o toca "Reintentar" en Agenda) antes de recuperar.`;
+    return;
+  }
+  boton.disabled = true; nota.textContent = 'Descargando agenda desde Sheets…';
+  const ok = await recuperarAgendaDesdeSheets();
+  boton.disabled = false;
+  if(ok){
+    nota.textContent = `Agenda recuperada: ${eventosAgenda.length} evento${eventosAgenda.length===1?'':'s'} y ${consultasUnicas.length} consulta${consultasUnicas.length===1?'':'s'} única${consultasUnicas.length===1?'':'s'}.`;
+    rerenderizarVistaAgendaActual();
+  }else{
+    nota.textContent = 'No se pudo recuperar la agenda (sin conexión, planilla sin eventos o error del servidor). Intenta de nuevo.';
   }
 }
 
