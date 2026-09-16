@@ -1109,6 +1109,8 @@ input{ font-family:inherit; }
       <button class="cerrar-modal" onclick="cerrarConfiguracion()">✕</button>
     </div>
 
+    <div id="bannerSyncConfig" style="display:none; margin-bottom:12px; padding:10px 12px; border-radius:12px; background:#FBF3E2; border:1px solid #EBDCBC; font-size:12px; color:#8B6516; align-items:center; gap:8px;"></div>
+
     <div class="campo-modal">
       <span class="etiqueta-campo">Monto FONASA directo (CLP)</span>
       <input type="text" id="configMontoFonasa" inputmode="numeric">
@@ -1136,12 +1138,7 @@ input{ font-family:inherit; }
     <div class="campo-modal">
       <span class="etiqueta-campo">Sueldo fijo mensual neto — Trabajo dependiente (CLP)</span>
       <input type="text" id="configSueldoDependiente" inputmode="numeric">
-      <div class="nota-campo">Déjalo en 0 si todavía no aplica.</div>
-    </div>
-
-    <div class="campo-modal">
-      <span class="etiqueta-campo">Mes de inicio del sueldo fijo</span>
-      <input type="month" id="configMesInicioSueldo">
+      <div class="nota-campo">Déjalo en 0 si todavía no aplica. El mes desde cuándo se recibe se registra solo, la primera vez que pongas un monto mayor a 0; para un reajuste más adelante, solo cambia este monto.</div>
     </div>
 
     <div class="nota-campo" style="margin-bottom:12px;">Cambiar estos valores no afecta registros ya guardados — solo aplica hacia adelante.</div>
@@ -1153,7 +1150,7 @@ input{ font-family:inherit; }
     <button class="boton-secundario" id="botonRecuperarAgenda" onclick="recuperarAgendaManualmente()">Recuperar agenda desde Sheets</button>
     <div class="nota-campo" id="notaRecuperarAgenda" style="margin-top:6px;"></div>
 
-    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.3 — 16 sep 2026 — Pestaña Sesiones (estado por fecha al recuperar)</div>
+    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.4 — 16 sep 2026 — Configuración global sincronizada con Sheets</div>
   </div>
 </div>
 
@@ -1586,7 +1583,7 @@ let eventosAgenda = [];
 let ingresos = [];
 let objetivos = [];
 let registrosGasto = [];
-let configuracion = { montoFonasa: 0, montoFonasaEL: 0, porcentajeImpuesto: 15.25, porcentajeComisionEL: 10, sueldoDependienteMonto: 0, sueldoDependienteInicio: '' };
+let configuracion = { montoFonasa: 0, montoFonasaEL: 0, porcentajeImpuesto: 15.25, porcentajeComisionEL: 10, sueldoDependienteMonto: 0, sueldoDependienteInicio: '', pendienteSync: false, colaSync: [] };
 
 let filtroEstado = 'activo';
 let canalSeleccionado = null;
@@ -1638,6 +1635,7 @@ async function guardarObjetivosEnAlmacenamiento(){
 }
 async function cargarConfiguracion(){
   try{ const r = await window.storage.get(CLAVE_CONFIG, false); if(r && r.value) configuracion = JSON.parse(r.value); }catch(e){ /* valores por defecto */ }
+  configuracion._procesando = false; // el bloqueo de sincronización es solo en memoria, nunca debe empezar "trabado"
 }
 async function guardarConfiguracionEnAlmacenamiento(){
   try{ const r = await window.storage.set(CLAVE_CONFIG, JSON.stringify(configuracion), false); if(!r) alert('No se pudo guardar la configuración.'); }catch(e){ alert('No se pudo guardar la configuración.'); }
@@ -2031,30 +2029,125 @@ function abrirConfiguracion(){
   document.getElementById('configImpuesto').value = configuracion.porcentajeImpuesto;
   document.getElementById('configComisionEL').value = configuracion.porcentajeComisionEL;
   document.getElementById('configSueldoDependiente').value = configuracion.sueldoDependienteMonto ? configuracion.sueldoDependienteMonto.toLocaleString('es-CL') : '';
-  document.getElementById('configMesInicioSueldo').value = configuracion.sueldoDependienteInicio || '';
+  actualizarBannerSyncConfig();
   document.getElementById('fondoModalConfig').classList.add('abierto');
 }
 function cerrarConfiguracion(){ document.getElementById('fondoModalConfig').classList.remove('abierto'); }
+
+// Compara cada valor nuevo contra el que ya estaba guardado y solo
+// encola nueva_config_global para los que realmente cambiaron. Así
+// abrir Configuración y tocar Guardar sin cambiar nada no manda nada.
 async function guardarConfiguracion(){
   const montoFonasa = limpiarMontoTexto(document.getElementById('configMontoFonasa').value);
   const montoFonasaEL = limpiarMontoTexto(document.getElementById('configMontoFonasaEL').value);
   const impuesto = parseFloat(document.getElementById('configImpuesto').value.replace(',','.'));
   const comisionEL = parseFloat(document.getElementById('configComisionEL').value.replace(',','.'));
   const sueldoDependiente = limpiarMontoTexto(document.getElementById('configSueldoDependiente').value) || 0;
-  const mesInicioSueldo = document.getElementById('configMesInicioSueldo').value;
 
   if(montoFonasa === null || montoFonasa <= 0){ alert('Ingresa un monto FONASA directo válido.'); return; }
   if(montoFonasaEL === null || montoFonasaEL <= 0){ alert('Ingresa un monto FONASA Entre Lazos válido.'); return; }
   if(isNaN(impuesto) || impuesto < 0 || impuesto > 100){ alert('Ingresa un porcentaje de impuesto válido.'); return; }
   if(isNaN(comisionEL) || comisionEL < 0 || comisionEL > 100){ alert('Ingresa un porcentaje de comisión Entre Lazos válido.'); return; }
-  if(sueldoDependiente > 0 && !mesInicioSueldo){ alert('Selecciona el mes de inicio del sueldo fijo.'); return; }
+
+  const hoy = hoyISO();
+  const cambios = [];
+  if(montoFonasa !== configuracion.montoFonasa) cambios.push({ tipo:'fonasa_directo', monto_o_porcentaje: montoFonasa, vigente_desde: hoy });
+  if(montoFonasaEL !== configuracion.montoFonasaEL) cambios.push({ tipo:'fonasa_entrelazos', monto_o_porcentaje: montoFonasaEL, vigente_desde: hoy });
+  if(impuesto !== configuracion.porcentajeImpuesto) cambios.push({ tipo:'porcentaje_impuesto', monto_o_porcentaje: impuesto, vigente_desde: hoy });
+  if(comisionEL !== configuracion.porcentajeComisionEL) cambios.push({ tipo:'porcentaje_entrelazos', monto_o_porcentaje: comisionEL, vigente_desde: hoy });
+
+  // El mes de inicio del sueldo fijo ya no lo escribe el usuario: nace
+  // solo la primera vez que el monto pasa de 0 a algo mayor que 0 (se
+  // asume que empieza este mes). Si luego solo se ajusta el monto
+  // (un reajuste anual), el mes de inicio no se vuelve a tocar. Si se
+  // vuelve a poner en 0, se borra, para que si más adelante se
+  // reactiva, cuente como un inicio nuevo.
+  const montoSueldoAnterior = configuracion.sueldoDependienteMonto || 0;
+  let inicioSueldo = configuracion.sueldoDependienteInicio || '';
+  if(sueldoDependiente > 0 && montoSueldoAnterior <= 0) inicioSueldo = hoy.slice(0,7);
+  else if(sueldoDependiente <= 0) inicioSueldo = '';
+  if(sueldoDependiente !== montoSueldoAnterior || inicioSueldo !== (configuracion.sueldoDependienteInicio||'')){
+    cambios.push({ tipo:'sueldo_dependiente', monto_o_porcentaje: sueldoDependiente, vigente_desde: (inicioSueldo || hoy.slice(0,7)) + '-01' });
+  }
 
   configuracion.montoFonasa = montoFonasa; configuracion.montoFonasaEL = montoFonasaEL;
   configuracion.porcentajeImpuesto = impuesto; configuracion.porcentajeComisionEL = comisionEL;
   configuracion.sueldoDependienteMonto = sueldoDependiente;
-  configuracion.sueldoDependienteInicio = sueldoDependiente > 0 ? mesInicioSueldo : '';
+  configuracion.sueldoDependienteInicio = inicioSueldo;
+  configuracion.colaSync = configuracion.colaSync || [];
+  cambios.forEach(c => configuracion.colaSync.push({ accion:'nueva_config_global', datosBase: c }));
 
   cerrarConfiguracion(); await guardarConfiguracionEnAlmacenamiento();
+  if(cambios.length > 0) procesarColaConfiguracion();
+}
+
+// Misma mecánica de cola con reintentos que Pacientes/Agenda/Gastos,
+// pero para el único objeto "configuracion" en vez de una lista.
+async function procesarColaConfiguracion(){
+  if(configuracion._procesando) return;
+  configuracion._procesando = true;
+  await procesarColaConfiguracionInterno(1);
+  configuracion._procesando = false;
+}
+async function procesarColaConfiguracionInterno(intento){
+  configuracion.colaSync = configuracion.colaSync || [];
+  if(configuracion.colaSync.length === 0){
+    configuracion.pendienteSync = false;
+    await guardarConfiguracionEnAlmacenamiento();
+    actualizarBannerSyncConfig();
+    return;
+  }
+  const item = configuracion.colaSync[0];
+  try{
+    await llamarScript(item.accion, item.datosBase);
+    configuracion.colaSync.shift();
+    await procesarColaConfiguracionInterno(1);
+  }catch(err){
+    if(intento < 3){
+      await new Promise(resolver => setTimeout(resolver, 1000 * intento));
+      await procesarColaConfiguracionInterno(intento + 1);
+      return;
+    }
+    configuracion.pendienteSync = true;
+    await guardarConfiguracionEnAlmacenamiento();
+    actualizarBannerSyncConfig();
+  }
+}
+function actualizarBannerSyncConfig(){
+  const banner = document.getElementById('bannerSyncConfig'); if(!banner) return;
+  const pendientes = (configuracion.colaSync || []).length;
+  if(pendientes === 0 || !configuracion.pendienteSync){ banner.style.display = 'none'; return; }
+  banner.style.display = 'flex';
+  banner.innerHTML = `
+    <span style="flex:1;">⚠️ ${pendientes} cambio${pendientes===1?'':'s'} de configuración sin sincronizar con Sheets.</span>
+    <button onclick="reintentarSyncConfigPendiente()" style="flex:none; border:1px solid #E3D4B4; background:var(--superficie); border-radius:8px; padding:5px 11px; font-size:11px; font-weight:650; color:#8B6516; touch-action:manipulation;">Reintentar</button>
+  `;
+}
+function reintentarSyncConfigPendiente(){ configuracion.pendienteSync = false; procesarColaConfiguracion(); }
+
+// Recuperación desde Sheets: igual idea que Pacientes y Agenda. Si
+// este teléfono nunca guardó Configuración (los dos montos FONASA
+// siguen en 0, que es lo único que guardarConfiguracion exige > 0
+// para aceptar un guardado), se pide el valor vigente de cada tipo.
+// Los tipos que no vengan en la respuesta (por ejemplo, si el sueldo
+// dependiente nunca se configuró en ningún aparato) se dejan con el
+// valor por defecto local.
+async function recuperarConfigGlobalDesdeSheets(){
+  try{
+    const vigentes = await llamarScript('obtener_config_global', {});
+    if(!vigentes || typeof vigentes !== 'object') return;
+    if(vigentes.fonasa_directo) configuracion.montoFonasa = Number(vigentes.fonasa_directo.monto_o_porcentaje) || 0;
+    if(vigentes.fonasa_entrelazos) configuracion.montoFonasaEL = Number(vigentes.fonasa_entrelazos.monto_o_porcentaje) || 0;
+    if(vigentes.porcentaje_impuesto) configuracion.porcentajeImpuesto = Number(vigentes.porcentaje_impuesto.monto_o_porcentaje);
+    if(vigentes.porcentaje_entrelazos) configuracion.porcentajeComisionEL = Number(vigentes.porcentaje_entrelazos.monto_o_porcentaje);
+    if(vigentes.sueldo_dependiente){
+      configuracion.sueldoDependienteMonto = Number(vigentes.sueldo_dependiente.monto_o_porcentaje) || 0;
+      configuracion.sueldoDependienteInicio = (vigentes.sueldo_dependiente.vigente_desde || '').slice(0,7);
+    }
+    await guardarConfiguracionEnAlmacenamiento();
+  }catch(err){
+    console.error('No se pudo recuperar la configuración global desde Sheets:', err);
+  }
 }
 function cerrarModalSiFondo(evento, idFondo, funcionCierre){ if(evento.target.id === idFondo) funcionCierre(); }
 
@@ -4160,14 +4253,20 @@ async function iniciar(){
   await Promise.all([cargarPacientes(), cargarConfiguracion(), cargarConsultasUnicas(), cargarEventosAgenda(), cargarIngresos(), cargarObjetivos(), cargarRegistrosGasto()]);
   if(pacientes.length === 0) await recuperarPacientesDesdeSheets();
   if(eventosAgenda.length === 0 && consultasUnicas.length === 0) await recuperarAgendaDesdeSheets();
+  // Configuración nunca se guardó en este teléfono: los dos montos
+  // FONASA siguen en 0, que es justo lo único que guardarConfiguracion
+  // exige mayor a 0 para aceptar un guardado.
+  if(configuracion.montoFonasa <= 0 && configuracion.montoFonasaEL <= 0) await recuperarConfigGlobalDesdeSheets();
   renderizarListaPacientes();
   actualizarBannerSyncPacientes();
   actualizarBannerSyncAgenda();
+  actualizarBannerSyncConfig();
   // Retoma automáticamente cualquier cola de sincronización que haya
   // quedado a medias (por ejemplo, si se cerró la app con la conexión caída).
   pacientes.filter(p => (p.colaSync && p.colaSync.length > 0)).forEach(p => procesarColaPaciente(p, 1));
   eventosAgenda.filter(e => (e.colaSync && e.colaSync.length > 0)).forEach(e => procesarColaEntidadAgenda(e, guardarEventosEnAlmacenamiento));
   consultasUnicas.filter(c => (c.colaSync && c.colaSync.length > 0)).forEach(c => procesarColaEntidadAgenda(c, guardarConsultasEnAlmacenamiento));
+  if(configuracion.colaSync && configuracion.colaSync.length > 0) procesarColaConfiguracion();
   renderizarVistaMensual();
   iniciarModuloGastos();
   activarSwipeAgenda();
