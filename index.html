@@ -970,6 +970,7 @@ input{ font-family:inherit; }
     <div class="relleno"></div>
     <button class="boton-ojo" id="botonOjoObjetivos" onclick="alternarVisibilidadObjetivos()"></button>
   </div>
+  <div id="bannerSyncObjetivos" style="display:none; margin:0 16px 4px; padding:10px 12px; border-radius:12px; background:#FBF3E2; border:1px solid #EBDCBC; font-size:12px; color:#8B6516; align-items:center; gap:8px;"></div>
   <div class="lista-scroll" id="listaObjetivos"></div>
 </div>
 
@@ -1150,7 +1151,7 @@ input{ font-family:inherit; }
     <button class="boton-secundario" id="botonRecuperarAgenda" onclick="recuperarAgendaManualmente()">Recuperar agenda desde Sheets</button>
     <div class="nota-campo" id="notaRecuperarAgenda" style="margin-top:6px;"></div>
 
-    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.4 — 16 sep 2026 — Configuración global sincronizada con Sheets</div>
+    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.5 — 16 sep 2026 — Objetivos sincronizados con Sheets</div>
   </div>
 </div>
 
@@ -1360,8 +1361,8 @@ input{ font-family:inherit; }
 
     <div class="campo-modal">
       <span class="etiqueta-campo">Acumulado actual (CLP)</span>
-      <input type="text" id="objetivoAcumulado" inputmode="numeric">
-      <div class="nota-campo">Edítalo directamente, o usa "Agregar monto" abajo para sumar un aporte.</div>
+      <div class="detalle-ingreso-lectura monto-fuente" id="textoAcumuladoObjetivo"></div>
+      <div class="nota-campo">Solo cambia agregando un aporte abajo (así el historial de aportes siempre explica de dónde salió el acumulado).</div>
     </div>
 
     <button class="boton-primario" onclick="guardarFichaObjetivo()">Guardar</button>
@@ -1621,14 +1622,18 @@ async function guardarIngresosEnAlmacenamiento(){
 }
 function objetivosPorDefecto(){
   return [
-    { id:'colchon',    nombre:'Colchón meses sin paga',             tipo:'colchon',     fijo:true, acumulado:0, aportes:[], mesesACubrir:3, gastoFijoMensual:0, fechaObjetivo:null },
-    { id:'congreso',   nombre:'Congreso o viaje profesional anual', tipo:'meta_manual', fijo:true, acumulado:0, aportes:[], metaManual:0, fechaObjetivo:null },
-    { id:'emergencia', nombre:'Fondo de emergencia',                tipo:'meta_manual', fijo:true, acumulado:0, aportes:[], metaManual:0, fechaObjetivo:null },
+    { id:'colchon',    nombre:'Colchón meses sin paga',             tipo:'colchon',     fijo:true, acumulado:0, aportes:[], mesesACubrir:3, gastoFijoMensual:0, fechaObjetivo:null, creadoEnServidor:false, pendienteSync:false, colaSync:[] },
+    { id:'congreso',   nombre:'Congreso o viaje profesional anual', tipo:'meta_manual', fijo:true, acumulado:0, aportes:[], metaManual:0, fechaObjetivo:null, creadoEnServidor:false, pendienteSync:false, colaSync:[] },
+    { id:'emergencia', nombre:'Fondo de emergencia',                tipo:'meta_manual', fijo:true, acumulado:0, aportes:[], metaManual:0, fechaObjetivo:null, creadoEnServidor:false, pendienteSync:false, colaSync:[] },
   ];
 }
+// La siembra de los tres objetivos fijos, si hace falta, se decide en
+// iniciar() (primero se intenta recuperar de Sheets; solo si la
+// planilla tampoco tiene nada se siembran localmente). Acá solo se
+// carga lo que ya hubiera guardado este teléfono.
 async function cargarObjetivos(){
   try{ const r = await window.storage.get(CLAVE_OBJETIVOS, false); objetivos = (r && r.value) ? JSON.parse(r.value) : []; }catch(e){ objetivos = []; }
-  if(!Array.isArray(objetivos) || objetivos.length === 0){ objetivos = objetivosPorDefecto(); await guardarObjetivosEnAlmacenamiento(); }
+  objetivos.forEach(o => { o._procesando = false; }); // el bloqueo de sincronización es solo en memoria
 }
 async function guardarObjetivosEnAlmacenamiento(){
   try{ const r = await window.storage.set(CLAVE_OBJETIVOS, JSON.stringify(objetivos), false); if(!r) alert('No se pudo guardar el cambio.'); }catch(e){ alert('No se pudo guardar el cambio.'); }
@@ -4063,6 +4068,109 @@ function obtenerMetaObjetivo(obj){
 }
 function formatearFechaLarga(fechaISO){ const f = fechaDesdeISO(fechaISO); return `${f.getDate()} de ${NOMBRES_MES[f.getMonth()]} de ${f.getFullYear()}`; }
 
+// Lo que se manda a Sheets al crear o editar un objetivo. meta_monto
+// es una "foto" del monto calculado en este instante (para el
+// colchón, meses × brecha con el sueldo fijo de hoy) — no se manda
+// meses_a_cubrir ni gasto_fijo_mensual por separado, esos siguen
+// siendo solo de este teléfono.
+function construirDatosObjetivoBase(obj){
+  return { nombre: obj.nombre, meta_monto: obtenerMetaObjetivo(obj), fecha_objetivo: obj.fechaObjetivo || '' };
+}
+
+// Misma mecánica de cola con reintentos que Pacientes/Agenda/Gastos,
+// aplicada a la lista de objetivos.
+async function procesarColaObjetivo(obj){
+  if(obj._procesando) return;
+  obj._procesando = true;
+  await procesarColaObjetivoInterno(obj, 1);
+  obj._procesando = false;
+}
+async function procesarColaObjetivoInterno(obj, intento){
+  obj.colaSync = obj.colaSync || [];
+  if(obj.colaSync.length === 0){
+    obj.pendienteSync = false;
+    await guardarObjetivosEnAlmacenamiento();
+    actualizarBannerSyncObjetivos();
+    return;
+  }
+  const item = obj.colaSync[0];
+  const datos = Object.assign({ id_objetivo: obj.id }, item.datosBase);
+  try{
+    await llamarScript(item.accion, datos);
+    if(item.accion === 'crear_objetivo') obj.creadoEnServidor = true;
+    obj.colaSync.shift();
+    await procesarColaObjetivoInterno(obj, 1);
+  }catch(err){
+    if(intento < 3){
+      await new Promise(resolver => setTimeout(resolver, 1000 * intento));
+      await procesarColaObjetivoInterno(obj, intento + 1);
+      return;
+    }
+    obj.pendienteSync = true;
+    await guardarObjetivosEnAlmacenamiento();
+    actualizarBannerSyncObjetivos();
+  }
+}
+function actualizarBannerSyncObjetivos(){
+  const banner = document.getElementById('bannerSyncObjetivos'); if(!banner) return;
+  const pendientes = objetivos.filter(o => o.pendienteSync).length;
+  if(pendientes === 0){ banner.style.display = 'none'; return; }
+  banner.style.display = 'flex';
+  banner.innerHTML = `
+    <span style="flex:1;">⚠️ ${pendientes} objetivo${pendientes===1?'':'s'} sin sincronizar con Sheets.</span>
+    <button onclick="reintentarSyncObjetivosPendientes()" style="flex:none; border:1px solid #E3D4B4; background:var(--superficie); border-radius:8px; padding:5px 11px; font-size:11px; font-weight:650; color:#8B6516; touch-action:manipulation;">Reintentar</button>
+  `;
+}
+function reintentarSyncObjetivosPendientes(){
+  objetivos.filter(o => o.pendienteSync).forEach(o => { o.pendienteSync = false; procesarColaObjetivo(o); });
+}
+
+// Recuperación desde Sheets, igual idea que Pacientes y Agenda. Se
+// reconstruyen los objetivos y, aparte, todos los aportes (viven en
+// una pestaña propia), para no perder el historial de "de dónde
+// salió cada peso". El tipo y "fijo" se infieren del id, porque la
+// pestaña Objetivos no guarda esa distinción (solo la necesita la
+// app, para mostrar el cálculo del colchón).
+function mapearObjetivoDesdeServidor(fila, todosLosAportes){
+  const idsFijos = ['colchon','congreso','emergencia'];
+  const esFijo = idsFijos.includes(fila.id_objetivo);
+  const aportes = todosLosAportes
+    .filter(a => a.id_objetivo === fila.id_objetivo)
+    .map(a => ({ id: a.id_aporte, monto: Number(a.monto) || 0, fecha: a.fecha_evento, creado: Date.now() }));
+  return {
+    id: fila.id_objetivo,
+    nombre: fila.nombre || '',
+    tipo: fila.id_objetivo === 'colchon' ? 'colchon' : 'meta_manual',
+    fijo: esFijo,
+    acumulado: Number(fila.acumulado_actual) || 0,
+    aportes,
+    // Para el colchón, meses a cubrir y gasto fijo mensual quedan en
+    // 0 hasta que se reabran y guarden en ESTE teléfono — no viajan a
+    // la planilla (se sincroniza solo la meta ya calculada). metaManual
+    // sí se recupera completo para los demás objetivos.
+    mesesACubrir: 0, gastoFijoMensual: 0,
+    metaManual: Number(fila.meta_monto) || 0,
+    fechaObjetivo: fila.fecha_objetivo || null,
+    creadoEnServidor: true, pendienteSync: false, colaSync: []
+  };
+}
+async function recuperarObjetivosDesdeSheets(){
+  try{
+    const filasObjetivos = await llamarScript('obtener_objetivos', {});
+    if(!Array.isArray(filasObjetivos) || filasObjetivos.length === 0) return false;
+    let filasAportes = [];
+    try{ const r = await llamarScript('obtener_aportes_objetivos', {}); if(Array.isArray(r)) filasAportes = r; }
+    catch(errAportes){ console.error('No se pudieron recuperar los aportes de objetivos:', errAportes); }
+
+    objetivos = filasObjetivos.filter(f => f.id_objetivo).map(f => mapearObjetivoDesdeServidor(f, filasAportes));
+    await guardarObjetivosEnAlmacenamiento();
+    return true;
+  }catch(err){
+    console.error('No se pudo recuperar objetivos desde Sheets:', err);
+    return false;
+  }
+}
+
 const COLOR_OBJETIVO = { colchon:'var(--obj-colchon)', congreso:'var(--obj-congreso)', emergencia:'var(--obj-emergencia)' };
 let vObjetivos = false;
 function alternarVisibilidadObjetivos(){ vObjetivos = !vObjetivos; renderizarVistaObjetivos(); }
@@ -4128,7 +4236,7 @@ function abrirFichaObjetivoNueva(){
   document.getElementById('campoMetaManual').style.display = 'block';
   document.getElementById('objetivoMetaManual').value = '';
   document.getElementById('objetivoFecha').value = '';
-  document.getElementById('objetivoAcumulado').value = '0';
+  document.getElementById('textoAcumuladoObjetivo').textContent = formatearCLP(0);
   document.getElementById('objetivoAporteMonto').value = '';
   document.getElementById('listaAportesObjetivo').innerHTML = '';
   document.getElementById('zonaEliminarObjetivo').style.display = 'none';
@@ -4155,7 +4263,7 @@ function abrirFichaObjetivo(id){
     document.getElementById('objetivoMetaManual').value = obj.metaManual ? obj.metaManual.toLocaleString('es-CL') : '';
   }
   document.getElementById('objetivoFecha').value = obj.fechaObjetivo || '';
-  document.getElementById('objetivoAcumulado').value = (obj.acumulado||0).toLocaleString('es-CL');
+  document.getElementById('textoAcumuladoObjetivo').textContent = formatearCLP(obj.acumulado||0);
   document.getElementById('objetivoAporteMonto').value = '';
   renderizarAportesObjetivo(obj);
   document.getElementById('zonaEliminarObjetivo').style.display = obj.fijo ? 'none' : 'block';
@@ -4167,7 +4275,7 @@ async function guardarFichaObjetivo(){
   if(esNuevo){
     const nombre = document.getElementById('objetivoNombre').value.trim();
     if(!nombre){ alert('Ingresa un nombre para el objetivo.'); return; }
-    obj = { id: generarId(), nombre, tipo:'meta_manual', fijo:false, acumulado:0, aportes:[], metaManual:0, fechaObjetivo:null };
+    obj = { id: generarId(), nombre, tipo:'meta_manual', fijo:false, acumulado:0, aportes:[], metaManual:0, fechaObjetivo:null, creadoEnServidor:false, pendienteSync:false, colaSync:[] };
   }else{
     obj = objetivos.find(o => o.id === objetivoEnEdicionId); if(!obj) return;
     if(!obj.fijo){ const nombre = document.getElementById('objetivoNombre').value.trim(); if(!nombre){ alert('Ingresa un nombre para el objetivo.'); return; } obj.nombre = nombre; }
@@ -4184,28 +4292,39 @@ async function guardarFichaObjetivo(){
     obj.metaManual = meta;
   }
   obj.fechaObjetivo = document.getElementById('objetivoFecha').value || null;
-  const acumulado = limpiarMontoTexto(document.getElementById('objetivoAcumulado').value);
-  obj.acumulado = acumulado === null ? 0 : acumulado;
+  // El acumulado ya no se edita acá — solo cambia con "Agregar monto",
+  // así siempre es, por definición, la suma de sus aportes.
   if(esNuevo) objetivos.push(obj);
+  obj.colaSync = obj.colaSync || [];
+  obj.colaSync.push({ accion: obj.creadoEnServidor ? 'editar_objetivo' : 'crear_objetivo', datosBase: construirDatosObjetivoBase(obj) });
   cerrarFichaObjetivo(); renderizarVistaObjetivos(); await guardarObjetivosEnAlmacenamiento();
+  procesarColaObjetivo(obj);
 }
 function solicitarEliminarObjetivo(){ document.getElementById('confirmacionEliminarObjetivo').style.display = 'block'; }
 function cancelarEliminarObjetivo(){ document.getElementById('confirmacionEliminarObjetivo').style.display = 'none'; }
 async function confirmarEliminarObjetivo(){
+  const obj = objetivos.find(o => o.id === objetivoEnEdicionId);
   objetivos = objetivos.filter(o => o.id !== objetivoEnEdicionId);
   cerrarFichaObjetivo(); renderizarVistaObjetivos(); await guardarObjetivosEnAlmacenamiento();
+  // Envío puntual con reintentos, no una cola persistente: el objetivo
+  // ya no existe localmente para poder "esperar su turno" después.
+  if(obj && obj.creadoEnServidor) enviarAccionAgendaConReintentos('archivar_objetivo', { id_objetivo: obj.id });
 }
 async function registrarAporteObjetivo(){
   if(objetivoEnEdicionId === null){ alert('Guarda el objetivo primero.'); return; }
   const monto = limpiarMontoTexto(document.getElementById('objetivoAporteMonto').value);
   if(monto === null || monto <= 0){ alert('Ingresa un monto válido para el aporte.'); return; }
   const obj = objetivos.find(o => o.id === objetivoEnEdicionId); if(!obj) return;
-  obj.aportes = obj.aportes || []; obj.aportes.push({ id: generarId(), monto, fecha: hoyISO(), creado: Date.now() });
+  const aporte = { id: generarId(), monto, fecha: hoyISO(), creado: Date.now() };
+  obj.aportes = obj.aportes || []; obj.aportes.push(aporte);
   obj.acumulado = (obj.acumulado||0) + monto;
-  document.getElementById('objetivoAcumulado').value = obj.acumulado.toLocaleString('es-CL');
+  document.getElementById('textoAcumuladoObjetivo').textContent = formatearCLP(obj.acumulado);
   document.getElementById('objetivoAporteMonto').value = '';
   renderizarAportesObjetivo(obj);
+  obj.colaSync = obj.colaSync || [];
+  obj.colaSync.push({ accion:'registrar_aporte_objetivo', datosBase: { id_aporte: aporte.id, monto: aporte.monto, fecha_evento: aporte.fecha } });
   await guardarObjetivosEnAlmacenamiento(); renderizarVistaObjetivos();
+  procesarColaObjetivo(obj);
 }
 function cerrarFichaObjetivo(){ document.getElementById('fondoModalObjetivo').classList.remove('abierto'); objetivoEnEdicionId = null; }
 
@@ -4257,16 +4376,44 @@ async function iniciar(){
   // FONASA siguen en 0, que es justo lo único que guardarConfiguracion
   // exige mayor a 0 para aceptar un guardado.
   if(configuracion.montoFonasa <= 0 && configuracion.montoFonasaEL <= 0) await recuperarConfigGlobalDesdeSheets();
+
+  // Objetivos: si este teléfono no tiene ninguno todavía, se intenta
+  // primero traerlos de Sheets; solo si la planilla tampoco tiene nada
+  // (primera vez en cualquier aparato) se siembran los tres por defecto.
+  if(objetivos.length === 0){
+    const recuperado = await recuperarObjetivosDesdeSheets();
+    if(!recuperado) objetivos = objetivosPorDefecto();
+  }
+  // Migración de una sola vez: cualquier objetivo que este teléfono
+  // tenga pero que nunca se haya mandado a Sheets (por ejemplo, los
+  // tres por defecto la primera vez que corre esta versión, con
+  // aportes ya registrados antes de que existiera esta sincronización)
+  // se encola completo: primero crearlo, después cada uno de sus
+  // aportes ya existentes, con su id real, para que la planilla quede
+  // igual al teléfono desde el primer momento.
+  objetivos.forEach(obj => {
+    if(obj.creadoEnServidor) return;
+    obj.colaSync = obj.colaSync || [];
+    if(obj.colaSync.some(item => item.accion === 'crear_objetivo')) return;
+    obj.colaSync.unshift({ accion:'crear_objetivo', datosBase: construirDatosObjetivoBase(obj) });
+    (obj.aportes||[]).forEach(a => {
+      obj.colaSync.push({ accion:'registrar_aporte_objetivo', datosBase: { id_aporte: a.id, monto: a.monto, fecha_evento: a.fecha } });
+    });
+  });
+  await guardarObjetivosEnAlmacenamiento();
+
   renderizarListaPacientes();
   actualizarBannerSyncPacientes();
   actualizarBannerSyncAgenda();
   actualizarBannerSyncConfig();
+  actualizarBannerSyncObjetivos();
   // Retoma automáticamente cualquier cola de sincronización que haya
   // quedado a medias (por ejemplo, si se cerró la app con la conexión caída).
   pacientes.filter(p => (p.colaSync && p.colaSync.length > 0)).forEach(p => procesarColaPaciente(p, 1));
   eventosAgenda.filter(e => (e.colaSync && e.colaSync.length > 0)).forEach(e => procesarColaEntidadAgenda(e, guardarEventosEnAlmacenamiento));
   consultasUnicas.filter(c => (c.colaSync && c.colaSync.length > 0)).forEach(c => procesarColaEntidadAgenda(c, guardarConsultasEnAlmacenamiento));
   if(configuracion.colaSync && configuracion.colaSync.length > 0) procesarColaConfiguracion();
+  objetivos.filter(o => (o.colaSync && o.colaSync.length > 0)).forEach(o => procesarColaObjetivo(o));
   renderizarVistaMensual();
   iniciarModuloGastos();
   activarSwipeAgenda();
