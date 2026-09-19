@@ -681,6 +681,7 @@ input{ font-family:inherit; }
   border:1px solid #E3D4B4; background:var(--superficie); border-radius:8px; padding:5px 11px;
   font-size:11px; font-weight:650; color:var(--recibir-texto); font-family:'Quicksand',sans-serif; touch-action:manipulation;
 }
+.boton-medio-pago.elegido{ background:var(--acento); border-color:var(--acento); color:#FFF6E8; }
 
 .tarjeta-lazos{ background:var(--lazos-bg); border:1px solid var(--lazos-borde); border-radius:16px; padding:13px 14px; }
 .tarjeta-lazos-encabezado{ display:flex; align-items:center; gap:8px; }
@@ -945,7 +946,8 @@ input{ font-family:inherit; }
       <span class="tarjeta-recibir-monto monto-fuente" id="recibirTotalMonto"></span>
     </div>
     <div class="tarjeta-recibir-nota" id="recibirNota"></div>
-    <div id="seccionPendientesPago"></div>
+    <button class="boton-ver-todos-gasto" id="botonDesplegarPendientesPago" style="margin-top:8px; width:100%; display:none;" onclick="alternarDesplegarPendientesPago()"></button>
+    <div id="seccionPendientesPago" style="display:none;"></div>
   </div>
 
   <div class="tarjeta-lazos" id="tarjetaLazos" style="display:none;">
@@ -955,7 +957,8 @@ input{ font-family:inherit; }
     </div>
     <div class="tarjeta-lazos-monto monto-fuente" id="lazosMontoTotal"></div>
     <div class="tarjeta-lazos-nota" id="lazosNota"></div>
-    <div id="seccionPendientesBoleta"></div>
+    <button class="boton-ver-todos-gasto" id="botonDesplegarPendientesBoleta" style="margin-top:8px; width:100%;" onclick="alternarDesplegarPendientesBoleta()"></button>
+    <div id="seccionPendientesBoleta" style="display:none;"></div>
   </div>
 
   <div>
@@ -1162,7 +1165,7 @@ input{ font-family:inherit; }
     <button class="boton-secundario" id="botonRecuperarAgenda" onclick="recuperarAgendaManualmente()">Recuperar agenda desde Sheets</button>
     <div class="nota-campo" id="notaRecuperarAgenda" style="margin-top:6px;"></div>
 
-    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.11 — 19 sep 2026 — Ingresos: sincroniza manuales, sueldo y boleta EL; se puede recuperar todo desde Sheets</div>
+    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.12 — 19 sep 2026 — Pagos por confirmar unificado (con cambio de estado incluido) y Boleta Entre Lazos como lista, ambos desplegables</div>
   </div>
 </div>
 
@@ -1327,6 +1330,30 @@ input{ font-family:inherit; }
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: CONFIRMAR PAGO (Módulo B, "Pagos por confirmar")
+     ============================================================ -->
+<div class="fondo-modal" id="fondoModalConfirmarPago" onclick="cerrarModalSiFondo(event, 'fondoModalConfirmarPago', cerrarModalConfirmarPago)">
+  <div class="hoja-modal">
+    <div class="encabezado-modal">
+      <h2>Confirmar pago</h2>
+      <button class="cerrar-modal" onclick="cerrarModalConfirmarPago()">✕</button>
+    </div>
+    <div class="campo-modal">
+      <p class="nota-campo" id="textoInfoConfirmarPago" style="margin:0;"></p>
+    </div>
+    <div class="campo-modal" id="campoMedioPagoConfirmar">
+      <span class="etiqueta-campo">¿Pagó con efectivo o transferencia?</span>
+      <div style="display:flex; gap:8px; margin-top:7px;">
+        <button type="button" class="boton-medio-pago" id="botonMedioEfectivoConfirmar" style="flex:1;" onclick="elegirMedioPagoConfirmar('efectivo')">Efectivo</button>
+        <button type="button" class="boton-medio-pago" id="botonMedioTransferenciaConfirmar" style="flex:1;" onclick="elegirMedioPagoConfirmar('transferencia')">Transferencia</button>
+      </div>
+    </div>
+    <button class="boton-primario" onclick="guardarConfirmarPago()">Guardar</button>
+    <button class="boton-secundario" onclick="cerrarModalConfirmarPago()">Cancelar</button>
   </div>
 </div>
 
@@ -2642,7 +2669,7 @@ function encolarActualizarEstadoSesion(entidad, fechaOcurrencia, estado, montoIn
   if(montoInfo && !montoInfo.esEntreLazos && ESTADOS_QUE_GENERAN_INGRESO.includes(estado)){
     const montoNeto = calcularNeto(montoInfo.montoBruto, false);
     datosBase.monto_congelado = montoNeto;
-    datosBase.generar_ingreso = { id_ingreso: idIngreso, monto_bruto: montoInfo.montoBruto, monto_neto: montoNeto, forma_pago: '', categoria_manual: montoInfo.tipo || '', descripcion: montoInfo.nombre || '' };
+    datosBase.generar_ingreso = { id_ingreso: idIngreso, monto_bruto: montoInfo.montoBruto, monto_neto: montoNeto, forma_pago: montoInfo.formaPago || '', categoria_manual: montoInfo.tipo || '', descripcion: montoInfo.nombre || '' };
     generaIngreso = true;
   }else if(montoInfo){
     datosBase.monto_congelado = calcularNeto(montoInfo.montoBruto, montoInfo.esEntreLazos);
@@ -3888,8 +3915,9 @@ function sincronizarIngresoLocalDeSesion(idIngreso, datos){
   if(existente){
     existente.montoBruto = datos.montoBruto; existente.montoNeto = datos.montoNeto;
     existente.descripcion = datos.nombre; existente.fecha = datos.fecha;
+    if(datos.medioPago) existente.medioPago = datos.medioPago;
   }else{
-    ingresos.push({ id: idIngreso, tipo: datos.tipo, origenClave: datos.claveOrigen, fecha: datos.fecha, montoBruto: datos.montoBruto, montoNeto: datos.montoNeto, medioPago: null, descripcion: datos.nombre, creado: Date.now() });
+    ingresos.push({ id: idIngreso, tipo: datos.tipo, origenClave: datos.claveOrigen, fecha: datos.fecha, montoBruto: datos.montoBruto, montoNeto: datos.montoNeto, medioPago: datos.medioPago || null, descripcion: datos.nombre, creado: Date.now() });
   }
 }
 function calcularNeto(montoBruto, esEntreLazos){
@@ -3926,8 +3954,95 @@ function obtenerClavesYaIncluidasEnBoletas(){
 }
 // Sesiones particulares o FONASA directo ya pagadas cuyo ingreso local
 // todavía no tiene medio de pago confirmado (efectivo/transferencia).
-function obtenerIngresosPendientesConfirmar(){
-  return ingresos.filter(i => i.tipo === 'particular' && i.medioPago === null);
+// Lista unificada para "Pagos por confirmar": junta dos casos distintos
+// bajo una misma forma para poder mostrarlos en una sola lista.
+// - "devengada": la sesión todavía no está marcada como pagada en Agenda.
+// - "confirmar_medio": ya está marcada como pagada, pero falta decir si
+//   fue efectivo o transferencia (el caso que ya existía).
+// Entre Lazos entra en la lista igual que cualquier otra (el usuario lo
+// pidió así), pero nunca pasa por "confirmar_medio": ese canal no
+// pregunta efectivo/transferencia, porque quien recibe el pago primero
+// es Entre Lazos, no C.C. directamente.
+function obtenerPendientesPago(){
+  const items = [];
+  obtenerInstanciasEnRango('2000-01-01', hoyISO())
+    .filter(inst => inst.etiqueta === 'atenciones' && ['realizada_devengada','ausencia_devengada'].includes(inst.estadoSesion))
+    .forEach(inst => {
+      const info = clasificarInstanciaIngreso(inst); if(!info) return;
+      items.push({ clave: 'dev:'+obtenerClaveOrigen(inst), origen:'devengada', inst, nombre: info.nombre, fecha: inst.fecha, esEntreLazos: info.esEntreLazos, montoBruto: info.montoBruto });
+    });
+  ingresos.filter(i => (i.tipo === 'particular' || i.tipo === 'fonasa_directo') && i.medioPago === null)
+    .forEach(ing => {
+      items.push({ clave: 'medio:'+ing.id, origen:'confirmar_medio', ingreso: ing, nombre: ing.descripcion || '', fecha: ing.fecha, esEntreLazos:false, montoBruto: ing.montoBruto });
+    });
+  items.sort((a,b) => a.fecha.localeCompare(b.fecha));
+  return items;
+}
+function nuevoEstadoPercibido(estadoActual){
+  if(estadoActual === 'realizada_devengada') return 'realizada_percibida';
+  if(estadoActual === 'ausencia_devengada') return 'ausencia_percibida';
+  return null;
+}
+// Cambia el estado de una sesión devengada a su equivalente percibido,
+// tanto local como en Agenda (misma acción actualizar_estado_sesion de
+// siempre), y genera el ingreso ya con el medio de pago puesto (si
+// corresponde) — así no hace falta un segundo paso para confirmarlo
+// después, como pasa con las sesiones marcadas desde la ficha de Agenda.
+async function confirmarPagoDesdeIngresos(inst, medioPago){
+  const nuevoEstado = nuevoEstadoPercibido(inst.estadoSesion); if(!nuevoEstado) return;
+  const info = clasificarInstanciaIngreso(inst); if(!info) return;
+  const idIngreso = idIngresoDeterministico(obtenerClaveOrigen(inst));
+  const montoInfo = { montoBruto: info.montoBruto, esEntreLazos: info.esEntreLazos, tipo: info.tipo, nombre: info.nombre, formaPago: medioPago || '' };
+
+  if(inst.tipoInstancia === 'consulta'){
+    const c = consultasUnicas.find(x => x.id === inst.consultaId); if(!c) return;
+    c.estadoSesion = nuevoEstado;
+    encolarActualizarEstadoSesion(c, null, nuevoEstado, montoInfo, idIngreso);
+    if(!info.esEntreLazos) sincronizarIngresoLocalDeSesion(idIngreso, { tipo: info.tipo, claveOrigen: obtenerClaveOrigen(inst), fecha: inst.fecha, montoBruto: info.montoBruto, montoNeto: calcularNeto(info.montoBruto, false), nombre: info.nombre, medioPago });
+    await guardarConsultasEnAlmacenamiento();
+    procesarColaEntidadAgenda(c, guardarConsultasEnAlmacenamiento);
+  }else{
+    const evento = eventosAgenda.find(e => e.id === inst.eventoId); if(!evento) return;
+    if(evento.recurrencia === 'ninguna'){ evento.estadoSesion = nuevoEstado; }
+    else{ evento.estadosPorFecha = evento.estadosPorFecha || {}; evento.estadosPorFecha[inst.fecha] = nuevoEstado; }
+    encolarActualizarEstadoSesion(evento, evento.recurrencia === 'ninguna' ? null : inst.fecha, nuevoEstado, montoInfo, idIngreso);
+    if(!info.esEntreLazos) sincronizarIngresoLocalDeSesion(idIngreso, { tipo: info.tipo, claveOrigen: obtenerClaveOrigen(inst), fecha: inst.fecha, montoBruto: info.montoBruto, montoNeto: calcularNeto(info.montoBruto, false), nombre: info.nombre, medioPago });
+    await guardarEventosEnAlmacenamiento();
+    procesarColaEntidadAgenda(evento, guardarEventosEnAlmacenamiento);
+  }
+  await guardarIngresosEnAlmacenamiento();
+  renderizarVistaIngresos();
+}
+let pendienteEnConfirmacion = null;
+let medioPagoElegidoConfirmar = null;
+function abrirModalConfirmarPago(clave){
+  const item = obtenerPendientesPago().find(i => i.clave === clave); if(!item) return;
+  pendienteEnConfirmacion = item;
+  medioPagoElegidoConfirmar = null;
+  document.getElementById('textoInfoConfirmarPago').textContent = `${item.nombre} · ${item.fecha}`;
+  document.getElementById('campoMedioPagoConfirmar').style.display = item.esEntreLazos ? 'none' : 'block';
+  pintarBotonesMedioPagoConfirmar();
+  document.getElementById('fondoModalConfirmarPago').classList.add('abierto');
+}
+function pintarBotonesMedioPagoConfirmar(){
+  document.getElementById('botonMedioEfectivoConfirmar').className = 'boton-medio-pago' + (medioPagoElegidoConfirmar === 'efectivo' ? ' elegido' : '');
+  document.getElementById('botonMedioTransferenciaConfirmar').className = 'boton-medio-pago' + (medioPagoElegidoConfirmar === 'transferencia' ? ' elegido' : '');
+}
+function elegirMedioPagoConfirmar(medio){ medioPagoElegidoConfirmar = medio; pintarBotonesMedioPagoConfirmar(); }
+function cerrarModalConfirmarPago(){
+  document.getElementById('fondoModalConfirmarPago').classList.remove('abierto');
+  pendienteEnConfirmacion = null; medioPagoElegidoConfirmar = null;
+}
+async function guardarConfirmarPago(){
+  if(!pendienteEnConfirmacion) return;
+  const item = pendienteEnConfirmacion;
+  if(!item.esEntreLazos && !medioPagoElegidoConfirmar){ alert('Selecciona efectivo o transferencia.'); return; }
+  if(item.origen === 'devengada'){
+    await confirmarPagoDesdeIngresos(item.inst, item.esEntreLazos ? null : medioPagoElegidoConfirmar);
+  }else{
+    await confirmarPagoParticular(item.ingreso.id, medioPagoElegidoConfirmar);
+  }
+  cerrarModalConfirmarPago();
 }
 function obtenerPendientesEntreLazos(){
   const ya = obtenerClavesYaIncluidasEnBoletas(); const res = [];
@@ -4011,6 +4126,10 @@ function alternarVisibilidadIngRecibir(){ vIngRecibir = !vIngRecibir; renderizar
 function alternarVisibilidadIngLazos(){ vIngLazos = !vIngLazos; renderizarVistaIngresos(); }
 function alternarVisibilidadIngMov(){ vIngMov = !vIngMov; renderizarVistaIngresos(); }
 
+let desplegarPendientesPago = false, desplegarPendientesBoleta = false;
+function alternarDesplegarPendientesPago(){ desplegarPendientesPago = !desplegarPendientesPago; renderizarVistaIngresos(); }
+function alternarDesplegarPendientesBoleta(){ desplegarPendientesBoleta = !desplegarPendientesBoleta; renderizarVistaIngresos(); }
+
 async function renderizarVistaIngresos(){
   document.getElementById('tituloMesIngresos').textContent = `${NOMBRES_MES[mesIngresosMostrado]} ${anioIngresosMostrado}`;
   await autoImportarSueldoDependiente();
@@ -4032,28 +4151,38 @@ async function renderizarVistaIngresos(){
       <span class="monto monto-fuente">${textoMontoOculto(totales[k]||0, vIngTotal)}</span>
     </div>`).join('');
 
-  // Pagos por confirmar (sesiones ya pagadas a las que falta el medio de pago)
-  const pendientesParticular = obtenerIngresosPendientesConfirmar();
+  // Pagos por confirmar: sesiones devengadas (todavía no marcadas como
+  // pagadas) + sesiones ya pagadas a las que falta el medio de pago.
+  const pendientesPago = obtenerPendientesPago();
   pintarBotonOjo('botonOjoIngRecibir', vIngRecibir);
-  const totalRecibir = pendientesParticular.reduce((a,i)=>a+i.montoBruto,0);
+  const totalRecibir = pendientesPago.reduce((a,i)=>a+i.montoBruto,0);
   document.getElementById('recibirTotalMonto').textContent = textoMontoOculto(totalRecibir, vIngRecibir);
-  document.getElementById('recibirNota').textContent = pendientesParticular.length === 0 ? 'No hay pagos particulares pendientes de confirmar.' : `${pendientesParticular.length} sesión${pendientesParticular.length===1?'':'es'} particular${pendientesParticular.length===1?'':'es'} por confirmar`;
+  document.getElementById('recibirNota').textContent = pendientesPago.length === 0 ? 'No hay pagos pendientes de confirmar.' : `${pendientesPago.length} sesión${pendientesPago.length===1?'':'es'} por confirmar`;
+  const botonPend = document.getElementById('botonDesplegarPendientesPago');
   const seccionPend = document.getElementById('seccionPendientesPago');
-  seccionPend.innerHTML = pendientesParticular.map(i => `
-    <div class="fila-pendiente-pago">
-      <div class="fila-top">
-        <span class="nombre">${escaparHTML(i.descripcion || '')}</span>
-        <span class="monto monto-fuente">${textoMontoOculto(i.montoBruto, vIngRecibir)}</span>
+  if(pendientesPago.length === 0){
+    botonPend.style.display = 'none'; seccionPend.style.display = 'none';
+  }else{
+    botonPend.style.display = 'block';
+    botonPend.textContent = desplegarPendientesPago ? 'Ocultar detalle' : `Ver detalle (${pendientesPago.length})`;
+    seccionPend.style.display = desplegarPendientesPago ? 'block' : 'none';
+    seccionPend.innerHTML = pendientesPago.map(i => `
+      <div class="fila-pendiente-pago">
+        <div class="fila-top">
+          <span class="nombre">${escaparHTML(i.nombre || '')}</span>
+          <span class="monto monto-fuente">${textoMontoOculto(i.montoBruto, vIngRecibir)}</span>
+        </div>
+        <div class="fila-bottom">
+          <span class="fecha">${i.fecha}</span>
+          <button class="boton-medio-pago" onclick="abrirModalConfirmarPago('${i.clave}')">Confirmar pago</button>
+        </div>
       </div>
-      <div class="fila-bottom">
-        <span class="fecha">${i.fecha}</span>
-        <button class="boton-medio-pago" onclick="confirmarPagoParticular('${i.id}','efectivo')">Efectivo</button>
-        <button class="boton-medio-pago" onclick="confirmarPagoParticular('${i.id}','transferencia')">Transferencia</button>
-      </div>
-    </div>
-  `).join('');
+    `).join('');
+  }
 
-  // Boleta Entre Lazos
+  // Boleta Entre Lazos: lista corriente de sesiones ya pagadas
+  // pendientes de boleta, sin agrupar por mes (se van sumando desde la
+  // última boleta generada, sin importar cuándo caiga cada sesión).
   const pendientesEL = obtenerPendientesEntreLazos();
   const tarjetaLazos = document.getElementById('tarjetaLazos');
   if(pendientesEL.length === 0){
@@ -4064,14 +4193,27 @@ async function renderizarVistaIngresos(){
     const totalBrutoEL = pendientesEL.reduce((a,p)=>a+p.info.montoBruto,0);
     document.getElementById('lazosMontoTotal').textContent = textoMontoOculto(totalBrutoEL, vIngLazos) + ' bruto';
     document.getElementById('lazosNota').textContent = `${pendientesEL.length} sesión${pendientesEL.length===1?'':'es'} pendiente${pendientesEL.length===1?'':'s'} de boleta`;
+    const botonBoleta = document.getElementById('botonDesplegarPendientesBoleta');
+    botonBoleta.textContent = desplegarPendientesBoleta ? 'Ocultar detalle' : `Ver detalle (${pendientesEL.length})`;
     const seccionBoleta = document.getElementById('seccionPendientesBoleta');
-    seccionBoleta.innerHTML = confirmandoBoleta ? `
-      <div class="nota-campo" style="margin:8px 0;">Se generará una boleta por este total, fechada hoy (${NOMBRES_MES[new Date().getMonth()]}).</div>
+    seccionBoleta.style.display = desplegarPendientesBoleta ? 'block' : 'none';
+    const listaSesionesEL = pendientesEL.map(p => `
+      <div class="fila-pendiente-pago">
+        <div class="fila-top">
+          <span class="nombre">${escaparHTML(p.info.nombre || '')}</span>
+        </div>
+        <div class="fila-bottom">
+          <span class="fecha">${p.instancia.fecha}</span>
+        </div>
+      </div>
+    `).join('');
+    seccionBoleta.innerHTML = listaSesionesEL + (confirmandoBoleta ? `
+      <div class="nota-campo" style="margin:8px 0;">Se generará una boleta por este total, fechada hoy.</div>
       <div class="fila-confirmacion">
         <button class="boton-confirmar-no" onclick="cancelarConfirmacionBoleta()">Cancelar</button>
         <button class="boton-confirmar-si" onclick="generarBoletaEntreLazos()">Sí, generar</button>
       </div>
-    ` : `<button class="boton-generar-boleta" onclick="solicitarConfirmacionBoleta()">Generar boleta de ${NOMBRES_MES[new Date().getMonth()]}</button>`;
+    ` : `<button class="boton-generar-boleta" onclick="solicitarConfirmacionBoleta()">Generar boleta</button>`);
   }
 
   // Movimientos del mes
