@@ -1151,7 +1151,7 @@ input{ font-family:inherit; }
     <button class="boton-secundario" id="botonRecuperarAgenda" onclick="recuperarAgendaManualmente()">Recuperar agenda desde Sheets</button>
     <div class="nota-campo" id="notaRecuperarAgenda" style="margin-top:6px;"></div>
 
-    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.5 — 16 sep 2026 — Objetivos sincronizados con Sheets</div>
+    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.6 — 19 sep 2026 — Objetivos sin bloqueo de fijos + colchón sincronizado completo</div>
   </div>
 </div>
 
@@ -4070,11 +4070,17 @@ function formatearFechaLarga(fechaISO){ const f = fechaDesdeISO(fechaISO); retur
 
 // Lo que se manda a Sheets al crear o editar un objetivo. meta_monto
 // es una "foto" del monto calculado en este instante (para el
-// colchón, meses × brecha con el sueldo fijo de hoy) — no se manda
-// meses_a_cubrir ni gasto_fijo_mensual por separado, esos siguen
-// siendo solo de este teléfono.
+// colchón, meses × brecha con el sueldo fijo de hoy). Para el
+// colchón, además, se mandan los dos parámetros que lo componen
+// (meses a cubrir, gasto fijo mensual), para que cualquier aparato
+// pueda recalcularlo igual, no solo el que los configuró.
 function construirDatosObjetivoBase(obj){
-  return { nombre: obj.nombre, meta_monto: obtenerMetaObjetivo(obj), fecha_objetivo: obj.fechaObjetivo || '' };
+  const datos = { nombre: obj.nombre, meta_monto: obtenerMetaObjetivo(obj), fecha_objetivo: obj.fechaObjetivo || '' };
+  if(obj.tipo === 'colchon'){
+    datos.meses_a_cubrir = obj.mesesACubrir || 0;
+    datos.gasto_fijo_mensual = obj.gastoFijoMensual || 0;
+  }
+  return datos;
 }
 
 // Misma mecánica de cola con reintentos que Pacientes/Agenda/Gastos,
@@ -4128,27 +4134,25 @@ function reintentarSyncObjetivosPendientes(){
 // Recuperación desde Sheets, igual idea que Pacientes y Agenda. Se
 // reconstruyen los objetivos y, aparte, todos los aportes (viven en
 // una pestaña propia), para no perder el historial de "de dónde
-// salió cada peso". El tipo y "fijo" se infieren del id, porque la
-// pestaña Objetivos no guarda esa distinción (solo la necesita la
-// app, para mostrar el cálculo del colchón).
+// salió cada peso". El tipo se infiere del id ('colchon' usa la
+// fórmula de meses × brecha, cualquier otro id es meta manual);
+// "fijo" ya no bloquea nada en la ficha, es solo informativo.
 function mapearObjetivoDesdeServidor(fila, todosLosAportes){
   const idsFijos = ['colchon','congreso','emergencia'];
   const esFijo = idsFijos.includes(fila.id_objetivo);
+  const esColchon = fila.id_objetivo === 'colchon';
   const aportes = todosLosAportes
     .filter(a => a.id_objetivo === fila.id_objetivo)
     .map(a => ({ id: a.id_aporte, monto: Number(a.monto) || 0, fecha: a.fecha_evento, creado: Date.now() }));
   return {
     id: fila.id_objetivo,
     nombre: fila.nombre || '',
-    tipo: fila.id_objetivo === 'colchon' ? 'colchon' : 'meta_manual',
+    tipo: esColchon ? 'colchon' : 'meta_manual',
     fijo: esFijo,
     acumulado: Number(fila.acumulado_actual) || 0,
     aportes,
-    // Para el colchón, meses a cubrir y gasto fijo mensual quedan en
-    // 0 hasta que se reabran y guarden en ESTE teléfono — no viajan a
-    // la planilla (se sincroniza solo la meta ya calculada). metaManual
-    // sí se recupera completo para los demás objetivos.
-    mesesACubrir: 0, gastoFijoMensual: 0,
+    mesesACubrir: esColchon ? (Number(fila.meses_a_cubrir) || 0) : 0,
+    gastoFijoMensual: esColchon ? (Number(fila.gasto_fijo_mensual) || 0) : 0,
     metaManual: Number(fila.meta_monto) || 0,
     fechaObjetivo: fila.fecha_objetivo || null,
     creadoEnServidor: true, pendienteSync: false, colaSync: []
@@ -4247,9 +4251,9 @@ function abrirFichaObjetivo(id){
   const obj = objetivos.find(o => o.id === id); if(!obj) return;
   objetivoEnEdicionId = id;
   document.getElementById('tituloFichaObjetivo').textContent = obj.nombre;
-  document.getElementById('campoNombreObjetivo').style.display = obj.fijo ? 'none' : 'block';
+  document.getElementById('campoNombreObjetivo').style.display = 'block';
   document.getElementById('objetivoNombre').value = obj.nombre;
-  document.getElementById('objetivoNombre').disabled = !!obj.fijo;
+  document.getElementById('objetivoNombre').disabled = false;
   const esColchon = obj.tipo === 'colchon';
   document.getElementById('campoMesesACubrir').style.display = esColchon ? 'block' : 'none';
   document.getElementById('campoGastoFijoMensual').style.display = esColchon ? 'block' : 'none';
@@ -4266,7 +4270,7 @@ function abrirFichaObjetivo(id){
   document.getElementById('textoAcumuladoObjetivo').textContent = formatearCLP(obj.acumulado||0);
   document.getElementById('objetivoAporteMonto').value = '';
   renderizarAportesObjetivo(obj);
-  document.getElementById('zonaEliminarObjetivo').style.display = obj.fijo ? 'none' : 'block';
+  document.getElementById('zonaEliminarObjetivo').style.display = 'block';
   document.getElementById('confirmacionEliminarObjetivo').style.display = 'none';
   document.getElementById('fondoModalObjetivo').classList.add('abierto');
 }
@@ -4278,7 +4282,9 @@ async function guardarFichaObjetivo(){
     obj = { id: generarId(), nombre, tipo:'meta_manual', fijo:false, acumulado:0, aportes:[], metaManual:0, fechaObjetivo:null, creadoEnServidor:false, pendienteSync:false, colaSync:[] };
   }else{
     obj = objetivos.find(o => o.id === objetivoEnEdicionId); if(!obj) return;
-    if(!obj.fijo){ const nombre = document.getElementById('objetivoNombre').value.trim(); if(!nombre){ alert('Ingresa un nombre para el objetivo.'); return; } obj.nombre = nombre; }
+    const nombre = document.getElementById('objetivoNombre').value.trim();
+    if(!nombre){ alert('Ingresa un nombre para el objetivo.'); return; }
+    obj.nombre = nombre;
   }
   if(obj.tipo === 'colchon'){
     const meses = parseInt(document.getElementById('objetivoMesesACubrir').value);
