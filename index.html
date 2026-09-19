@@ -1165,7 +1165,7 @@ input{ font-family:inherit; }
     <button class="boton-secundario" id="botonRecuperarAgenda" onclick="recuperarAgendaManualmente()">Recuperar agenda desde Sheets</button>
     <div class="nota-campo" id="notaRecuperarAgenda" style="margin-top:6px;"></div>
 
-    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.12 — 19 sep 2026 — Pagos por confirmar unificado (con cambio de estado incluido) y Boleta Entre Lazos como lista, ambos desplegables</div>
+    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.13 — 19 sep 2026 — Bloquea "realizada" a futuro; nuevo estado "No realizada aún y pagada"</div>
   </div>
 </div>
 
@@ -1673,6 +1673,7 @@ const ESTADOS_SESION = [
   { valor:'ausencia_justificada', nombre:'Ausencia justificada (no se cobra)' },
   { valor:'ausencia_devengada', nombre:'Ausencia devengada (se cobra, pendiente de pago)' },
   { valor:'ausencia_percibida', nombre:'Ausencia percibida (se cobra, ya pagó)' },
+  { valor:'no_realizada_pagada', nombre:'No realizada aún y pagada (pago adelantado)' },
 ];
 
 let pacientes = [];
@@ -3360,6 +3361,16 @@ async function guardarFichaEvento(){
   if(!fecha){ alert('Selecciona la fecha.'); return; }
   if(!horaEsValida(hora)){ alert('Ingresa una hora válida en formato HH:MM (24 horas).'); return; }
 
+  // No tiene sentido marcar como "realizada" algo que todavía no pasó.
+  // Solo se valida cuando el estado realmente se va a aplicar a una
+  // fecha concreta (no al crear la regla base de un evento recurrente).
+  const aplicaValidacionEstado = recurrenciaEventoSeleccionada === 'ninguna' || !!fechaOcurrenciaEnEdicion;
+  const fechaEstadoRelevante = fechaOcurrenciaEnEdicion || fecha;
+  if(aplicaValidacionEstado && estadoSesionEventoSeleccionado && estadoSesionEventoSeleccionado.startsWith('realizada') && fechaEstadoRelevante > hoyISO()){
+    alert('No se puede marcar como "realizada" una sesión con fecha posterior a hoy. Si ya se pagó por adelantado, usa el estado "No realizada aún y pagada".');
+    return;
+  }
+
   if(etiquetaEventoSeleccionada === 'atenciones' && subtipoAtencionSeleccionado === 'consulta'){
     const nombre = document.getElementById('eventoConsultaNombre').value.trim();
     if(!nombre){ alert('Ingresa el nombre del paciente.'); return; }
@@ -3890,7 +3901,7 @@ function reintentarSyncGastosPendientes(){
 /* ============================================================
    11. MÓDULO B — INGRESOS
    ============================================================ */
-const ESTADOS_QUE_GENERAN_INGRESO = ['realizada_percibida', 'ausencia_percibida'];
+const ESTADOS_QUE_GENERAN_INGRESO = ['realizada_percibida', 'ausencia_percibida', 'no_realizada_pagada'];
 function obtenerClaveOrigen(instancia){ return instancia.tipoInstancia === 'consulta' ? `consulta:${instancia.consultaId}` : `evento:${instancia.eventoId}:${instancia.fecha}`; }
 // Convierte esa clave en un id fijo para el ingreso de esa sesión. La
 // misma sesión siempre produce el mismo id, así que si la orden de
