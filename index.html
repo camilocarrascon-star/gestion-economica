@@ -735,6 +735,12 @@ input{ font-family:inherit; }
   flex:none; border:1px solid; background:transparent; border-radius:9px;
   padding:6px 11px; font-size:11.5px; font-weight:700; font-family:'Quicksand',sans-serif; touch-action:manipulation;
 }
+.fila-tramo-colchon{ padding:10px 0; border-bottom:1px solid var(--borde-suave); }
+.fila-tramo-colchon:last-child{ border-bottom:none; }
+.fila-tramo-cabecera{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.fila-tramo-nombre{ font-size:12.5px; font-weight:650; color:var(--texto-principal); font-family:'Quicksand',sans-serif; text-transform:capitalize; }
+.fila-tramo-montos{ font-size:11px; font-weight:600; color:var(--texto-secundario); margin-top:6px; font-variant-numeric:tabular-nums; }
+.boton-alerta-tramo{ flex:none; font-size:15px; line-height:1; padding:2px 4px; touch-action:manipulation; }
 
 /* ============================================================
    14. MÓDULO E — DASHBOARD
@@ -1156,7 +1162,7 @@ input{ font-family:inherit; }
     <button class="boton-secundario" id="botonRecuperarAgenda" onclick="recuperarAgendaManualmente()">Recuperar agenda desde Sheets</button>
     <div class="nota-campo" id="notaRecuperarAgenda" style="margin-top:6px;"></div>
 
-    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.8 — 19 sep 2026 — Colchón: meses elegibles (febrero, julio, septiembre por defecto)</div>
+    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.9 — 19 sep 2026 — Colchón: tramos con barritas por plazo, alerta y cierre de ciclo</div>
   </div>
 </div>
 
@@ -1373,6 +1379,11 @@ input{ font-family:inherit; }
       <div class="nota-campo">Solo cambia agregando un aporte abajo (así el historial de aportes siempre explica de dónde salió el acumulado).</div>
     </div>
 
+    <div class="campo-modal" id="campoTramosColchon" style="display:none;">
+      <span class="etiqueta-campo">Plazos</span>
+      <div id="listaTramosColchon"></div>
+    </div>
+
     <button class="boton-primario" onclick="guardarFichaObjetivo()">Guardar</button>
     <button class="boton-secundario" onclick="cerrarFichaObjetivo()">Cerrar</button>
 
@@ -1423,6 +1434,29 @@ input{ font-family:inherit; }
     </div>
     <button class="boton-primario" onclick="guardarSelectorMesesColchon()">Guardar</button>
     <button class="boton-secundario" onclick="cerrarSelectorMesesColchon()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: TERMINAR CICLO DE UN TRAMO (Colchón, Módulo D)
+     ============================================================ -->
+<div class="fondo-modal" id="fondoModalCerrarTramo" onclick="cerrarModalSiFondo(event, 'fondoModalCerrarTramo', cerrarModalCerrarTramo)">
+  <div class="hoja-modal">
+    <div class="encabezado-modal">
+      <h2>Terminar este ciclo</h2>
+      <button class="cerrar-modal" onclick="cerrarModalCerrarTramo()">✕</button>
+    </div>
+    <div class="campo-modal">
+      <p class="nota-campo" id="textoInfoCerrarTramo" style="margin:0;"></p>
+    </div>
+    <div class="campo-modal">
+      <label style="display:flex; align-items:center; gap:9px; font-size:13px; font-weight:600; color:var(--texto-principal); font-family:'Quicksand',sans-serif;">
+        <input type="checkbox" id="checkDescontarCierre" style="width:18px; height:18px; flex:none;">
+        ¿Descontar el monto ahorrado hasta este plazo?
+      </label>
+    </div>
+    <button class="boton-primario" onclick="confirmarCierreTramo()">Terminar ciclo</button>
+    <button class="boton-secundario" onclick="cerrarModalCerrarTramo()">Cancelar</button>
   </div>
 </div>
 
@@ -4119,6 +4153,49 @@ function construirDatosObjetivoBase(obj){
   return datos;
 }
 
+// El colchón se reparte en "tramos", uno por cada mes elegido. No se
+// guarda ningún año en la planilla: cada vez que hace falta mostrar
+// los tramos, se recalculan solos a partir de hoy y del historial de
+// aportes. Un "cierre de ciclo" se registra como un aporte más, con
+// monto 0 o negativo y con fecha el día 1 del mes que se cerró — así,
+// la próxima vez que se calcule el tramo de ese mes, se busca el
+// cierre más reciente y se salta un año hacia adelante.
+function anioActivoParaMes(mes, aportesObjetivo){
+  const anioActual = new Date().getFullYear();
+  const cierres = (aportesObjetivo||[])
+    .filter(a => (a.monto||0) <= 0 && a.fecha)
+    .map(a => fechaDesdeISO(a.fecha))
+    .filter(f => (f.getMonth()+1) === mes)
+    .map(f => f.getFullYear());
+  return cierres.length > 0 ? (Math.max(...cierres) + 1) : anioActual;
+}
+// Devuelve la lista de tramos ordenada del más próximo al más lejano,
+// con cuánto le corresponde de la meta (la misma brecha para todos) y
+// cuánto de eso ya está cubierto. El acumulado es uno solo y se
+// reparte en cascada: el tramo más próximo se llena primero, y recién
+// cuando se completa empieza a llenarse el siguiente.
+function calcularTramosColchon(obj){
+  const brecha = Math.max(0, (obj.gastoFijoMensual||0) - obtenerSueldoFijoVigenteHoy());
+  const meses = (obj.mesesSeleccionados && obj.mesesSeleccionados.length) ? obj.mesesSeleccionados : MESES_COLCHON_DEFECTO;
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const ordenados = meses.map(mes => {
+    const anio = anioActivoParaMes(mes, obj.aportes||[]);
+    return { mes, anio, fecha: new Date(anio, mes-1, 1) };
+  }).sort((a,b) => a.fecha - b.fecha);
+
+  let restante = obj.acumulado || 0;
+  return ordenados.map(t => {
+    const aportado = Math.min(brecha, Math.max(0, restante));
+    restante = Math.max(0, restante - aportado);
+    const pct = brecha > 0 ? Math.min(100, Math.round((aportado/brecha)*100)) : 0;
+    return {
+      mes: t.mes, anio: t.anio, nombreMes: NOMBRES_MES[t.mes-1],
+      meta: brecha, aportado, pct,
+      vencido: t.fecha <= hoy
+    };
+  });
+}
+
 // Misma mecánica de cola con reintentos que Pacientes/Agenda/Gastos,
 // aplicada a la lista de objetivos.
 async function procesarColaObjetivo(obj){
@@ -4216,6 +4293,7 @@ async function recuperarObjetivosDesdeSheets(){
 
 const COLOR_OBJETIVO = { colchon:'var(--obj-colchon)', congreso:'var(--obj-congreso)', emergencia:'var(--obj-emergencia)' };
 let vObjetivos = false;
+let tramoEnCierre = null;
 let filtroEstadoObjetivos = 'activo';
 function alternarVisibilidadObjetivos(){ vObjetivos = !vObjetivos; renderizarVistaObjetivos(); }
 function cambiarFiltroEstadoObjetivos(estado){
@@ -4241,11 +4319,12 @@ function renderizarVistaObjetivos(){
     const pct = meta > 0 ? Math.min(100, Math.round(((obj.acumulado||0)/meta)*100)) : 0;
     const color = COLOR_OBJETIVO[obj.id] || '#7C2F3E';
     const archivado = obj.estado === 'archivado';
+    const alertaTramo = (obj.tipo === 'colchon' && !archivado && calcularTramosColchon(obj).some(t => t.vencido)) ? ' <span style="color:#B3261E;">⚠️</span>' : '';
     const tarjeta = document.createElement('div'); tarjeta.className = 'tarjeta-objetivo' + (archivado ? ' archivado' : ''); tarjeta.onclick = () => abrirFichaObjetivo(obj.id);
     tarjeta.innerHTML = `
       <div class="tarjeta-objetivo-cabecera">
         <span class="punto" style="background:${color}"></span>
-        <span class="nombre">${escaparHTML(obj.nombre)}</span>
+        <span class="nombre">${escaparHTML(obj.nombre)}${alertaTramo}</span>
         <span class="flecha">›</span>
       </div>
       <div class="barra-progreso-objetivo"><div class="relleno-progreso-objetivo" style="width:${pct}%; background:${color}"></div></div>
@@ -4335,7 +4414,60 @@ function renderizarAportesObjetivo(obj){
   const lista = document.getElementById('listaAportesObjetivo');
   const aportes = [...(obj.aportes||[])].sort((a,b) => b.creado - a.creado);
   if(aportes.length === 0){ lista.innerHTML = ''; return; }
-  lista.innerHTML = aportes.map(a => `<div class="fila-pendiente-pago" style="background:var(--superficie);"><div class="fila-top"><span class="nombre">${formatearCLP(a.monto)}</span><span class="fecha">${a.fecha}</span></div></div>`).join('');
+  lista.innerHTML = aportes.map(a => {
+    const esCierre = (a.monto||0) <= 0;
+    const etiqueta = !esCierre ? formatearCLP(a.monto) : (a.monto < 0 ? `Cierre de ciclo (${formatearCLP(a.monto)})` : 'Cierre de ciclo');
+    return `<div class="fila-pendiente-pago" style="background:var(--superficie);"><div class="fila-top"><span class="nombre">${etiqueta}</span><span class="fecha">${a.fecha}</span></div></div>`;
+  }).join('');
+}
+function renderizarTramosColchon(obj){
+  const contenedor = document.getElementById('listaTramosColchon');
+  const tramos = calcularTramosColchon(obj);
+  contenedor.innerHTML = tramos.map(t => {
+    const nombreMes = t.nombreMes.charAt(0).toUpperCase() + t.nombreMes.slice(1);
+    const alerta = t.vencido ? `<button type="button" class="boton-alerta-tramo" onclick="abrirModalCerrarTramo(${t.mes}, ${t.anio}, ${t.aportado}, ${t.meta})">⚠️</button>` : '';
+    return `
+      <div class="fila-tramo-colchon">
+        <div class="fila-tramo-cabecera">
+          <span class="fila-tramo-nombre">${nombreMes} ${t.anio}</span>
+          ${alerta}
+        </div>
+        <div class="barra-progreso-objetivo" style="margin-top:6px;"><div class="relleno-progreso-objetivo" style="width:${t.pct}%; background:var(--obj-colchon)"></div></div>
+        <div class="fila-tramo-montos">${formatearCLP(t.aportado)} de ${formatearCLP(t.meta)}</div>
+      </div>
+    `;
+  }).join('');
+}
+function abrirModalCerrarTramo(mes, anio, aportado, meta){
+  tramoEnCierre = { mes, anio, aportado, meta };
+  const nombreMes = NOMBRES_MES[mes-1];
+  const nombreCap = nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1);
+  document.getElementById('textoInfoCerrarTramo').textContent = `El plazo de ${nombreCap} de ${anio} ya se cumplió. Llevas ahorrado ${formatearCLP(aportado)} de ${formatearCLP(meta)} para este tramo.`;
+  document.getElementById('checkDescontarCierre').checked = false;
+  document.getElementById('fondoModalCerrarTramo').classList.add('abierto');
+}
+function cerrarModalCerrarTramo(){
+  document.getElementById('fondoModalCerrarTramo').classList.remove('abierto');
+  tramoEnCierre = null;
+}
+async function confirmarCierreTramo(){
+  if(!tramoEnCierre) return;
+  const obj = objetivos.find(o => o.id === objetivoEnEdicionId); if(!obj) return;
+  const descontar = document.getElementById('checkDescontarCierre').checked;
+  const montoAporte = descontar ? -tramoEnCierre.aportado : 0;
+  const fechaTramo = `${tramoEnCierre.anio}-${String(tramoEnCierre.mes).padStart(2,'0')}-01`;
+  const aporte = { id: generarId(), monto: montoAporte, fecha: fechaTramo, creado: Date.now() };
+  obj.aportes = obj.aportes || []; obj.aportes.push(aporte);
+  obj.acumulado = (obj.acumulado||0) + montoAporte;
+  obj.colaSync = obj.colaSync || [];
+  obj.colaSync.push({ accion:'registrar_aporte_objetivo', datosBase: { id_aporte: aporte.id, monto: aporte.monto, fecha_evento: aporte.fecha } });
+  cerrarModalCerrarTramo();
+  document.getElementById('textoAcumuladoObjetivo').textContent = formatearCLP(obj.acumulado);
+  renderizarAportesObjetivo(obj);
+  renderizarTramosColchon(obj);
+  await guardarObjetivosEnAlmacenamiento();
+  renderizarVistaObjetivos();
+  procesarColaObjetivo(obj);
 }
 function abrirFichaObjetivoNueva(){
   objetivoEnEdicionId = null;
@@ -4346,6 +4478,7 @@ function abrirFichaObjetivoNueva(){
   document.getElementById('campoGastoFijoMensual').style.display = 'none';
   document.getElementById('campoMetaCalculada').style.display = 'none';
   document.getElementById('campoMetaManual').style.display = 'block';
+  document.getElementById('campoTramosColchon').style.display = 'none';
   document.getElementById('objetivoMetaManual').value = '';
   document.getElementById('objetivoFecha').value = '';
   document.getElementById('textoAcumuladoObjetivo').textContent = formatearCLP(0);
@@ -4371,11 +4504,13 @@ function abrirFichaObjetivo(id){
   document.getElementById('campoGastoFijoMensual').style.display = esColchon ? 'block' : 'none';
   document.getElementById('campoMetaCalculada').style.display = esColchon ? 'block' : 'none';
   document.getElementById('campoMetaManual').style.display = esColchon ? 'none' : 'block';
+  document.getElementById('campoTramosColchon').style.display = esColchon ? 'block' : 'none';
   if(esColchon){
     mesesColchonTemp = (obj.mesesSeleccionados && obj.mesesSeleccionados.length) ? obj.mesesSeleccionados.slice() : MESES_COLCHON_DEFECTO.slice();
     actualizarTextoMesesSeleccionados();
     document.getElementById('objetivoGastoFijoMensual').value = obj.gastoFijoMensual ? obj.gastoFijoMensual.toLocaleString('es-CL') : '';
     actualizarMetaCalculadaColchon();
+    renderizarTramosColchon(obj);
   }else{
     document.getElementById('objetivoMetaManual').value = obj.metaManual ? obj.metaManual.toLocaleString('es-CL') : '';
   }
