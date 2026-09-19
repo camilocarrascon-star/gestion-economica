@@ -1162,11 +1162,14 @@ input{ font-family:inherit; }
     <button class="boton-secundario" onclick="cerrarConfiguracion()">Cancelar</button>
 
     <div class="nota-campo" style="margin-top:18px;">Si la agenda del teléfono se perdió o quedó distinta a la planilla, esto la vuelve a descargar completa desde Google Sheets. Reemplaza solo la agenda local (eventos y consultas únicas); no toca pacientes, gastos, ingresos ni objetivos.</div>
-    <button class="boton-secundario" id="botonRecuperarAgenda" onclick="recuperarAgendaManualmente()">Recuperar agenda desde Sheets</button>
+        <button class="boton-secundario" id="botonRecuperarAgenda" onclick="recuperarAgendaManualmente()">Recuperar agenda desde Sheets</button>
     <div class="nota-campo" id="notaRecuperarAgenda" style="margin-top:6px;"></div>
 
-    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.14 (19 sep 2026) · G1: los pacientes FONASA recuperan su monto correcto</div>
-  </div>
+    <div class="nota-campo" style="margin-top:18px;">Si los gastos del teléfono se perdieron o quedaron distintos a la planilla, esto los vuelve a descargar completos desde Google Sheets. Reemplaza solo los gastos locales; no toca pacientes, agenda, ingresos ni objetivos.</div>
+    <button class="boton-secundario" id="botonRecuperarGastos" onclick="recuperarGastosManualmente()">Recuperar gastos desde Sheets</button>
+    <div class="nota-campo" id="notaRecuperarGastos" style="margin-top:6px;"></div>
+
+    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.15 (19 sep 2026) · C6: los gastos se recuperan desde la planilla</div>
 </div>
 
 <!-- ============================================================
@@ -1779,6 +1782,49 @@ async function cargarRegistrosGasto(){
 }
 async function guardarGastosEnAlmacenamiento(){
   try{ const r = await window.storage.set(CLAVE_GASTOS, JSON.stringify(registrosGasto), false); if(!r) alert('No se pudo guardar el cambio.'); }catch(e){ alert('No se pudo guardar el cambio.'); }
+}
+function mapearGastoDesdeServidor(fila){
+  return {
+    id: fila.id_gasto,
+    fecha: fila.fecha_evento || '',
+    categoria: fila.categoria || '',
+    medioPago: fila.medio_pago || '',
+    monto: Number(fila.monto) || 0,
+    descripcion: fila.descripcion || '',
+    creado: Date.now(),
+    pendienteSync: false,
+    colaSync: []
+  };
+}
+async function recuperarGastosDesdeSheets(){
+  try{
+    const filas = await llamarScript('obtener_gastos', {});
+    if(!Array.isArray(filas) || filas.length === 0) return false;
+    registrosGasto = filas.filter(f => f.id_gasto).map(mapearGastoDesdeServidor);
+    await guardarGastosEnAlmacenamiento();
+    return true;
+  }catch(err){
+    console.error('No se pudo recuperar gastos desde Sheets:', err);
+    return false;
+  }
+}
+async function recuperarGastosManualmente(){
+  const nota = document.getElementById('notaRecuperarGastos');
+  const boton = document.getElementById('botonRecuperarGastos');
+  const pendientes = registrosGasto.filter(r => r.colaSync && r.colaSync.length > 0).length;
+  if(pendientes > 0){
+    nota.textContent = `Hay ${pendientes} gasto${pendientes===1?'':'s'} sin enviar a Sheets todavía. Espera a que se sincronicen (o toca "Reintentar" en Gastos) antes de recuperar.`;
+    return;
+  }
+  boton.disabled = true; nota.textContent = 'Descargando gastos desde Sheets…';
+  const ok = await recuperarGastosDesdeSheets();
+  boton.disabled = false;
+  if(ok){
+    nota.textContent = `Gastos recuperados: ${registrosGasto.length} registro${registrosGasto.length===1?'':'s'}.`;
+    renderizarListaGastos();
+  }else{
+    nota.textContent = 'No se pudo recuperar los gastos (sin conexión, planilla sin gastos o error del servidor). Intenta de nuevo.';
+  }
 }
 
 /* ============================================================
@@ -4872,6 +4918,7 @@ async function iniciar(){
   // Ingresos: igual idea que pacientes y agenda. Si este teléfono no
   // tiene ninguno todavía, se intenta traer todo desde Sheets.
   if(ingresos.length === 0) await recuperarIngresosDesdeSheets();
+  if(registrosGasto.length === 0) await recuperarGastosDesdeSheets();
   // El sueldo dependiente se actualiza acá (no solo al abrir la
   // pestaña Ingresos), para que el Dashboard nunca muestre un ingreso
   // desactualizado si todavía no se visitó esa pestaña en la sesión.
