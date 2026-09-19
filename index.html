@@ -1165,7 +1165,7 @@ input{ font-family:inherit; }
     <button class="boton-secundario" id="botonRecuperarAgenda" onclick="recuperarAgendaManualmente()">Recuperar agenda desde Sheets</button>
     <div class="nota-campo" id="notaRecuperarAgenda" style="margin-top:6px;"></div>
 
-    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.13 — 19 sep 2026 — Bloquea "realizada" a futuro; nuevo estado "No realizada aún y pagada"</div>
+    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.14 (19 sep 2026) · G1: los pacientes FONASA recuperan su monto correcto</div>
   </div>
 </div>
 
@@ -4860,12 +4860,14 @@ async function renderizarDashboard(){
    ============================================================ */
 async function iniciar(){
   await Promise.all([cargarPacientes(), cargarConfiguracion(), cargarConsultasUnicas(), cargarEventosAgenda(), cargarIngresos(), cargarObjetivos(), cargarRegistrosGasto()]);
+  // La configuración global (montos FONASA) se recupera ANTES que los
+  // pacientes: cuando un paciente FONASA se trae desde Sheets, su monto
+  // se toma de la configuración vigente. Si los pacientes se recuperaran
+  // primero, con la configuración todavía vacía, todos los FONASA
+  // quedarían con monto 0.
+  if(configuracion.montoFonasa <= 0 && configuracion.montoFonasaEL <= 0) await recuperarConfigGlobalDesdeSheets();
   if(pacientes.length === 0) await recuperarPacientesDesdeSheets();
   if(eventosAgenda.length === 0 && consultasUnicas.length === 0) await recuperarAgendaDesdeSheets();
-  // Configuración nunca se guardó en este teléfono: los dos montos
-  // FONASA siguen en 0, que es justo lo único que guardarConfiguracion
-  // exige mayor a 0 para aceptar un guardado.
-  if(configuracion.montoFonasa <= 0 && configuracion.montoFonasaEL <= 0) await recuperarConfigGlobalDesdeSheets();
 
   // Ingresos: igual idea que pacientes y agenda. Si este teléfono no
   // tiene ninguno todavía, se intenta traer todo desde Sheets.
