@@ -715,6 +715,7 @@ input{ font-family:inherit; }
   background:var(--superficie); border:1px solid var(--borde); border-radius:16px;
   padding:13px 15px 14px; touch-action:manipulation;
 }
+.tarjeta-objetivo.archivado{ opacity:0.55; }
 .tarjeta-objetivo-cabecera{ display:flex; align-items:center; gap:8px; }
 .tarjeta-objetivo-cabecera .punto{ width:8px; height:8px; border-radius:50%; flex:none; }
 .tarjeta-objetivo-cabecera .nombre{ font-size:14.5px; font-weight:700; color:var(--texto-principal); font-family:'Quicksand',sans-serif; flex:1; min-width:0; }
@@ -970,6 +971,10 @@ input{ font-family:inherit; }
     <div class="relleno"></div>
     <button class="boton-ojo" id="botonOjoObjetivos" onclick="alternarVisibilidadObjetivos()"></button>
   </div>
+  <div class="interruptor-estado">
+    <button id="botonObjetivosActivos" class="activo" onclick="cambiarFiltroEstadoObjetivos('activo')">Activos</button>
+    <button id="botonObjetivosArchivados" onclick="cambiarFiltroEstadoObjetivos('archivado')">Archivados</button>
+  </div>
   <div id="bannerSyncObjetivos" style="display:none; margin:0 16px 4px; padding:10px 12px; border-radius:12px; background:#FBF3E2; border:1px solid #EBDCBC; font-size:12px; color:#8B6516; align-items:center; gap:8px;"></div>
   <div class="lista-scroll" id="listaObjetivos"></div>
 </div>
@@ -1151,7 +1156,7 @@ input{ font-family:inherit; }
     <button class="boton-secundario" id="botonRecuperarAgenda" onclick="recuperarAgendaManualmente()">Recuperar agenda desde Sheets</button>
     <div class="nota-campo" id="notaRecuperarAgenda" style="margin-top:6px;"></div>
 
-    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.6 — 19 sep 2026 — Objetivos sin bloqueo de fijos + colchón sincronizado completo</div>
+    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.7 — 19 sep 2026 — Objetivos archivados (con sus aportes) + eliminación permanente</div>
   </div>
 </div>
 
@@ -1371,17 +1376,28 @@ input{ font-family:inherit; }
     <div class="zona-archivar" id="zonaEliminarObjetivo" style="display:none;">
       <button class="boton-archivar" onclick="solicitarEliminarObjetivo()">Eliminar objetivo</button>
       <div class="confirmacion-archivar" id="confirmacionEliminarObjetivo" style="display:none;">
-        <p>Este objetivo y su historial de aportes se eliminarán permanentemente. No se puede deshacer.</p>
+        <p>Este objetivo pasará a la pestaña Archivados junto con su historial de aportes. No se pierde nada, y podrás eliminarlo para siempre desde ahí.</p>
         <div class="fila-confirmacion">
           <button class="boton-confirmar-no" onclick="cancelarEliminarObjetivo()">Cancelar</button>
-          <button class="boton-confirmar-si" onclick="confirmarEliminarObjetivo()">Sí, eliminar</button>
+          <button class="boton-confirmar-si" onclick="confirmarEliminarObjetivo()">Sí, archivar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="zona-archivar" id="zonaEliminarObjetivoCompleto" style="display:none;">
+      <button class="boton-archivar" onclick="solicitarEliminarObjetivoCompleto()">Eliminar por completo</button>
+      <div class="confirmacion-archivar" id="confirmacionEliminarObjetivoCompleto" style="display:none;">
+        <p>Este objetivo y todos sus aportes se eliminarán para siempre. No se puede deshacer ni recuperar después.</p>
+        <div class="fila-confirmacion">
+          <button class="boton-confirmar-no" onclick="cancelarEliminarObjetivoCompleto()">Cancelar</button>
+          <button class="boton-confirmar-si" onclick="confirmarEliminarObjetivoCompleto()">Sí, eliminar para siempre</button>
         </div>
       </div>
     </div>
 
     <div class="zona-archivar">
-      <span class="etiqueta-campo">Agregar monto</span>
-      <div style="display:flex; gap:8px; margin-top:8px;">
+      <span class="etiqueta-campo" id="etiquetaAgregarAporte">Agregar monto</span>
+      <div id="controlesAgregarAporte" style="display:flex; gap:8px; margin-top:8px;">
         <input type="text" id="objetivoAporteMonto" inputmode="numeric" placeholder="Monto" style="flex:1; padding:11px 12px; border-radius:11px; border:1px solid var(--borde); font-size:14px;">
         <button class="boton-medio-pago" style="padding:0 16px; border-radius:11px;" onclick="registrarAporteObjetivo()">Agregar</button>
       </div>
@@ -1622,9 +1638,9 @@ async function guardarIngresosEnAlmacenamiento(){
 }
 function objetivosPorDefecto(){
   return [
-    { id:'colchon',    nombre:'Colchón meses sin paga',             tipo:'colchon',     fijo:true, acumulado:0, aportes:[], mesesACubrir:3, gastoFijoMensual:0, fechaObjetivo:null, creadoEnServidor:false, pendienteSync:false, colaSync:[] },
-    { id:'congreso',   nombre:'Congreso o viaje profesional anual', tipo:'meta_manual', fijo:true, acumulado:0, aportes:[], metaManual:0, fechaObjetivo:null, creadoEnServidor:false, pendienteSync:false, colaSync:[] },
-    { id:'emergencia', nombre:'Fondo de emergencia',                tipo:'meta_manual', fijo:true, acumulado:0, aportes:[], metaManual:0, fechaObjetivo:null, creadoEnServidor:false, pendienteSync:false, colaSync:[] },
+    { id:'colchon',    nombre:'Colchón meses sin paga',             tipo:'colchon',     fijo:true, estado:'activo', acumulado:0, aportes:[], mesesACubrir:3, gastoFijoMensual:0, fechaObjetivo:null, creadoEnServidor:false, pendienteSync:false, colaSync:[] },
+    { id:'congreso',   nombre:'Congreso o viaje profesional anual', tipo:'meta_manual', fijo:true, estado:'activo', acumulado:0, aportes:[], metaManual:0, fechaObjetivo:null, creadoEnServidor:false, pendienteSync:false, colaSync:[] },
+    { id:'emergencia', nombre:'Fondo de emergencia',                tipo:'meta_manual', fijo:true, estado:'activo', acumulado:0, aportes:[], metaManual:0, fechaObjetivo:null, creadoEnServidor:false, pendienteSync:false, colaSync:[] },
   ];
 }
 // La siembra de los tres objetivos fijos, si hace falta, se decide en
@@ -4149,6 +4165,7 @@ function mapearObjetivoDesdeServidor(fila, todosLosAportes){
     nombre: fila.nombre || '',
     tipo: esColchon ? 'colchon' : 'meta_manual',
     fijo: esFijo,
+    estado: fila.estado === 'archivado' ? 'archivado' : 'activo',
     acumulado: Number(fila.acumulado_actual) || 0,
     aportes,
     mesesACubrir: esColchon ? (Number(fila.meses_a_cubrir) || 0) : 0,
@@ -4177,17 +4194,32 @@ async function recuperarObjetivosDesdeSheets(){
 
 const COLOR_OBJETIVO = { colchon:'var(--obj-colchon)', congreso:'var(--obj-congreso)', emergencia:'var(--obj-emergencia)' };
 let vObjetivos = false;
+let filtroEstadoObjetivos = 'activo';
 function alternarVisibilidadObjetivos(){ vObjetivos = !vObjetivos; renderizarVistaObjetivos(); }
+function cambiarFiltroEstadoObjetivos(estado){
+  filtroEstadoObjetivos = estado;
+  document.getElementById('botonObjetivosActivos').classList.toggle('activo', estado === 'activo');
+  document.getElementById('botonObjetivosArchivados').classList.toggle('activo', estado === 'archivado');
+  renderizarVistaObjetivos();
+}
 
 function renderizarVistaObjetivos(){
   pintarBotonOjo('botonOjoObjetivos', vObjetivos);
   const contenedor = document.getElementById('listaObjetivos'); contenedor.innerHTML = '';
-  objetivos.forEach(obj => {
+  const filtrados = objetivos.filter(o => (o.estado||'activo') === filtroEstadoObjetivos);
+  if(filtrados.length === 0){
+    contenedor.innerHTML = filtroEstadoObjetivos === 'activo'
+      ? '<div class="vacio">Todavía no hay objetivos activos.</div>'
+      : '<div class="vacio">Sin objetivos archivados.</div>';
+    return;
+  }
+  filtrados.forEach(obj => {
     const meta = obtenerMetaObjetivo(obj);
     const falta = Math.max(0, meta - (obj.acumulado||0));
     const pct = meta > 0 ? Math.min(100, Math.round(((obj.acumulado||0)/meta)*100)) : 0;
     const color = COLOR_OBJETIVO[obj.id] || '#7C2F3E';
-    const tarjeta = document.createElement('div'); tarjeta.className = 'tarjeta-objetivo'; tarjeta.onclick = () => abrirFichaObjetivo(obj.id);
+    const archivado = obj.estado === 'archivado';
+    const tarjeta = document.createElement('div'); tarjeta.className = 'tarjeta-objetivo' + (archivado ? ' archivado' : ''); tarjeta.onclick = () => abrirFichaObjetivo(obj.id);
     tarjeta.innerHTML = `
       <div class="tarjeta-objetivo-cabecera">
         <span class="punto" style="background:${color}"></span>
@@ -4204,7 +4236,7 @@ function renderizarVistaObjetivos(){
         <div class="info">
           <span class="fecha-label">${obj.fechaObjetivo ? formatearFechaLarga(obj.fechaObjetivo) : 'Sin fecha objetivo'}</span>
         </div>
-        <button class="boton-agregar-monto" style="border-color:${color}; color:${color};" onclick="event.stopPropagation(); abrirFichaObjetivo('${obj.id}');">+ Agregar monto</button>
+        ${archivado ? '' : `<button class="boton-agregar-monto" style="border-color:${color}; color:${color};" onclick="event.stopPropagation(); abrirFichaObjetivo('${obj.id}');">+ Agregar monto</button>`}
       </div>
     `;
     contenedor.appendChild(tarjeta);
@@ -4245,6 +4277,10 @@ function abrirFichaObjetivoNueva(){
   document.getElementById('listaAportesObjetivo').innerHTML = '';
   document.getElementById('zonaEliminarObjetivo').style.display = 'none';
   document.getElementById('confirmacionEliminarObjetivo').style.display = 'none';
+  document.getElementById('zonaEliminarObjetivoCompleto').style.display = 'none';
+  document.getElementById('confirmacionEliminarObjetivoCompleto').style.display = 'none';
+  document.getElementById('controlesAgregarAporte').style.display = 'flex';
+  document.getElementById('etiquetaAgregarAporte').textContent = 'Agregar monto';
   document.getElementById('fondoModalObjetivo').classList.add('abierto');
 }
 function abrirFichaObjetivo(id){
@@ -4270,8 +4306,13 @@ function abrirFichaObjetivo(id){
   document.getElementById('textoAcumuladoObjetivo').textContent = formatearCLP(obj.acumulado||0);
   document.getElementById('objetivoAporteMonto').value = '';
   renderizarAportesObjetivo(obj);
-  document.getElementById('zonaEliminarObjetivo').style.display = 'block';
+  const archivado = obj.estado === 'archivado';
+  document.getElementById('zonaEliminarObjetivo').style.display = archivado ? 'none' : 'block';
   document.getElementById('confirmacionEliminarObjetivo').style.display = 'none';
+  document.getElementById('zonaEliminarObjetivoCompleto').style.display = archivado ? 'block' : 'none';
+  document.getElementById('confirmacionEliminarObjetivoCompleto').style.display = 'none';
+  document.getElementById('controlesAgregarAporte').style.display = archivado ? 'none' : 'flex';
+  document.getElementById('etiquetaAgregarAporte').textContent = archivado ? 'Aportes (objetivo archivado)' : 'Agregar monto';
   document.getElementById('fondoModalObjetivo').classList.add('abierto');
 }
 async function guardarFichaObjetivo(){
@@ -4279,7 +4320,7 @@ async function guardarFichaObjetivo(){
   if(esNuevo){
     const nombre = document.getElementById('objetivoNombre').value.trim();
     if(!nombre){ alert('Ingresa un nombre para el objetivo.'); return; }
-    obj = { id: generarId(), nombre, tipo:'meta_manual', fijo:false, acumulado:0, aportes:[], metaManual:0, fechaObjetivo:null, creadoEnServidor:false, pendienteSync:false, colaSync:[] };
+    obj = { id: generarId(), nombre, tipo:'meta_manual', fijo:false, estado:'activo', acumulado:0, aportes:[], metaManual:0, fechaObjetivo:null, creadoEnServidor:false, pendienteSync:false, colaSync:[] };
   }else{
     obj = objetivos.find(o => o.id === objetivoEnEdicionId); if(!obj) return;
     const nombre = document.getElementById('objetivoNombre').value.trim();
@@ -4309,15 +4350,29 @@ async function guardarFichaObjetivo(){
 function solicitarEliminarObjetivo(){ document.getElementById('confirmacionEliminarObjetivo').style.display = 'block'; }
 function cancelarEliminarObjetivo(){ document.getElementById('confirmacionEliminarObjetivo').style.display = 'none'; }
 async function confirmarEliminarObjetivo(){
-  const obj = objetivos.find(o => o.id === objetivoEnEdicionId);
+  const obj = objetivos.find(o => o.id === objetivoEnEdicionId); if(!obj) return;
+  obj.estado = 'archivado';
+  cerrarFichaObjetivo(); renderizarVistaObjetivos(); await guardarObjetivosEnAlmacenamiento();
+  if(obj.creadoEnServidor){
+    obj.colaSync = obj.colaSync || [];
+    obj.colaSync.push({ accion:'archivar_objetivo', datosBase: {} });
+    procesarColaObjetivo(obj);
+  }
+}
+function solicitarEliminarObjetivoCompleto(){ document.getElementById('confirmacionEliminarObjetivoCompleto').style.display = 'block'; }
+function cancelarEliminarObjetivoCompleto(){ document.getElementById('confirmacionEliminarObjetivoCompleto').style.display = 'none'; }
+async function confirmarEliminarObjetivoCompleto(){
+  const obj = objetivos.find(o => o.id === objetivoEnEdicionId); if(!obj) return;
   objetivos = objetivos.filter(o => o.id !== objetivoEnEdicionId);
   cerrarFichaObjetivo(); renderizarVistaObjetivos(); await guardarObjetivosEnAlmacenamiento();
   // Envío puntual con reintentos, no una cola persistente: el objetivo
   // ya no existe localmente para poder "esperar su turno" después.
-  if(obj && obj.creadoEnServidor) enviarAccionAgendaConReintentos('archivar_objetivo', { id_objetivo: obj.id });
+  if(obj.creadoEnServidor) enviarAccionAgendaConReintentos('eliminar_objetivo_completo', { id_objetivo: obj.id });
 }
 async function registrarAporteObjetivo(){
   if(objetivoEnEdicionId === null){ alert('Guarda el objetivo primero.'); return; }
+  const objRevisado = objetivos.find(o => o.id === objetivoEnEdicionId);
+  if(objRevisado && objRevisado.estado === 'archivado'){ alert('Este objetivo está archivado, no se pueden agregar más aportes.'); return; }
   const monto = limpiarMontoTexto(document.getElementById('objetivoAporteMonto').value);
   if(monto === null || monto <= 0){ alert('Ingresa un monto válido para el aporte.'); return; }
   const obj = objetivos.find(o => o.id === objetivoEnEdicionId); if(!obj) return;
