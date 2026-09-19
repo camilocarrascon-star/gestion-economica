@@ -1156,7 +1156,7 @@ input{ font-family:inherit; }
     <button class="boton-secundario" id="botonRecuperarAgenda" onclick="recuperarAgendaManualmente()">Recuperar agenda desde Sheets</button>
     <div class="nota-campo" id="notaRecuperarAgenda" style="margin-top:6px;"></div>
 
-    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.7 — 19 sep 2026 — Objetivos archivados (con sus aportes) + eliminación permanente</div>
+    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.8 — 19 sep 2026 — Colchón: meses elegibles (febrero, julio, septiembre por defecto)</div>
   </div>
 </div>
 
@@ -1340,8 +1340,11 @@ input{ font-family:inherit; }
     </div>
 
     <div class="campo-modal" id="campoMesesACubrir" style="display:none;">
-      <span class="etiqueta-campo">Meses a cubrir</span>
-      <input type="text" id="objetivoMesesACubrir" inputmode="numeric" oninput="actualizarMetaCalculadaColchon()">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+        <span class="etiqueta-campo" style="margin:0;">Meses a cubrir</span>
+        <button type="button" class="boton-medio-pago" onclick="abrirSelectorMesesColchon()">✏️ Editar</button>
+      </div>
+      <div class="detalle-ingreso-lectura monto-fuente" id="textoMesesSeleccionados"></div>
     </div>
     <div class="campo-modal" id="campoGastoFijoMensual" style="display:none;">
       <span class="etiqueta-campo">Gasto fijo mensual estimado (CLP)</span>
@@ -1403,6 +1406,23 @@ input{ font-family:inherit; }
       </div>
       <div id="listaAportesObjetivo" style="margin-top:10px;"></div>
     </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: SELECTOR DE MESES (Colchón, Módulo D)
+     ============================================================ -->
+<div class="fondo-modal" id="fondoModalMesesColchon" onclick="cerrarModalSiFondo(event, 'fondoModalMesesColchon', cerrarSelectorMesesColchon)">
+  <div class="hoja-modal">
+    <div class="encabezado-modal">
+      <h2>Meses a cubrir</h2>
+      <button class="cerrar-modal" onclick="cerrarSelectorMesesColchon()">✕</button>
+    </div>
+    <div class="campo-modal">
+      <div class="grid-pagos-gasto" id="gridMesesColchon"></div>
+    </div>
+    <button class="boton-primario" onclick="guardarSelectorMesesColchon()">Guardar</button>
+    <button class="boton-secundario" onclick="cerrarSelectorMesesColchon()">Cancelar</button>
   </div>
 </div>
 
@@ -1638,7 +1658,7 @@ async function guardarIngresosEnAlmacenamiento(){
 }
 function objetivosPorDefecto(){
   return [
-    { id:'colchon',    nombre:'Colchón meses sin paga',             tipo:'colchon',     fijo:true, estado:'activo', acumulado:0, aportes:[], mesesACubrir:3, gastoFijoMensual:0, fechaObjetivo:null, creadoEnServidor:false, pendienteSync:false, colaSync:[] },
+    { id:'colchon',    nombre:'Colchón meses sin paga',             tipo:'colchon',     fijo:true, estado:'activo', acumulado:0, aportes:[], mesesACubrir:3, mesesSeleccionados:[2,7,9], gastoFijoMensual:0, fechaObjetivo:null, creadoEnServidor:false, pendienteSync:false, colaSync:[] },
     { id:'congreso',   nombre:'Congreso o viaje profesional anual', tipo:'meta_manual', fijo:true, estado:'activo', acumulado:0, aportes:[], metaManual:0, fechaObjetivo:null, creadoEnServidor:false, pendienteSync:false, colaSync:[] },
     { id:'emergencia', nombre:'Fondo de emergencia',                tipo:'meta_manual', fijo:true, estado:'activo', acumulado:0, aportes:[], metaManual:0, fechaObjetivo:null, creadoEnServidor:false, pendienteSync:false, colaSync:[] },
   ];
@@ -4093,7 +4113,7 @@ function formatearFechaLarga(fechaISO){ const f = fechaDesdeISO(fechaISO); retur
 function construirDatosObjetivoBase(obj){
   const datos = { nombre: obj.nombre, meta_monto: obtenerMetaObjetivo(obj), fecha_objetivo: obj.fechaObjetivo || '' };
   if(obj.tipo === 'colchon'){
-    datos.meses_a_cubrir = obj.mesesACubrir || 0;
+    datos.meses_a_cubrir = (obj.mesesSeleccionados || []).join(';');
     datos.gasto_fijo_mensual = obj.gastoFijoMensual || 0;
   }
   return datos;
@@ -4157,6 +4177,7 @@ function mapearObjetivoDesdeServidor(fila, todosLosAportes){
   const idsFijos = ['colchon','congreso','emergencia'];
   const esFijo = idsFijos.includes(fila.id_objetivo);
   const esColchon = fila.id_objetivo === 'colchon';
+  const mesesSeleccionados = esColchon ? parsearMesesColchon(fila.meses_a_cubrir) : [];
   const aportes = todosLosAportes
     .filter(a => a.id_objetivo === fila.id_objetivo)
     .map(a => ({ id: a.id_aporte, monto: Number(a.monto) || 0, fecha: a.fecha_evento, creado: Date.now() }));
@@ -4168,7 +4189,8 @@ function mapearObjetivoDesdeServidor(fila, todosLosAportes){
     estado: fila.estado === 'archivado' ? 'archivado' : 'activo',
     acumulado: Number(fila.acumulado_actual) || 0,
     aportes,
-    mesesACubrir: esColchon ? (Number(fila.meses_a_cubrir) || 0) : 0,
+    mesesACubrir: mesesSeleccionados.length,
+    mesesSeleccionados: mesesSeleccionados,
     gastoFijoMensual: esColchon ? (Number(fila.gasto_fijo_mensual) || 0) : 0,
     metaManual: Number(fila.meta_monto) || 0,
     fechaObjetivo: fila.fecha_objetivo || null,
@@ -4244,8 +4266,25 @@ function renderizarVistaObjetivos(){
 }
 
 let objetivoEnEdicionId = null;
+const MESES_COLCHON_DEFECTO = [2,7,9];
+let mesesColchonTemp = [];       // meses ya guardados en la ficha (los que se usan en el cálculo de la meta)
+let mesesColchonEnEdicion = [];  // copia de trabajo mientras el selector de meses está abierto
+
+// Interpreta lo que venga en la columna meses_a_cubrir. Formato nuevo:
+// números de mes separados por ";" (ej: "2;7;9"). Si es un valor antiguo
+// (un solo número, de antes de esta función) o viene vacío, se usan los
+// meses por defecto — el total de la meta no cambia, porque son 3 meses
+// en ambos casos.
+function parsearMesesColchon(valorCrudo){
+  const texto = String(valorCrudo || '').trim();
+  if(texto.indexOf(';') !== -1){
+    const meses = texto.split(';').map(function(m){ return parseInt(m,10); }).filter(function(m){ return !isNaN(m) && m>=1 && m<=12; });
+    if(meses.length > 0) return meses;
+  }
+  return MESES_COLCHON_DEFECTO.slice();
+}
 function actualizarMetaCalculadaColchon(){
-  const meses = parseInt(document.getElementById('objetivoMesesACubrir').value) || 0;
+  const meses = mesesColchonTemp.length;
   const gasto = limpiarMontoTexto(document.getElementById('objetivoGastoFijoMensual').value) || 0;
   const sueldo = obtenerSueldoFijoVigenteHoy();
   const brecha = Math.max(0, gasto - sueldo);
@@ -4254,6 +4293,43 @@ function actualizarMetaCalculadaColchon(){
   document.getElementById('notaMetaCalculada').textContent = sueldo > 0
     ? `${meses} meses × (${formatearCLP(gasto)} gasto fijo − ${formatearCLP(sueldo)} sueldo fijo vigente)`
     : `${meses} meses × ${formatearCLP(gasto)} gasto fijo (el sueldo fijo todavía no está vigente)`;
+}
+function actualizarTextoMesesSeleccionados(){
+  const nombres = mesesColchonTemp.slice().sort((a,b) => a-b)
+    .map(m => NOMBRES_MES[m-1].charAt(0).toUpperCase() + NOMBRES_MES[m-1].slice(1));
+  document.getElementById('textoMesesSeleccionados').textContent = nombres.length ? nombres.join(', ') : 'Selecciona al menos un mes';
+}
+function pintarGridMesesColchon(){
+  const c = document.getElementById('gridMesesColchon'); c.innerHTML = '';
+  NOMBRES_MES.forEach((nombre, i) => {
+    const numeroMes = i + 1;
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip-pago-gasto' + (mesesColchonEnEdicion.includes(numeroMes) ? ' seleccionada' : '');
+    chip.style.setProperty('--chip-color', 'var(--acento)');
+    chip.textContent = nombre.charAt(0).toUpperCase() + nombre.slice(1);
+    chip.onclick = () => {
+      const idx = mesesColchonEnEdicion.indexOf(numeroMes);
+      if(idx === -1) mesesColchonEnEdicion.push(numeroMes); else mesesColchonEnEdicion.splice(idx,1);
+      pintarGridMesesColchon();
+    };
+    c.appendChild(chip);
+  });
+}
+function abrirSelectorMesesColchon(){
+  mesesColchonEnEdicion = mesesColchonTemp.slice();
+  pintarGridMesesColchon();
+  document.getElementById('fondoModalMesesColchon').classList.add('abierto');
+}
+function cerrarSelectorMesesColchon(){
+  document.getElementById('fondoModalMesesColchon').classList.remove('abierto');
+}
+function guardarSelectorMesesColchon(){
+  if(mesesColchonEnEdicion.length === 0){ alert('Selecciona al menos un mes.'); return; }
+  mesesColchonTemp = mesesColchonEnEdicion.slice();
+  actualizarTextoMesesSeleccionados();
+  actualizarMetaCalculadaColchon();
+  cerrarSelectorMesesColchon();
 }
 function renderizarAportesObjetivo(obj){
   const lista = document.getElementById('listaAportesObjetivo');
@@ -4296,7 +4372,8 @@ function abrirFichaObjetivo(id){
   document.getElementById('campoMetaCalculada').style.display = esColchon ? 'block' : 'none';
   document.getElementById('campoMetaManual').style.display = esColchon ? 'none' : 'block';
   if(esColchon){
-    document.getElementById('objetivoMesesACubrir').value = obj.mesesACubrir || '';
+    mesesColchonTemp = (obj.mesesSeleccionados && obj.mesesSeleccionados.length) ? obj.mesesSeleccionados.slice() : MESES_COLCHON_DEFECTO.slice();
+    actualizarTextoMesesSeleccionados();
     document.getElementById('objetivoGastoFijoMensual').value = obj.gastoFijoMensual ? obj.gastoFijoMensual.toLocaleString('es-CL') : '';
     actualizarMetaCalculadaColchon();
   }else{
@@ -4328,11 +4405,12 @@ async function guardarFichaObjetivo(){
     obj.nombre = nombre;
   }
   if(obj.tipo === 'colchon'){
-    const meses = parseInt(document.getElementById('objetivoMesesACubrir').value);
     const gasto = limpiarMontoTexto(document.getElementById('objetivoGastoFijoMensual').value);
-    if(isNaN(meses) || meses <= 0){ alert('Ingresa un número de meses válido.'); return; }
+    if(mesesColchonTemp.length === 0){ alert('Selecciona al menos un mes a cubrir.'); return; }
     if(gasto === null || gasto < 0){ alert('Ingresa un gasto fijo mensual válido.'); return; }
-    obj.mesesACubrir = meses; obj.gastoFijoMensual = gasto;
+    obj.mesesSeleccionados = mesesColchonTemp.slice();
+    obj.mesesACubrir = obj.mesesSeleccionados.length;
+    obj.gastoFijoMensual = gasto;
   }else{
     const meta = limpiarMontoTexto(document.getElementById('objetivoMetaManual').value);
     if(meta === null || meta < 0){ alert('Ingresa una meta válida.'); return; }
