@@ -1162,7 +1162,7 @@ input{ font-family:inherit; }
     <button class="boton-secundario" id="botonRecuperarAgenda" onclick="recuperarAgendaManualmente()">Recuperar agenda desde Sheets</button>
     <div class="nota-campo" id="notaRecuperarAgenda" style="margin-top:6px;"></div>
 
-    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.9 — 19 sep 2026 — Colchón: tramos con barritas por plazo, alerta y cierre de ciclo</div>
+    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.11 — 19 sep 2026 — Ingresos: sincroniza manuales, sueldo y boleta EL; se puede recuperar todo desde Sheets</div>
   </div>
 </div>
 
@@ -1368,7 +1368,7 @@ input{ font-family:inherit; }
       <input type="text" id="objetivoMetaManual" inputmode="numeric">
     </div>
 
-    <div class="campo-modal">
+    <div class="campo-modal" id="campoFechaObjetivoManual">
       <span class="etiqueta-campo">Fecha objetivo (opcional)</span>
       <input type="date" id="objetivoFecha">
     </div>
@@ -1689,6 +1689,36 @@ async function cargarIngresos(){
 }
 async function guardarIngresosEnAlmacenamiento(){
   try{ const r = await window.storage.set(CLAVE_INGRESOS, JSON.stringify(ingresos), false); if(!r) alert('No se pudo guardar el cambio.'); }catch(e){ alert('No se pudo guardar el cambio.'); }
+}
+// El tipo específico (particular, FONASA directo, Entre Lazos, sueldo
+// dependiente, manual) vive en categoria_manual. Si esa columna viene
+// vacía (registros de antes de que esto existiera), se adivina lo más
+// razonable a partir de "origen" nada más, sin pretender ser exacto.
+function mapearIngresoDesdeServidor(fila){
+  const tipo = fila.categoria_manual || (fila.origen === 'sesion_paciente' ? 'particular' : 'manual');
+  return {
+    id: fila.id_ingreso,
+    tipo,
+    origenClave: null,
+    fecha: fila.fecha_evento || '',
+    montoBruto: Number(fila.monto_bruto) || 0,
+    montoNeto: Number(fila.monto_neto) || 0,
+    medioPago: fila.forma_pago || null,
+    descripcion: fila.descripcion || '',
+    creado: Date.now()
+  };
+}
+async function recuperarIngresosDesdeSheets(){
+  try{
+    const filas = await llamarScript('obtener_ingresos', {});
+    if(!Array.isArray(filas) || filas.length === 0) return false;
+    ingresos = filas.filter(f => f.id_ingreso).map(mapearIngresoDesdeServidor);
+    await guardarIngresosEnAlmacenamiento();
+    return true;
+  }catch(err){
+    console.error('No se pudo recuperar ingresos desde Sheets:', err);
+    return false;
+  }
 }
 function objetivosPorDefecto(){
   return [
@@ -2592,7 +2622,7 @@ function calcularMontoBrutoParaPaciente(pacienteId){
   const p = pacientes.find(x => x.id === pacienteId);
   if(!p) return null;
   const montoBruto = p.tipoPago === 'fonasa' ? obtenerMontoFonasaSegunCanal(p.canal) : p.montoHabitual;
-  return { montoBruto, esEntreLazos: p.canal === 'entrelazos' };
+  return { montoBruto, esEntreLazos: p.canal === 'entrelazos', tipo: p.tipoPago === 'fonasa' ? 'fonasa_directo' : 'particular', nombre: p.nombreCompleto };
 }
 
 // Encola actualizar_estado_sesion y, si corresponde, generar_ingreso.
@@ -2612,7 +2642,7 @@ function encolarActualizarEstadoSesion(entidad, fechaOcurrencia, estado, montoIn
   if(montoInfo && !montoInfo.esEntreLazos && ESTADOS_QUE_GENERAN_INGRESO.includes(estado)){
     const montoNeto = calcularNeto(montoInfo.montoBruto, false);
     datosBase.monto_congelado = montoNeto;
-    datosBase.generar_ingreso = { id_ingreso: idIngreso, monto_bruto: montoInfo.montoBruto, monto_neto: montoNeto, forma_pago: '', categoria_manual: null };
+    datosBase.generar_ingreso = { id_ingreso: idIngreso, monto_bruto: montoInfo.montoBruto, monto_neto: montoNeto, forma_pago: '', categoria_manual: montoInfo.tipo || '', descripcion: montoInfo.nombre || '' };
     generaIngreso = true;
   }else if(montoInfo){
     datosBase.monto_congelado = calcularNeto(montoInfo.montoBruto, montoInfo.esEntreLazos);
@@ -3330,6 +3360,7 @@ async function guardarFichaEvento(){
     }
     if(consultaGuardada){
       const esEntreLazos = tipoPagoEventoConsultaSeleccionado === 'fonasa_el';
+      const tipoIngresoConsulta = tipoPagoEventoConsultaSeleccionado === 'fonasa_directo' ? 'fonasa_directo' : 'particular';
       const idIngreso = idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'consulta', consultaId: consultaGuardada.id }));
       const cambioEstado = estadoAnteriorConsulta !== estadoSesionEventoSeleccionado;
       const siguePagada = ESTADOS_QUE_GENERAN_INGRESO.includes(estadoSesionEventoSeleccionado);
@@ -3338,7 +3369,7 @@ async function guardarFichaEvento(){
       // pero el monto se corrigió. Editar solo el nombre, por ejemplo,
       // ya no vuelve a generar un ingreso.
       if(cambioEstado || cambioMontoEnPagada){
-        encolarActualizarEstadoSesion(consultaGuardada, null, estadoSesionEventoSeleccionado, { montoBruto: monto, esEntreLazos }, idIngreso);
+        encolarActualizarEstadoSesion(consultaGuardada, null, estadoSesionEventoSeleccionado, { montoBruto: monto, esEntreLazos, tipo: tipoIngresoConsulta, nombre }, idIngreso);
       }
       // Si dejó de estar pagada (y antes sí lo estaba, y no era Entre
       // Lazos), el ingreso que ya existía en la planilla queda huérfano
@@ -3352,7 +3383,7 @@ async function guardarFichaEvento(){
       // sesión deja de estar pagada.
       if(!esEntreLazos){
         if(siguePagada){
-          sincronizarIngresoLocalDeSesion(idIngreso, { tipo: tipoPagoEventoConsultaSeleccionado === 'fonasa_directo' ? 'fonasa_directo' : 'particular', claveOrigen: obtenerClaveOrigen({ tipoInstancia:'consulta', consultaId: consultaGuardada.id }), fecha, montoBruto: monto, montoNeto: calcularNeto(monto, false), nombre });
+          sincronizarIngresoLocalDeSesion(idIngreso, { tipo: tipoIngresoConsulta, claveOrigen: obtenerClaveOrigen({ tipoInstancia:'consulta', consultaId: consultaGuardada.id }), fecha, montoBruto: monto, montoNeto: calcularNeto(monto, false), nombre });
         }else{
           sincronizarIngresoLocalDeSesion(idIngreso, null);
         }
@@ -3449,8 +3480,7 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
     // guardado, y se borra si esa fecha deja de estar pagada.
     if(montoInfo && !montoInfo.esEntreLazos){
       if(siguePagada){
-        const paciente = pacientes.find(p => p.id === pacienteId);
-        sincronizarIngresoLocalDeSesion(idIngreso, { tipo: paciente && paciente.tipoPago === 'fonasa' ? 'fonasa_directo' : 'particular', claveOrigen: obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaClaveOrigen }), fecha: fechaClaveOrigen, montoBruto: montoInfo.montoBruto, montoNeto: calcularNeto(montoInfo.montoBruto, false), nombre: paciente ? paciente.nombreCompleto : '' });
+        sincronizarIngresoLocalDeSesion(idIngreso, { tipo: montoInfo.tipo, claveOrigen: obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaClaveOrigen }), fecha: fechaClaveOrigen, montoBruto: montoInfo.montoBruto, montoNeto: calcularNeto(montoInfo.montoBruto, false), nombre: montoInfo.nombre || '' });
       }else{
         sincronizarIngresoLocalDeSesion(idIngreso, null);
       }
@@ -3889,7 +3919,6 @@ function obtenerSesionesPagadasHastaHoy(){
   // filtraba por "hasta hoy" — ahora filtra solo por estado.
   return obtenerInstanciasEnRango('2000-01-01', '2100-12-31').filter(inst => inst.etiqueta === 'atenciones' && ESTADOS_QUE_GENERAN_INGRESO.includes(inst.estadoSesion));
 }
-function obtenerClavesYaImportadas(){ const s = new Set(); ingresos.forEach(i => { if(i.origenClave) s.add(i.origenClave); }); return s; }
 function obtenerClavesYaIncluidasEnBoletas(){
   const s = new Set();
   ingresos.filter(i => i.tipo === 'entrelazos' && i.sesionesIncluidas).forEach(i => i.sesionesIncluidas.forEach(c => s.add(c)));
@@ -3910,17 +3939,24 @@ function obtenerPendientesEntreLazos(){
   return res;
 }
 
+function idIngresoSueldo(claveMes){ return 'ING-sueldo-' + claveMes; }
 async function autoImportarSueldoDependiente(){
   const monto = configuracion.sueldoDependienteMonto || 0; const inicio = configuracion.sueldoDependienteInicio || '';
   if(monto <= 0 || !inicio) return;
   const [anioInicio, mesInicio] = inicio.split('-').map(Number);
   const ahora = new Date(); const anioActual = ahora.getFullYear(); const mesActual = ahora.getMonth()+1;
-  const ya = obtenerClavesYaImportadas();
   let anio = anioInicio, mes = mesInicio, hubo = false;
   while(anio < anioActual || (anio === anioActual && mes <= mesActual)){
-    const claveMes = `${anio}-${String(mes).padStart(2,'0')}`; const clave = `sueldo:${claveMes}`;
-    if(!ya.has(clave)){
-      ingresos.push({ id: generarId(), tipo:'trabajo_dependiente', origenClave: clave, fecha: `${claveMes}-01`, montoBruto: monto, montoNeto: monto, medioPago: null, descripcion:'Trabajo dependiente', creado: Date.now() });
+    const claveMes = `${anio}-${String(mes).padStart(2,'0')}`;
+    const idSueldo = idIngresoSueldo(claveMes);
+    // El id es siempre el mismo para un mismo mes, así que sirve como
+    // única forma de saber si ya se importó, incluso después de
+    // recuperar el historial desde Sheets (ya no depende de que este
+    // mismo teléfono lo haya hecho antes).
+    if(!ingresos.some(i => i.id === idSueldo)){
+      const nuevoIngresoSueldo = { id: idSueldo, tipo:'trabajo_dependiente', origenClave: `sueldo:${claveMes}`, fecha: `${claveMes}-01`, montoBruto: monto, montoNeto: monto, medioPago: null, descripcion:'Trabajo dependiente', creado: Date.now() };
+      ingresos.push(nuevoIngresoSueldo);
+      enviarAccionAgendaConReintentos('crear_ingreso_manual', { id_ingreso: idSueldo, categoria_manual: 'trabajo_dependiente', descripcion: 'Trabajo dependiente', monto_bruto: monto, monto_neto: monto, forma_pago: '', fecha_evento: nuevoIngresoSueldo.fecha });
       hubo = true;
     }
     mes++; if(mes > 12){ mes = 1; anio++; }
@@ -3943,8 +3979,19 @@ function cancelarConfirmacionBoleta(){ confirmandoBoleta = false; renderizarVist
 async function generarBoletaEntreLazos(){
   const pend = obtenerPendientesEntreLazos(); if(pend.length === 0){ confirmandoBoleta = false; renderizarVistaIngresos(); return; }
   const totalBruto = pend.reduce((a,p) => a + p.info.montoBruto, 0);
-  ingresos.push({ id: generarId(), tipo:'entrelazos', origenClave: null, sesionesIncluidas: pend.map(p => p.clave), fecha: hoyISO(), montoBruto: totalBruto, montoNeto: calcularNeto(totalBruto, true), medioPago:'transferencia', descripcion:`Boleta Entre Lazos (${pend.length} sesión${pend.length===1?'':'es'})`, creado: Date.now() });
+  const totalNeto = calcularNeto(totalBruto, true);
+  const descripcionBoleta = `Boleta Entre Lazos (${pend.length} sesión${pend.length===1?'':'es'})`;
+  const nuevaBoleta = { id: generarId(), tipo:'entrelazos', origenClave: null, sesionesIncluidas: pend.map(p => p.clave), fecha: hoyISO(), montoBruto: totalBruto, montoNeto: totalNeto, medioPago:'transferencia', descripcion: descripcionBoleta, creado: Date.now() };
+  ingresos.push(nuevaBoleta);
   confirmandoBoleta = false; await guardarIngresosEnAlmacenamiento(); renderizarVistaIngresos();
+  enviarAccionAgendaConReintentos('generar_boleta_entrelazos', {
+    mes_correspondiente: hoyISO().slice(0,7),
+    ids_eventos_incluidos: pend.map(p => p.clave),
+    monto_bruto_total: totalBruto,
+    monto_neto_total: totalNeto,
+    fecha_emision: hoyISO()
+  });
+  enviarAccionAgendaConReintentos('crear_ingreso_manual', { id_ingreso: nuevaBoleta.id, categoria_manual: 'entrelazos', descripcion: descripcionBoleta, monto_bruto: totalBruto, monto_neto: totalNeto, forma_pago: 'transferencia', fecha_evento: nuevaBoleta.fecha });
 }
 
 let mesIngresosMostrado = new Date().getMonth();
@@ -4088,8 +4135,10 @@ async function guardarIngresoManual(){
   if(monto === null || monto <= 0){ alert('Ingresa un monto válido.'); return; }
   if(!fecha){ alert('Selecciona la fecha.'); return; }
   if(!medioPagoManualSeleccionado){ alert('Selecciona el medio de pago.'); return; }
-  ingresos.push({ id: generarId(), tipo:'manual', origenClave:null, fecha, montoBruto: monto, montoNeto: monto, medioPago: medioPagoManualSeleccionado, descripcion, creado: Date.now() });
+  const nuevoIngresoManual = { id: generarId(), tipo:'manual', origenClave:null, fecha, montoBruto: monto, montoNeto: monto, medioPago: medioPagoManualSeleccionado, descripcion, creado: Date.now() };
+  ingresos.push(nuevoIngresoManual);
   cerrarFichaIngreso(); renderizarVistaIngresos(); await guardarIngresosEnAlmacenamiento();
+  enviarAccionAgendaConReintentos('crear_ingreso_manual', { id_ingreso: nuevoIngresoManual.id, categoria_manual: 'manual', descripcion, monto_bruto: monto, monto_neto: monto, forma_pago: medioPagoManualSeleccionado, fecha_evento: fecha });
 }
 function abrirDetalleIngreso(id){
   const ing = ingresos.find(i => i.id === id); if(!ing) return;
@@ -4314,12 +4363,21 @@ function renderizarVistaObjetivos(){
     return;
   }
   filtrados.forEach(obj => {
-    const meta = obtenerMetaObjetivo(obj);
-    const falta = Math.max(0, meta - (obj.acumulado||0));
-    const pct = meta > 0 ? Math.min(100, Math.round(((obj.acumulado||0)/meta)*100)) : 0;
-    const color = COLOR_OBJETIVO[obj.id] || '#7C2F3E';
+    const esColchon = obj.tipo === 'colchon';
     const archivado = obj.estado === 'archivado';
-    const alertaTramo = (obj.tipo === 'colchon' && !archivado && calcularTramosColchon(obj).some(t => t.vencido)) ? ' <span style="color:#B3261E;">⚠️</span>' : '';
+    const tramos = esColchon ? calcularTramosColchon(obj) : [];
+    const tramoActual = tramos.length ? tramos[0] : null;
+
+    const meta = tramoActual ? tramoActual.meta : obtenerMetaObjetivo(obj);
+    const acumuladoMostrado = tramoActual ? tramoActual.aportado : (obj.acumulado||0);
+    const falta = Math.max(0, meta - acumuladoMostrado);
+    const pct = tramoActual ? tramoActual.pct : (meta > 0 ? Math.min(100, Math.round(((obj.acumulado||0)/meta)*100)) : 0);
+    const color = COLOR_OBJETIVO[obj.id] || '#7C2F3E';
+    const alertaTramo = (esColchon && !archivado && tramos.some(t => t.vencido)) ? ' <span style="color:#B3261E;">⚠️</span>' : '';
+    const etiquetaMeta = tramoActual ? `META ${tramoActual.nombreMes.toUpperCase()}` : 'META';
+    const piePrimerTramo = tramoActual
+      ? `${tramoActual.nombreMes.charAt(0).toUpperCase()+tramoActual.nombreMes.slice(1)} ${tramoActual.anio}`
+      : (obj.fechaObjetivo ? formatearFechaLarga(obj.fechaObjetivo) : 'Sin fecha objetivo');
     const tarjeta = document.createElement('div'); tarjeta.className = 'tarjeta-objetivo' + (archivado ? ' archivado' : ''); tarjeta.onclick = () => abrirFichaObjetivo(obj.id);
     tarjeta.innerHTML = `
       <div class="tarjeta-objetivo-cabecera">
@@ -4329,13 +4387,13 @@ function renderizarVistaObjetivos(){
       </div>
       <div class="barra-progreso-objetivo"><div class="relleno-progreso-objetivo" style="width:${pct}%; background:${color}"></div></div>
       <div class="grid-datos-objetivo">
-        <div class="dato-objetivo"><span class="etiqueta-dato">ACUMULADO</span><span class="valor-dato monto-fuente" style="color:${color}">${textoMontoOculto(obj.acumulado||0, vObjetivos)}</span></div>
-        <div class="dato-objetivo con-borde"><span class="etiqueta-dato">META</span><span class="valor-dato meta monto-fuente">${textoMontoOculto(meta, vObjetivos)}</span></div>
+        <div class="dato-objetivo"><span class="etiqueta-dato">ACUMULADO</span><span class="valor-dato monto-fuente" style="color:${color}">${textoMontoOculto(acumuladoMostrado, vObjetivos)}</span></div>
+        <div class="dato-objetivo con-borde"><span class="etiqueta-dato">${etiquetaMeta}</span><span class="valor-dato meta monto-fuente">${textoMontoOculto(meta, vObjetivos)}</span></div>
         <div class="dato-objetivo con-borde"><span class="etiqueta-dato">FALTA</span><span class="valor-dato monto-fuente" style="color:${color}">${falta<=0 ? 'Cumplida' : textoMontoOculto(falta, vObjetivos)}</span></div>
       </div>
       <div class="pie-objetivo">
         <div class="info">
-          <span class="fecha-label">${obj.fechaObjetivo ? formatearFechaLarga(obj.fechaObjetivo) : 'Sin fecha objetivo'}</span>
+          <span class="fecha-label">${piePrimerTramo}</span>
         </div>
         ${archivado ? '' : `<button class="boton-agregar-monto" style="border-color:${color}; color:${color};" onclick="event.stopPropagation(); abrirFichaObjetivo('${obj.id}');">+ Agregar monto</button>`}
       </div>
@@ -4479,6 +4537,7 @@ function abrirFichaObjetivoNueva(){
   document.getElementById('campoMetaCalculada').style.display = 'none';
   document.getElementById('campoMetaManual').style.display = 'block';
   document.getElementById('campoTramosColchon').style.display = 'none';
+  document.getElementById('campoFechaObjetivoManual').style.display = 'block';
   document.getElementById('objetivoMetaManual').value = '';
   document.getElementById('objetivoFecha').value = '';
   document.getElementById('textoAcumuladoObjetivo').textContent = formatearCLP(0);
@@ -4505,6 +4564,7 @@ function abrirFichaObjetivo(id){
   document.getElementById('campoMetaCalculada').style.display = esColchon ? 'block' : 'none';
   document.getElementById('campoMetaManual').style.display = esColchon ? 'none' : 'block';
   document.getElementById('campoTramosColchon').style.display = esColchon ? 'block' : 'none';
+  document.getElementById('campoFechaObjetivoManual').style.display = esColchon ? 'none' : 'block';
   if(esColchon){
     mesesColchonTemp = (obj.mesesSeleccionados && obj.mesesSeleccionados.length) ? obj.mesesSeleccionados.slice() : MESES_COLCHON_DEFECTO.slice();
     actualizarTextoMesesSeleccionados();
@@ -4551,7 +4611,9 @@ async function guardarFichaObjetivo(){
     if(meta === null || meta < 0){ alert('Ingresa una meta válida.'); return; }
     obj.metaManual = meta;
   }
-  obj.fechaObjetivo = document.getElementById('objetivoFecha').value || null;
+  if(obj.tipo !== 'colchon'){
+    obj.fechaObjetivo = document.getElementById('objetivoFecha').value || null;
+  }
   // El acumulado ya no se edita acá — solo cambia con "Agregar monto",
   // así siempre es, por definición, la suma de sus aportes.
   if(esNuevo) objetivos.push(obj);
@@ -4609,7 +4671,8 @@ let vDashResumen = false, vDashPendiente = false;
 function alternarVisibilidadResumen(){ vDashResumen = !vDashResumen; renderizarDashboard(); }
 function alternarVisibilidadPendiente(){ vDashPendiente = !vDashPendiente; renderizarDashboard(); }
 
-function renderizarDashboard(){
+async function renderizarDashboard(){
+  await autoImportarSueldoDependiente();
   const ahora = new Date();
   const inicioMes = formatoISO(new Date(ahora.getFullYear(), ahora.getMonth(), 1));
   const finMes = formatoISO(new Date(ahora.getFullYear(), ahora.getMonth()+1, 0));
@@ -4650,6 +4713,14 @@ async function iniciar(){
   // FONASA siguen en 0, que es justo lo único que guardarConfiguracion
   // exige mayor a 0 para aceptar un guardado.
   if(configuracion.montoFonasa <= 0 && configuracion.montoFonasaEL <= 0) await recuperarConfigGlobalDesdeSheets();
+
+  // Ingresos: igual idea que pacientes y agenda. Si este teléfono no
+  // tiene ninguno todavía, se intenta traer todo desde Sheets.
+  if(ingresos.length === 0) await recuperarIngresosDesdeSheets();
+  // El sueldo dependiente se actualiza acá (no solo al abrir la
+  // pestaña Ingresos), para que el Dashboard nunca muestre un ingreso
+  // desactualizado si todavía no se visitó esa pestaña en la sesión.
+  await autoImportarSueldoDependiente();
 
   // Objetivos: si este teléfono no tiene ninguno todavía, se intenta
   // primero traerlos de Sheets; solo si la planilla tampoco tiene nada
