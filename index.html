@@ -1165,7 +1165,11 @@ input{ font-family:inherit; }
     <button class="boton-secundario" id="botonRecuperarAgenda" onclick="recuperarAgendaManualmente()">Recuperar agenda desde Sheets</button>
     <div class="nota-campo" id="notaRecuperarAgenda" style="margin-top:6px;"></div>
 
-    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.13 — 19 sep 2026 — Bloquea "realizada" a futuro; nuevo estado "No realizada aún y pagada"</div>
+    <div class="nota-campo" style="margin-top:18px;">Si los gastos del teléfono se perdieron o quedaron distintos a la planilla, esto los vuelve a descargar completos desde Google Sheets. Reemplaza solo los gastos locales; no toca pacientes, agenda, ingresos ni objetivos.</div>
+    <button class="boton-secundario" id="botonRecuperarGastos" onclick="recuperarGastosManualmente()">Recuperar gastos desde Sheets</button>
+    <div class="nota-campo" id="notaRecuperarGastos" style="margin-top:6px;"></div>
+
+    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.19 (19 sep 2026) · G1 · C6 · C4 · C7 · C3+G9</div>
   </div>
 </div>
 
@@ -1742,6 +1746,21 @@ async function recuperarIngresosDesdeSheets(){
     if(!Array.isArray(filas) || filas.length === 0) return false;
     ingresos = filas.filter(f => f.id_ingreso).map(mapearIngresoDesdeServidor);
     await guardarIngresosEnAlmacenamiento();
+    // Se traen también las boletas Entre Lazos ya emitidas. Sin esto, la
+    // app se olvidaba de qué sesiones había facturado y todas volvían a
+    // aparecer como pendientes de boleta, con riesgo de cobrarlas dos veces.
+    try{
+      const boletas = await llamarScript('obtener_boletas', {});
+      if(Array.isArray(boletas)){
+        clavesFacturadasDesdeServidor = new Set();
+        boletas.forEach(b => {
+          String(b.ids_eventos_incluidos || '').split(',').forEach(clave => {
+            const limpia = clave.trim();
+            if(limpia) clavesFacturadasDesdeServidor.add(limpia);
+          });
+        });
+      }
+    }catch(errBoletas){ console.error('No se pudieron recuperar las boletas:', errBoletas); }
     return true;
   }catch(err){
     console.error('No se pudo recuperar ingresos desde Sheets:', err);
@@ -1779,6 +1798,49 @@ async function cargarRegistrosGasto(){
 }
 async function guardarGastosEnAlmacenamiento(){
   try{ const r = await window.storage.set(CLAVE_GASTOS, JSON.stringify(registrosGasto), false); if(!r) alert('No se pudo guardar el cambio.'); }catch(e){ alert('No se pudo guardar el cambio.'); }
+}
+function mapearGastoDesdeServidor(fila){
+  return {
+    id: fila.id_gasto,
+    fecha: fila.fecha_evento || '',
+    categoria: fila.categoria || '',
+    medioPago: fila.medio_pago || '',
+    monto: Number(fila.monto) || 0,
+    descripcion: fila.descripcion || '',
+    creado: Date.now(),
+    pendienteSync: false,
+    colaSync: []
+  };
+}
+async function recuperarGastosDesdeSheets(){
+  try{
+    const filas = await llamarScript('obtener_gastos', {});
+    if(!Array.isArray(filas) || filas.length === 0) return false;
+    registrosGasto = filas.filter(f => f.id_gasto).map(mapearGastoDesdeServidor);
+    await guardarGastosEnAlmacenamiento();
+    return true;
+  }catch(err){
+    console.error('No se pudo recuperar gastos desde Sheets:', err);
+    return false;
+  }
+}
+async function recuperarGastosManualmente(){
+  const nota = document.getElementById('notaRecuperarGastos');
+  const boton = document.getElementById('botonRecuperarGastos');
+  const pendientes = registrosGasto.filter(r => r.colaSync && r.colaSync.length > 0).length;
+  if(pendientes > 0){
+    nota.textContent = `Hay ${pendientes} gasto${pendientes===1?'':'s'} sin enviar a Sheets todavía. Espera a que se sincronicen (o toca "Reintentar" en Gastos) antes de recuperar.`;
+    return;
+  }
+  boton.disabled = true; nota.textContent = 'Descargando gastos desde Sheets…';
+  const ok = await recuperarGastosDesdeSheets();
+  boton.disabled = false;
+  if(ok){
+    nota.textContent = `Gastos recuperados: ${registrosGasto.length} registro${registrosGasto.length===1?'':'s'}.`;
+    renderizarListaGastos();
+  }else{
+    nota.textContent = 'No se pudo recuperar los gastos (sin conexión, planilla sin gastos o error del servidor). Intenta de nuevo.';
+  }
 }
 
 /* ============================================================
@@ -2045,7 +2107,9 @@ function dividirNombreApellido(nombreCompleto){
 function construirDatosPacienteBase(paciente){
   const { nombre, apellido } = dividirNombreApellido(paciente.nombreCompleto);
   const datos = { nombre, apellido, canal_atencion: paciente.canal, tipo_pago: paciente.tipoPago };
-  if(paciente.tipoPago === 'particular') datos.monto_particular = paciente.montoHabitual;
+  // Se manda SIEMPRE, incluso vacío. Si no, al pasar un paciente de
+  // particular a FONASA, la planilla conservaba el monto particular viejo.
+  datos.monto_particular = paciente.tipoPago === 'particular' ? paciente.montoHabitual : '';
   return datos;
 }
 
@@ -2416,11 +2480,13 @@ function construirDatosEventoBase(evento){
   }else{
     datos.nombre_temporal = evento.nombre || '';
   }
-  if(evento.recurrencia !== 'ninguna'){
-    datos.id_recurrencia = evento.id;
-    datos.regla_recurrencia = construirReglaRecurrencia(evento);
-  }
-  if(evento.hasDuration && evento.endDate && evento.endDate !== evento.fecha) datos.fecha_fin = evento.endDate;
+  // Estos tres campos se mandan SIEMPRE, incluso vacíos. Si no, al pasar
+  // una serie recurrente a "Ninguna" o quitarle la duración a un evento,
+  // la planilla conservaba el valor viejo y al recuperar el evento volvía
+  // a aparecer como recurrente o de varios días.
+  datos.id_recurrencia = evento.recurrencia !== 'ninguna' ? evento.id : '';
+  datos.regla_recurrencia = evento.recurrencia !== 'ninguna' ? construirReglaRecurrencia(evento) : '';
+  datos.fecha_fin = (evento.hasDuration && evento.endDate && evento.endDate !== evento.fecha) ? evento.endDate : '';
   return datos;
 }
 
@@ -3958,9 +4024,13 @@ function obtenerSesionesPagadasHastaHoy(){
   // filtraba por "hasta hoy" — ahora filtra solo por estado.
   return obtenerInstanciasEnRango('2000-01-01', '2100-12-31').filter(inst => inst.etiqueta === 'atenciones' && ESTADOS_QUE_GENERAN_INGRESO.includes(inst.estadoSesion));
 }
+let clavesFacturadasDesdeServidor = new Set();
 function obtenerClavesYaIncluidasEnBoletas(){
   const s = new Set();
   ingresos.filter(i => i.tipo === 'entrelazos' && i.sesionesIncluidas).forEach(i => i.sesionesIncluidas.forEach(c => s.add(c)));
+  // Además de las boletas que este teléfono recuerda, se suman las que
+  // se recuperaron desde la planilla.
+  clavesFacturadasDesdeServidor.forEach(c => s.add(c));
   return s;
 }
 // Sesiones particulares o FONASA directo ya pagadas cuyo ingreso local
@@ -4318,6 +4388,13 @@ function cerrarFichaIngreso(){ document.getElementById('fondoModalIngreso').clas
 function solicitarEliminarIngreso(){ document.getElementById('confirmacionEliminarIngreso').style.display = 'block'; }
 function cancelarEliminarIngreso(){ document.getElementById('confirmacionEliminarIngreso').style.display = 'none'; }
 async function confirmarEliminarIngreso(){
+  // Primero se le avisa a la planilla (mientras todavía tenemos a mano
+  // cuál ingreso es) y recién después se borra del teléfono y se cierra
+  // la ficha. Solo llegan acá ingresos que no vienen de una sesión
+  // (manuales, boleta Entre Lazos, sueldo dependiente), así que no hay
+  // ninguna sesión de Agenda que descuadrar. Sin este aviso, la fila
+  // seguía viva en Sheets y reaparecía inflando el mes.
+  enviarAccionAgendaConReintentos('eliminar_ingreso', { id_ingreso: ingresoEnEdicionId });
   ingresos = ingresos.filter(i => i.id !== ingresoEnEdicionId);
   cerrarFichaIngreso(); renderizarVistaIngresos(); await guardarIngresosEnAlmacenamiento();
 }
@@ -4860,16 +4937,19 @@ async function renderizarDashboard(){
    ============================================================ */
 async function iniciar(){
   await Promise.all([cargarPacientes(), cargarConfiguracion(), cargarConsultasUnicas(), cargarEventosAgenda(), cargarIngresos(), cargarObjetivos(), cargarRegistrosGasto()]);
+  // La configuración global (montos FONASA) se recupera ANTES que los
+  // pacientes: cuando un paciente FONASA se trae desde Sheets, su monto
+  // se toma de la configuración vigente. Si los pacientes se recuperaran
+  // primero, con la configuración todavía vacía, todos los FONASA
+  // quedarían con monto 0.
+  if(configuracion.montoFonasa <= 0 && configuracion.montoFonasaEL <= 0) await recuperarConfigGlobalDesdeSheets();
   if(pacientes.length === 0) await recuperarPacientesDesdeSheets();
   if(eventosAgenda.length === 0 && consultasUnicas.length === 0) await recuperarAgendaDesdeSheets();
-  // Configuración nunca se guardó en este teléfono: los dos montos
-  // FONASA siguen en 0, que es justo lo único que guardarConfiguracion
-  // exige mayor a 0 para aceptar un guardado.
-  if(configuracion.montoFonasa <= 0 && configuracion.montoFonasaEL <= 0) await recuperarConfigGlobalDesdeSheets();
 
   // Ingresos: igual idea que pacientes y agenda. Si este teléfono no
   // tiene ninguno todavía, se intenta traer todo desde Sheets.
   if(ingresos.length === 0) await recuperarIngresosDesdeSheets();
+  if(registrosGasto.length === 0) await recuperarGastosDesdeSheets();
   // El sueldo dependiente se actualiza acá (no solo al abrir la
   // pestaña Ingresos), para que el Dashboard nunca muestre un ingreso
   // desactualizado si todavía no se visitó esa pestaña en la sesión.
