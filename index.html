@@ -1125,7 +1125,7 @@ input{ font-family:inherit; }
     <button class="boton-secundario" id="botonRecuperarGastos" onclick="recuperarGastosManualmente()">Recuperar gastos desde Sheets</button>
     <div class="nota-campo" id="notaRecuperarGastos" style="margin-top:6px;"></div>
 
-    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.24 (22 sep 2026) · limpieza: CSS y código sin uso eliminados (sin cambios de comportamiento)</div>
+    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.25 (22 sep 2026) · Fase 2: sincronización completa automática al abrir la app (reemplaza las recuperaciones sueltas)</div>
   </div>
 </div>
 
@@ -5193,39 +5193,169 @@ async function renderizarDashboard(){
 }
 
 /* ============================================================
+   13.5 SINCRONIZACIÓN COMPLETA (Fase 2)
+   ------------------------------------------------------------
+   Reemplaza a las recuperaciones sueltas de antes, que solo
+   miraban la planilla cuando un módulo estaba completamente
+   vacío en este aparato. Ahora se sincroniza TODO junto, siempre:
+   primero se manda lo que este aparato tenga pendiente de enviar
+   (si algo no puede mandarse, no se descarga nada esta vez, para
+   no arriesgarse a pisar con una versión vieja de la planilla algo
+   que este mismo aparato u otro acaban de guardar), y solo después
+   se trae la versión más reciente de la planilla completa, en un
+   solo viaje (antes eran nueve preguntas separadas).
+   ============================================================ */
+
+// ¿Hay algo guardado en este teléfono que todavía no llegó a la
+// planilla? Revisa los seis módulos.
+function haySincronizacionPendiente(){
+  return pacientes.some(p => p.colaSync && p.colaSync.length > 0)
+    || eventosAgenda.some(e => e.colaSync && e.colaSync.length > 0)
+    || consultasUnicas.some(c => c.colaSync && c.colaSync.length > 0)
+    || registrosGasto.some(r => r.colaSync && r.colaSync.length > 0)
+    || objetivos.some(o => o.colaSync && o.colaSync.length > 0)
+    || (configuracion.colaSync && configuracion.colaSync.length > 0)
+    || colaIngresos.length > 0;
+}
+
+// Manda todo lo pendiente de los seis módulos a la vez, y espera a
+// que todos esos envíos terminen (bien o mal) antes de seguir.
+async function enviarTodoLoPendiente(){
+  const tareas = [];
+  pacientes.filter(p => p.colaSync && p.colaSync.length > 0).forEach(p => tareas.push(procesarColaPaciente(p)));
+  eventosAgenda.filter(e => e.colaSync && e.colaSync.length > 0).forEach(e => tareas.push(procesarColaEntidadAgenda(e, guardarEventosEnAlmacenamiento)));
+  consultasUnicas.filter(c => c.colaSync && c.colaSync.length > 0).forEach(c => tareas.push(procesarColaEntidadAgenda(c, guardarConsultasEnAlmacenamiento)));
+  registrosGasto.filter(r => r.colaSync && r.colaSync.length > 0).forEach(r => tareas.push(procesarColaGasto(r)));
+  objetivos.filter(o => o.colaSync && o.colaSync.length > 0).forEach(o => tareas.push(procesarColaObjetivo(o)));
+  if(configuracion.colaSync && configuracion.colaSync.length > 0) tareas.push(procesarColaConfiguracion());
+  if(colaIngresos.length > 0) tareas.push(procesarColaIngresos());
+  await Promise.all(tareas);
+}
+
+// Aplica de una sola vez lo que devuelve la acción 'obtener_todo' a
+// los seis módulos. Es la contraparte, en un solo viaje, de lo que
+// antes hacían nueve llamadas separadas. Igual que las funciones
+// individuales que reemplaza, si la planilla devuelve una lista
+// vacía para un módulo, NO se borra lo que hay en este teléfono
+// (una lista vacía suele ser un problema pasajero, no que de verdad
+// no haya nada — ese cuidado ya existía antes y se mantiene igual).
+async function aplicarSincronizacionCompleta(paquete){
+  if(Array.isArray(paquete.pacientes) && paquete.pacientes.length > 0){
+    pacientes = paquete.pacientes.map(mapearPacienteDesdeServidor).filter(p => p.id);
+    await guardarPacientesEnAlmacenamiento();
+  }
+
+  if(Array.isArray(paquete.eventos) && paquete.eventos.length > 0){
+    const sesiones = Array.isArray(paquete.sesiones) ? paquete.sesiones : [];
+    const nuevosEventos = [];
+    const nuevasConsultas = [];
+    paquete.eventos.forEach(fila => {
+      if(!fila.id_evento) return;
+      if(fila.tipo === 'consulta_unica') nuevasConsultas.push(mapearConsultaDesdeServidor(fila));
+      else nuevosEventos.push(mapearEventoDesdeServidor(fila));
+    });
+    sesiones.forEach(ses => {
+      if(!ses || !ses.id_evento || !ses.estado_sesion) return;
+      const consulta = nuevasConsultas.find(c => c.id === ses.id_evento);
+      if(consulta){ consulta.estadoSesion = ses.estado_sesion; return; }
+      const evento = nuevosEventos.find(e => e.id === ses.id_evento);
+      if(!evento) return;
+      if(evento.recurrencia === 'ninguna'){ evento.estadoSesion = ses.estado_sesion; return; }
+      if(!ses.fecha_evento) return;
+      evento.estadosPorFecha = evento.estadosPorFecha || {};
+      evento.estadosPorFecha[ses.fecha_evento] = ses.estado_sesion;
+    });
+    eventosAgenda = nuevosEventos;
+    consultasUnicas = nuevasConsultas;
+    await guardarEventosEnAlmacenamiento();
+    await guardarConsultasEnAlmacenamiento();
+  }
+
+  if(Array.isArray(paquete.ingresos) && paquete.ingresos.length > 0){
+    ingresos = paquete.ingresos.filter(f => f.id_ingreso).map(mapearIngresoDesdeServidor);
+    await guardarIngresosEnAlmacenamiento();
+  }
+
+  if(Array.isArray(paquete.boletas)){
+    paquete.boletas.forEach(b => {
+      const claves = String(b.ids_eventos_incluidos || '').split(',').map(c => c.trim()).filter(Boolean);
+      if(claves.length === 0) return;
+      agregarClavesFacturadas(claves);
+      const fechaBoleta = String(b.fecha_emision || '').slice(0,10);
+      const netoBoleta = Number(b.monto_neto_total) || 0;
+      const candidatos = ingresos.filter(i =>
+        i.tipo === 'entrelazos' && !i.sesionesIncluidas &&
+        i.fecha === fechaBoleta && Number(i.montoNeto) === netoBoleta
+      );
+      if(candidatos.length === 1) candidatos[0].sesionesIncluidas = claves;
+    });
+    await guardarClavesFacturadas();
+    await guardarIngresosEnAlmacenamiento();
+  }
+
+  if(Array.isArray(paquete.gastos) && paquete.gastos.length > 0){
+    registrosGasto = paquete.gastos.filter(f => f.id_gasto).map(mapearGastoDesdeServidor);
+    await guardarGastosEnAlmacenamiento();
+  }
+
+  if(Array.isArray(paquete.objetivos) && paquete.objetivos.length > 0){
+    const filasAportes = Array.isArray(paquete.aportesObjetivos) ? paquete.aportesObjetivos : [];
+    objetivos = paquete.objetivos.filter(f => f.id_objetivo).map(f => mapearObjetivoDesdeServidor(f, filasAportes));
+    await guardarObjetivosEnAlmacenamiento();
+  }
+
+  const vigentes = paquete.configGlobal;
+  if(vigentes && typeof vigentes === 'object'){
+    if(vigentes.fonasa_directo) configuracion.montoFonasa = Number(vigentes.fonasa_directo.monto_o_porcentaje) || 0;
+    if(vigentes.fonasa_entrelazos) configuracion.montoFonasaEL = Number(vigentes.fonasa_entrelazos.monto_o_porcentaje) || 0;
+    if(vigentes.porcentaje_impuesto) configuracion.porcentajeImpuesto = Number(vigentes.porcentaje_impuesto.monto_o_porcentaje);
+    if(vigentes.porcentaje_entrelazos) configuracion.porcentajeComisionEL = Number(vigentes.porcentaje_entrelazos.monto_o_porcentaje);
+    if(vigentes.sueldo_dependiente){
+      configuracion.sueldoDependienteMonto = Number(vigentes.sueldo_dependiente.monto_o_porcentaje) || 0;
+      configuracion.sueldoDependienteInicio = (vigentes.sueldo_dependiente.vigente_desde || '').slice(0,7);
+    }
+    await guardarConfiguracionEnAlmacenamiento();
+  }
+}
+
+// Punto de entrada único de la Fase 2. Devuelve true si la
+// descarga se aplicó, false si no (había algo pendiente que no se
+// pudo enviar, o falló la conexión).
+let ultimaSincronizacionCompleta = null;
+async function sincronizarTodo(){
+  if(haySincronizacionPendiente()) await enviarTodoLoPendiente();
+  if(haySincronizacionPendiente()) return false; // algo no se pudo enviar: no se descarga esta vez
+
+  try{
+    const paquete = await llamarScript('obtener_todo', {});
+    await aplicarSincronizacionCompleta(paquete || {});
+    ultimaSincronizacionCompleta = Date.now();
+    return true;
+  }catch(err){
+    console.error('No se pudo sincronizar con Sheets:', err);
+    return false;
+  }
+}
+
+/* ============================================================
    14. INICIALIZACIÓN
    ============================================================ */
 async function iniciar(){
   await Promise.all([cargarPacientes(), cargarConfiguracion(), cargarConsultasUnicas(), cargarEventosAgenda(), cargarIngresos(), cargarObjetivos(), cargarRegistrosGasto(), cargarClavesFacturadas(), cargarColaIngresos()]);
-  // La configuración global (montos FONASA) se recupera ANTES que los
-  // pacientes: cuando un paciente FONASA se trae desde Sheets, su monto
-  // se toma de la configuración vigente. Si los pacientes se recuperaran
-  // primero, con la configuración todavía vacía, todos los FONASA
-  // quedarían con monto 0.
-  if(configuracion.montoFonasa <= 0 && configuracion.montoFonasaEL <= 0) await recuperarConfigGlobalDesdeSheets();
-  if(pacientes.length === 0) await recuperarPacientesDesdeSheets();
-  if(eventosAgenda.length === 0 && consultasUnicas.length === 0) await recuperarAgendaDesdeSheets();
+  // FASE 2: en vez de revisar módulo por módulo si está vacío para
+  // decidir si recupera, ahora se sincroniza todo junto, siempre, en
+  // un solo viaje a la planilla (ver sincronizarTodo más arriba).
+  await sincronizarTodo();
 
-  // Ingresos: igual idea que pacientes y agenda. Si este teléfono no
-  // tiene ninguno todavía, se intenta traer todo desde Sheets.
-  if(ingresos.length === 0) await recuperarIngresosDesdeSheets();
-  if(registrosGasto.length === 0) await recuperarGastosDesdeSheets();
-  // Las boletas se refrescan SIEMPRE, no solo cuando la lista de
-  // ingresos está vacía: es lo que evita volver a facturar una sesión
-  // que ya salió en una boleta emitida desde otro aparato.
-  await refrescarBoletasDesdeSheets();
+  // Si después de sincronizar este teléfono sigue sin ningún
+  // objetivo (primera vez en cualquier aparato, la planilla también
+  // estaba vacía), se siembran los tres por defecto — igual que antes.
+  if(objetivos.length === 0) objetivos = objetivosPorDefecto();
+
   // El sueldo dependiente se actualiza acá (no solo al abrir la
   // pestaña Ingresos), para que el Dashboard nunca muestre un ingreso
   // desactualizado si todavía no se visitó esa pestaña en la sesión.
   await autoImportarSueldoDependiente();
-
-  // Objetivos: si este teléfono no tiene ninguno todavía, se intenta
-  // primero traerlos de Sheets; solo si la planilla tampoco tiene nada
-  // (primera vez en cualquier aparato) se siembran los tres por defecto.
-  if(objetivos.length === 0){
-    const recuperado = await recuperarObjetivosDesdeSheets();
-    if(!recuperado) objetivos = objetivosPorDefecto();
-  }
   // Migración de una sola vez: cualquier objetivo que este teléfono
   // tenga pero que nunca se haya mandado a Sheets (por ejemplo, los
   // tres por defecto la primera vez que corre esta versión, con
