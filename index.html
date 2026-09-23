@@ -266,21 +266,67 @@ input{ font-family:inherit; }
   flex:none;
   background:var(--superficie);
   border-top:1px solid var(--borde);
-  padding:7px 6px calc(20px + env(safe-area-inset-bottom,0px)) 6px;
-  display:grid; grid-template-columns:repeat(6,1fr); gap:2px;
+  padding:12px 6px calc(22px + env(safe-area-inset-bottom,0px)) 6px;
+  display:grid; grid-template-columns:repeat(4,1fr); gap:6px;
+  position:relative;
 }
 .nav-item{
-  display:flex; flex-direction:column; align-items:center; gap:4px;
-  padding:4px 0 2px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  min-height:52px;
+  padding:6px 0;
+  border-radius:14px;
   touch-action:manipulation;
+  transition:background 0.15s ease;
 }
-.nav-item .punto{ width:7px; height:7px; border-radius:50%; }
 .nav-item .texto{
-  font-size:9.5px; letter-spacing:0.1px; font-weight:600;
+  font-size:13.5px; letter-spacing:0.1px; font-weight:650;
   font-family:'Quicksand',sans-serif;
   color:var(--texto-terciario);
+  transition:color 0.15s ease;
 }
-.nav-item.activo .texto{ font-weight:700; }
+.nav-item.activo .texto{ font-weight:750; }
+
+/* Color propio de cada módulo, incluso sin estar seleccionado */
+#navIngresos .texto{ color:var(--tab-ingresos); }
+#navGastos .texto{ color:var(--tab-gastos); }
+#navAgenda .texto{ color:var(--tab-agenda); }
+
+/* Al seleccionar: el botón se rellena con el color del módulo y el
+   texto se intensifica (pasa a claro sobre el color sólido).
+   Definido por id para que funcione también en la pantalla con la
+   que abre la app, sin depender de que se ejecute JavaScript. */
+#navIngresos.activo{ background:var(--tab-ingresos); }
+#navGastos.activo{ background:var(--tab-gastos); }
+#navAgenda.activo{ background:var(--tab-agenda); }
+#navIngresos.activo .texto,
+#navGastos.activo .texto,
+#navAgenda.activo .texto{ color:#FFF8EC; }
+
+.nav-item-mas .simbolo-mas{
+  font-size:25px; font-weight:500; line-height:1;
+  color:var(--texto-secundario);
+  transition:transform 0.18s ease, color 0.15s ease;
+}
+.nav-item-mas.abierto .simbolo-mas{ transform:rotate(45deg); }
+
+.overlay-menu-mas{ position:absolute; inset:0; z-index:29; display:none; }
+.overlay-menu-mas.visible{ display:block; }
+
+.menu-mas{
+  position:absolute; right:8px; bottom:calc(100% + 6px);
+  background:var(--superficie); border:1px solid var(--borde);
+  border-radius:14px; box-shadow:0 8px 22px rgba(51,41,31,0.20);
+  padding:6px; display:flex; flex-direction:column; gap:2px;
+  min-width:172px; z-index:30;
+}
+.menu-mas button{
+  display:flex; align-items:center;
+  padding:13px 14px; border-radius:10px;
+  font-family:'Quicksand',sans-serif; font-size:14.5px; font-weight:650;
+  color:var(--texto-principal); text-align:left;
+  touch-action:manipulation;
+}
+.menu-mas button:active{ background:var(--bg-app); }
 
 /* ============================================================
    9. MODALES (hoja deslizante desde abajo)
@@ -297,7 +343,7 @@ input{ font-family:inherit; }
   background:var(--bg-app);
   border-radius:22px 22px 0 0;
   padding:18px 16px calc(22px + env(safe-area-inset-bottom,0px)) 16px;
-  max-height:88vh; overflow-y:auto;
+  max-height:88vh; overflow-y:auto; overflow-x:hidden;
 }
 .encabezado-modal{
   display:flex; justify-content:space-between; align-items:center;
@@ -505,30 +551,56 @@ input{ font-family:inherit; }
 /* ============================================================
    11. MÓDULO C — GASTOS
    ============================================================ */
+/* Franja fija con el monto: queda pegada arriba al hacer scroll hacia
+   abajo (categoría, medio de pago, fecha...) para no perder de vista
+   cuánto se va a guardar. Los márgenes negativos la extienden de
+   borde a borde, cancelando el padding lateral de .contenedor. */
+.monto-fijo-gasto{
+  position:sticky; top:0; z-index:5; flex:none;
+  margin:0 -16px; padding:8px 16px; text-align:center;
+  background:var(--bg-app); border-bottom:1px solid var(--borde);
+  font-size:15px; font-weight:800; letter-spacing:-0.2px;
+  font-variant-numeric:tabular-nums; color:var(--texto-principal);
+}
 .zona-monto-gasto{ flex:none; padding:6px 4px 2px; text-align:center; }
-#gastoMontoPantalla{ font-size:46px; font-weight:700; letter-spacing:-2px; line-height:1; font-variant-numeric:tabular-nums; color:var(--texto-principal); }
+#gastoMontoPantalla{
+  font-size:46px; font-weight:700; letter-spacing:-2px; line-height:1;
+  font-variant-numeric:tabular-nums; color:var(--texto-principal);
+  display:inline-block; padding:4px 14px; border-radius:14px; outline:none;
+  cursor:pointer;
+}
+/* Se activa al tocar/hacer clic el monto: permite escribir con el
+   teclado físico del computador, además del teclado en pantalla de
+   abajo (pensado para el celular). */
+#gastoMontoPantalla:focus{ background:var(--borde-suave); }
 #gastoPreviewTotal{ font-size:16px; font-weight:600; color:var(--texto-secundario); font-variant-numeric:tabular-nums; margin-top:6px; min-height:19px; font-family:'Quicksand',sans-serif; }
 
-.teclado-gasto{ flex:none; display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
-.tecla-gasto{
-  border:1px solid var(--borde); border-radius:12px; height:44px;
+.fila-funciones-gasto{ flex:none; display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:8px; }
+.tecla-funcion-gasto{
+  height:40px; border-radius:12px; border:1px solid var(--borde);
   display:flex; align-items:center; justify-content:center;
-  font-size:20px; font-weight:600; color:var(--texto-principal);
+  font-size:16px; font-weight:650; touch-action:manipulation;
+  background:var(--superficie); color:var(--texto-secundario);
+}
+.tecla-funcion-gasto:active{ background:var(--borde-suave); }
+.tecla-funcion-gasto-borrar{ color:#9B4A4A; }
+.tecla-funcion-gasto-op{ background:var(--acento); border-color:var(--acento); color:#FFF6E8; font-weight:700; }
+
+.teclado-gasto{ flex:none; display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.tecla-gasto{
+  border:1px solid var(--borde); border-radius:14px; height:64px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:28px; font-weight:600; color:var(--texto-principal);
   background:var(--superficie); touch-action:manipulation;
 }
 .tecla-gasto:active{ background:var(--borde-suave); }
-.tecla-gasto-cero-triple{ font-size:17px; }
-.tecla-gasto-funcion{ color:var(--texto-secundario); font-size:17px; }
-.tecla-gasto-borrar{ color:#9B4A4A; font-size:17px; }
-.tecla-gasto-toggle-op{ background:var(--acento); color:#FFF6E8; font-size:16px; font-weight:700; }
+.tecla-gasto-cero-triple{ font-size:22px; }
 
 .fila-operadores-gasto{
-  display:grid; grid-template-columns:repeat(4,1fr); gap:6px;
-  overflow:hidden; max-height:0; opacity:0; margin-top:0;
-  transition:max-height .22s ease, opacity .18s ease, margin-top .22s ease;
-  background:var(--borde); border-radius:14px;
+  display:none; grid-template-columns:repeat(3,1fr); gap:6px;
+  background:var(--borde); border-radius:14px; padding:7px; margin-top:6px;
 }
-.fila-operadores-gasto.visible{ max-height:100px; opacity:1; margin-top:6px; padding:7px; }
+.fila-operadores-gasto.visible{ display:grid; }
 .tecla-op-gasto{
   height:38px; border-radius:10px; background:var(--superficie); color:var(--texto-principal);
   font-size:18px; font-weight:600; display:flex; align-items:center; justify-content:center;
@@ -541,14 +613,11 @@ input{ font-family:inherit; }
 }
 .grid-categorias-gasto{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:7px; }
 .chip-categoria-gasto{
-  border:1.5px solid var(--borde); border-radius:11px; padding:8px 7px;
-  display:flex; flex-direction:column; align-items:flex-start; gap:3px;
+  border:1.5px solid var(--borde); border-radius:11px; padding:11px 9px;
+  display:flex; align-items:center; justify-content:center;
   background:var(--superficie); touch-action:manipulation;
 }
-.chip-categoria-gasto .fila-punto{ display:flex; align-items:center; gap:5px; }
-.chip-categoria-gasto .punto-gasto{ width:7px; height:7px; border-radius:50%; }
-.chip-categoria-gasto .codigo-gasto{ font-size:11px; font-weight:700; letter-spacing:0.4px; font-family:'Quicksand',sans-serif; }
-.chip-categoria-gasto .nombre-categoria-gasto{ font-size:10.5px; font-weight:600; line-height:1.15; text-align:left; color:var(--texto-secundario); }
+.chip-categoria-gasto .nombre-categoria-gasto{ font-size:12px; font-weight:700; line-height:1.2; text-align:center; font-family:'Quicksand',sans-serif; }
 .chip-categoria-gasto.seleccionada{ border-color:var(--chip-color); background:color-mix(in srgb, var(--chip-color) 10%, white); }
 
 .grid-pagos-gasto{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:7px; }
@@ -559,7 +628,7 @@ input{ font-family:inherit; }
 }
 .chip-pago-gasto.seleccionada{ border-color:var(--chip-color); background:color-mix(in srgb, var(--chip-color) 10%, white); color:var(--chip-color); }
 
-.fila-fecha-desc{ display:flex; gap:6px; }
+.fila-fecha-desc{ display:flex; flex-direction:column; gap:10px; }
 .campo-gasto-inline{ display:flex; flex-direction:column; gap:5px; min-width:0; }
 .campo-gasto-inline input{
   width:100%; box-sizing:border-box; border:1px solid var(--borde); background:var(--superficie);
@@ -574,11 +643,6 @@ input{ font-family:inherit; }
 .boton-guardar-gasto:active{ transform:scale(0.98); }
 
 .registros-encabezado{ display:flex; align-items:center; gap:8px; padding:0 2px 8px; }
-.boton-exportar-gasto{
-  border:1px solid var(--borde); background:var(--superficie); border-radius:9px;
-  padding:5px 10px; font-size:11px; font-weight:650; color:var(--texto-secundario);
-  font-family:'Quicksand',sans-serif; touch-action:manipulation;
-}
 .fila-registro-gasto{
   position:relative; background:var(--superficie); border:1px solid var(--borde);
   border-radius:12px; padding:9px 10px; display:flex; align-items:center; gap:9px;
@@ -739,7 +803,7 @@ input{ font-family:inherit; }
 <!-- ============================================================
      PANTALLA: PACIENTES
      ============================================================ -->
-<div class="contenedor" id="pantallaPacientes">
+<div class="contenedor" id="pantallaPacientes" style="display:none;">
   <div class="pantalla-encabezado">
     <h1>Pacientes</h1>
     <div class="relleno"></div>
@@ -769,6 +833,7 @@ input{ font-family:inherit; }
     <div style="flex:1"></div>
     <span class="agenda-desliza">desliza ↔</span>
     <button class="boton-hoy-agenda" onclick="irAHoyAgenda()">Hoy</button>
+    <button class="boton-icono" onclick="abrirConfiguracion()">⚙</button>
   </div>
 
   <div id="bannerSyncAgenda" style="display:none; margin-bottom:6px; padding:9px 12px; border-radius:12px; background:#FBF3E2; border:1px solid #EBDCBC; font-size:11.5px; color:#8B6516; align-items:center; gap:8px;"></div>
@@ -797,30 +862,33 @@ input{ font-family:inherit; }
 <!-- ============================================================
      PANTALLA: GASTOS (Módulo C, integrado como pestaña)
      ============================================================ -->
-<div class="contenedor" id="pantallaGastos" style="display:none;">
+<div class="contenedor" id="pantallaGastos">
+
+  <div class="monto-fijo-gasto" id="gastoMontoFijo">$0</div>
 
   <div class="zona-monto-gasto">
-    <div id="gastoMontoPantalla" class="monto-fuente">$0</div>
+    <div id="gastoMontoPantalla" class="monto-fuente" tabindex="0" onkeydown="manejarTecladoFisicoGasto(event)">$0</div>
     <div id="gastoPreviewTotal" class="monto-fuente"></div>
   </div>
 
+  <div class="fila-funciones-gasto">
+    <button class="tecla-funcion-gasto tecla-funcion-gasto-c" onclick="limpiarTodoGasto()">C</button>
+    <button class="tecla-funcion-gasto tecla-funcion-gasto-op" id="gastoBotonToggleOp" onclick="alternarTecladoOperadoresGasto()">+−×÷</button>
+    <button class="tecla-funcion-gasto tecla-funcion-gasto-borrar" onclick="borrarGasto()">⌫</button>
+  </div>
   <div class="teclado-gasto" id="gastoTecladoNumerico">
     <button class="tecla-gasto" onclick="teclaGasto('1')">1</button>
     <button class="tecla-gasto" onclick="teclaGasto('2')">2</button>
     <button class="tecla-gasto" onclick="teclaGasto('3')">3</button>
-    <button class="tecla-gasto tecla-gasto-borrar" onclick="borrarGasto()">⌫</button>
     <button class="tecla-gasto" onclick="teclaGasto('4')">4</button>
     <button class="tecla-gasto" onclick="teclaGasto('5')">5</button>
     <button class="tecla-gasto" onclick="teclaGasto('6')">6</button>
-    <button class="tecla-gasto tecla-gasto-funcion" onclick="limpiarTodoGasto()">C</button>
     <button class="tecla-gasto" onclick="teclaGasto('7')">7</button>
     <button class="tecla-gasto" onclick="teclaGasto('8')">8</button>
     <button class="tecla-gasto" onclick="teclaGasto('9')">9</button>
-    <button class="tecla-gasto tecla-gasto-toggle-op" id="gastoBotonToggleOp" onclick="alternarTecladoOperadoresGasto()">+−×÷</button>
-    <button class="tecla-gasto" onclick="teclaGasto('000')">000</button>
-    <button class="tecla-gasto" onclick="teclaGasto('0')">0</button>
     <button class="tecla-gasto tecla-gasto-cero-triple" onclick="teclaGasto('.')">,</button>
-    <div></div>
+    <button class="tecla-gasto" onclick="teclaGasto('0')">0</button>
+    <button class="tecla-gasto" onclick="teclaGasto('000')">000</button>
   </div>
   <div class="fila-operadores-gasto" id="gastoFilaOperadores">
     <button class="tecla-op-gasto" onclick="teclaGasto('(')">(</button>
@@ -842,11 +910,11 @@ input{ font-family:inherit; }
   </div>
 
   <div class="fila-fecha-desc">
-    <div class="campo-gasto-inline" style="flex:none; width:120px;">
+    <div class="campo-gasto-inline">
       <span class="gastos-etiqueta-seccion">Fecha</span>
-      <input type="date" id="gastoCampoFecha">
+      <input type="date" id="gastoCampoFecha" style="max-width:200px;">
     </div>
-    <div class="campo-gasto-inline" style="flex:1;">
+    <div class="campo-gasto-inline">
       <span class="gastos-etiqueta-seccion">Descripción</span>
       <input type="text" id="gastoCampoDescripcion" placeholder="Opcional">
     </div>
@@ -857,7 +925,6 @@ input{ font-family:inherit; }
   <div style="margin-top:8px;">
     <div class="registros-encabezado">
       <span class="gastos-etiqueta-seccion" style="flex:1;">Últimos registros</span>
-      <button class="boton-exportar-gasto" onclick="exportarCSVGasto()">Exportar datos</button>
     </div>
     <div id="gastoListaRegistros" style="display:flex; flex-direction:column; gap:6px;"><div class="vacio">Cargando registros…</div></div>
     <button class="boton-ver-todos-gasto" id="gastoBotonVerTodos" style="margin-top:6px; width:100%;" onclick="alternarVerTodosGasto()"></button>
@@ -898,15 +965,15 @@ input{ font-family:inherit; }
   <div class="tarjeta-recibir">
     <div class="tarjeta-recibir-encabezado">
       <span class="tarjeta-recibir-titulo">Pagos por confirmar</span>
-      <button class="boton-ojo" id="botonOjoIngRecibir" onclick="alternarVisibilidadIngRecibir()"></button>
       <span class="tarjeta-recibir-monto monto-fuente" id="recibirTotalMonto"></span>
+      <button class="boton-ojo" id="botonOjoIngRecibir" onclick="alternarVisibilidadIngRecibir()"></button>
     </div>
     <div class="tarjeta-recibir-nota" id="recibirNota"></div>
     <button class="boton-ver-todos-gasto" id="botonDesplegarPendientesPago" style="margin-top:8px; width:100%; display:none;" onclick="alternarDesplegarPendientesPago()"></button>
     <div id="seccionPendientesPago" style="display:none;"></div>
   </div>
 
-  <div class="tarjeta-lazos" id="tarjetaLazos" style="display:none;">
+  <div class="tarjeta-lazos" id="tarjetaLazos">
     <div class="tarjeta-lazos-encabezado">
       <span class="tarjeta-lazos-titulo">Boleta Entre Lazos</span>
       <button class="boton-ojo" id="botonOjoIngLazos" onclick="alternarVisibilidadIngLazos()"></button>
@@ -924,6 +991,7 @@ input{ font-family:inherit; }
       <button class="boton-ojo" id="botonOjoIngMov" onclick="alternarVisibilidadIngMov()"></button>
     </div>
     <div class="movimientos-lista" id="listaIngresosMes"></div>
+    <button class="boton-ver-todos-gasto" id="botonVerTodosIngresosMes" style="margin-top:6px; width:100%; display:none;" onclick="alternarVerTodosIngresosMes()"></button>
   </div>
 </div>
 
@@ -992,7 +1060,7 @@ input{ font-family:inherit; }
   </div>
 </div>
 
-<button class="boton-flotante" id="botonNuevoPaciente" onclick="abrirFichaNueva()">+</button>
+<button class="boton-flotante" id="botonNuevoPaciente" style="display:none;" onclick="abrirFichaNueva()">+</button>
 <button class="boton-flotante" id="botonNuevoEvento" style="display:none;" onclick="abrirFichaEventoNueva()">+</button>
 <button class="boton-flotante" id="botonNuevoIngreso" style="display:none;" onclick="abrirFichaIngresoManual()">+</button>
 <button class="boton-flotante" id="botonNuevoObjetivo" style="display:none;" onclick="abrirFichaObjetivoNueva()">+</button>
@@ -1001,24 +1069,25 @@ input{ font-family:inherit; }
      MENÚ INFERIOR DE NAVEGACIÓN
      ============================================================ -->
 <div class="nav-inferior">
-  <button class="nav-item activo" id="navPacientes" onclick="irAPantalla('pacientes')">
-    <span class="punto" style="background:#7C2F3E"></span><span class="texto etiqueta">Pacientes</span>
+  <button class="nav-item" id="navIngresos" onclick="irAPantalla('ingresos')">
+    <span class="texto etiqueta">Ingresos</span>
+  </button>
+  <button class="nav-item activo" id="navGastos" onclick="irAPantalla('gastos')">
+    <span class="texto etiqueta">Gastos</span>
   </button>
   <button class="nav-item" id="navAgenda" onclick="irAPantalla('agenda')">
-    <span class="punto" style="background:#4F6B5C"></span><span class="texto etiqueta">Agenda</span>
+    <span class="texto etiqueta">Agenda</span>
   </button>
-  <button class="nav-item" id="navGastos" onclick="irAPantalla('gastos')">
-    <span class="punto" style="background:#B4653A"></span><span class="texto etiqueta">Gastos</span>
+  <button class="nav-item nav-item-mas" id="navMas" onclick="alternarMenuMas()">
+    <span class="simbolo-mas">+</span>
   </button>
-  <button class="nav-item" id="navIngresos" onclick="irAPantalla('ingresos')">
-    <span class="punto" style="background:#6B7A45"></span><span class="texto etiqueta">Ingresos</span>
-  </button>
-  <button class="nav-item" id="navObjetivos" onclick="irAPantalla('objetivos')">
-    <span class="punto" style="background:#A9741B"></span><span class="texto etiqueta">Objetivos</span>
-  </button>
-  <button class="nav-item" id="navDashboard" onclick="irAPantalla('dashboard')">
-    <span class="punto" style="background:#6E4B2A"></span><span class="texto etiqueta">Dashboard</span>
-  </button>
+
+  <div class="overlay-menu-mas" id="overlayMenuMas" onclick="cerrarMenuMas()"></div>
+  <div class="menu-mas" id="menuMas" style="display:none;">
+    <button onclick="irAPantalla('pacientes')">Pacientes</button>
+    <button onclick="irAPantalla('objetivos')">Objetivos</button>
+    <button onclick="irAPantalla('dashboard')">Dashboard</button>
+  </div>
 </div>
 
 </div><!-- /app-shell -->
@@ -1629,9 +1698,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.29';
+const VERSION_APP = '2.30';
 const VERSION_FECHA = '23 sep 2026';
-const VERSION_DESCRIPCION = 'Si vacías la planilla a propósito, ahora se refleja sola en los aparatos al abrir (antes solo con "Borrar datos")';
+const VERSION_DESCRIPCION = 'Rediseño de menú inferior, teclado de Gastos, categorías y otros ajustes visuales';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -1939,15 +2008,23 @@ function textoMontoOculto(monto, visible){ return visible ? formatearCLP(monto) 
 const PANTALLAS = ['pacientes','agenda','gastos','ingresos','objetivos','dashboard'];
 const FAB_POR_PANTALLA = { pacientes:'botonNuevoPaciente', agenda:'botonNuevoEvento', ingresos:'botonNuevoIngreso', objetivos:'botonNuevoObjetivo' };
 
+const PANTALLAS_SECUNDARIAS = ['pacientes','objetivos','dashboard'];
+
+const COLOR_TEXTO_NAV_ACTIVO = '#FFF8EC';
+
 function irAPantalla(nombre){
   PANTALLAS.forEach(p => {
     document.getElementById('pantalla' + p.charAt(0).toUpperCase() + p.slice(1)).style.display = (p === nombre) ? 'block' : 'none';
     const nav = document.getElementById('nav' + p.charAt(0).toUpperCase() + p.slice(1));
-    if(nav){
-      nav.classList.toggle('activo', p === nombre);
-      nav.querySelector('.texto').style.color = (p === nombre) ? COLOR_TAB[p] : '';
-    }
+    if(nav) nav.classList.toggle('activo', p === nombre);
   });
+
+  const esSecundaria = PANTALLAS_SECUNDARIAS.includes(nombre);
+  const navMas = document.getElementById('navMas');
+  navMas.classList.toggle('activo', esSecundaria);
+  navMas.style.background = esSecundaria ? COLOR_TAB[nombre] : '';
+  navMas.querySelector('.simbolo-mas').style.color = esSecundaria ? COLOR_TEXTO_NAV_ACTIVO : '';
+
   Object.values(FAB_POR_PANTALLA).forEach(id => document.getElementById(id).style.display = 'none');
   const fabId = FAB_POR_PANTALLA[nombre];
   if(fabId){
@@ -1956,10 +2033,26 @@ function irAPantalla(nombre){
     fab.style.background = COLOR_TAB[nombre];
   }
 
+  cerrarMenuMas();
+
   if(nombre === 'agenda') renderizarVistaMensual();
   else if(nombre === 'ingresos') renderizarVistaIngresos();
   else if(nombre === 'objetivos') renderizarVistaObjetivos();
   else if(nombre === 'dashboard') renderizarDashboard();
+}
+
+function alternarMenuMas(){
+  const menu = document.getElementById('menuMas');
+  const overlay = document.getElementById('overlayMenuMas');
+  const abierto = menu.style.display === 'flex';
+  menu.style.display = abierto ? 'none' : 'flex';
+  overlay.classList.toggle('visible', !abierto);
+  document.getElementById('navMas').classList.toggle('abierto', !abierto);
+}
+function cerrarMenuMas(){
+  document.getElementById('menuMas').style.display = 'none';
+  document.getElementById('overlayMenuMas').classList.remove('visible');
+  document.getElementById('navMas').classList.remove('abierto');
 }
 
 /* ============================================================
@@ -3812,6 +3905,25 @@ let idGastoEnEdicion = null;
 let idMenuAbiertoGasto = null;
 let idConfirmandoEliminarGasto = null;
 
+// Permite escribir el monto con el teclado físico del computador,
+// haciendo clic primero sobre el "$0". Traduce cada tecla a las
+// mismas funciones que ya usa el teclado en pantalla (pensado para
+// el celular), así la lógica de validación es una sola.
+function manejarTecladoFisicoGasto(evento){
+  const tecla = evento.key;
+  if(/^[0-9]$/.test(tecla)){ teclaGasto(tecla); evento.preventDefault(); return; }
+  if(tecla === 'Backspace'){ borrarGasto(); evento.preventDefault(); return; }
+  if(tecla === 'Delete' || tecla === 'c' || tecla === 'C'){ limpiarTodoGasto(); evento.preventDefault(); return; }
+  if(tecla === '.' || tecla === ','){ teclaGasto('.'); evento.preventDefault(); return; }
+  if(tecla === '+'){ teclaGasto('+'); evento.preventDefault(); return; }
+  if(tecla === '-'){ teclaGasto('−'); evento.preventDefault(); return; }
+  if(tecla === '*'){ teclaGasto('×'); evento.preventDefault(); return; }
+  if(tecla === '/'){ teclaGasto('÷'); evento.preventDefault(); return; }
+  if(tecla === '('){ teclaGasto('('); evento.preventDefault(); return; }
+  if(tecla === ')'){ teclaGasto(')'); evento.preventDefault(); return; }
+  if(tecla === 'Enter'){ evento.preventDefault(); guardarNuevoGasto(); return; }
+}
+
 function teclaGasto(caracter){
   const esOperador = ['+','−','×','÷'].includes(caracter);
   const ultimo = expresionGasto.slice(-1);
@@ -3837,11 +3949,18 @@ function evaluarExpresionGasto(expr){
 }
 function actualizarPantallaGasto(){
   const pantalla = document.getElementById('gastoMontoPantalla'); const preview = document.getElementById('gastoPreviewTotal');
-  if(expresionGasto === ''){ pantalla.textContent = '$0'; preview.textContent = ''; return; }
+  const fijo = document.getElementById('gastoMontoFijo');
+  if(expresionGasto === ''){ pantalla.textContent = '$0'; preview.textContent = ''; fijo.textContent = '$0'; return; }
   const formateada = expresionGasto.replace(/\d+/g, (g) => { const n = parseInt(g,10); return isNaN(n) ? g : n.toLocaleString('es-CL'); });
   pantalla.textContent = '$' + formateada;
-  if(/[+−×÷]/.test(expresionGasto)){ const r = evaluarExpresionGasto(expresionGasto); preview.textContent = r !== null ? ('= ' + formatearCLP(r)) : ''; }
-  else preview.textContent = '';
+  if(/[+−×÷]/.test(expresionGasto)){
+    const r = evaluarExpresionGasto(expresionGasto);
+    preview.textContent = r !== null ? ('= ' + formatearCLP(r)) : '';
+    fijo.textContent = r !== null ? formatearCLP(r) : ('$' + formateada);
+  }else{
+    preview.textContent = '';
+    fijo.textContent = '$' + formateada;
+  }
 }
 function pintarCategoriasGasto(contenedorId, seleccionActual, alSeleccionar){
   const c = document.getElementById(contenedorId); c.innerHTML = '';
@@ -3849,7 +3968,7 @@ function pintarCategoriasGasto(contenedorId, seleccionActual, alSeleccionar){
     const chip = document.createElement('button');
     chip.className = 'chip-categoria-gasto' + (seleccionActual === cat.codigo ? ' seleccionada' : '');
     chip.style.setProperty('--chip-color', cat.color);
-    chip.innerHTML = `<div class="fila-punto"><span class="punto-gasto" style="background:${cat.color}"></span><span class="codigo-gasto">${cat.codigo}</span></div><span class="nombre-categoria-gasto">${cat.nombre}</span>`;
+    chip.innerHTML = `<span class="nombre-categoria-gasto" style="color:${cat.color}">${cat.nombre}</span>`;
     chip.onclick = () => alSeleccionar(cat.codigo);
     c.appendChild(chip);
   });
@@ -3964,19 +4083,6 @@ async function guardarEdicionGasto(){
   procesarColaGasto(registro);
 }
 function cerrarModalGasto(){ idGastoEnEdicion = null; document.getElementById('fondoModalGasto').classList.remove('abierto'); }
-function exportarCSVGasto(){
-  if(registrosGasto.length === 0){ alert('No hay registros para exportar.'); return; }
-  const encabezado = ['Fecha','Categoria','MedioPago','Monto','Descripcion'];
-  const filas = [...registrosGasto].sort((a,b) => a.fecha.localeCompare(b.fecha)).map(r => [
-    r.fecha, obtenerCategoriaGastoPorCodigo(r.categoria).nombre, r.medioPago, r.monto,
-    '"' + (r.descripcion || '').replace(/"/g,'""') + '"'
-  ].join(','));
-  const csv = '\uFEFF' + [encabezado.join(','), ...filas].join('\n');
-  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const enlace = document.createElement('a'); enlace.href = url; enlace.download = `gastos_${hoyISO()}.csv`;
-  document.body.appendChild(enlace); enlace.click(); document.body.removeChild(enlace); URL.revokeObjectURL(url);
-}
 function iniciarModuloGastos(){
   document.getElementById('gastoCampoFecha').value = hoyISO();
   pintarCategoriasGasto('gastoGridCategorias', null, seleccionarCategoriaPrincipalGasto);
@@ -4386,6 +4492,9 @@ let desplegarPendientesPago = false, desplegarPendientesBoleta = false;
 function alternarDesplegarPendientesPago(){ desplegarPendientesPago = !desplegarPendientesPago; renderizarVistaIngresos(); }
 function alternarDesplegarPendientesBoleta(){ desplegarPendientesBoleta = !desplegarPendientesBoleta; renderizarVistaIngresos(); }
 
+let mostrarTodosIngresosMes = false;
+function alternarVerTodosIngresosMes(){ mostrarTodosIngresosMes = !mostrarTodosIngresosMes; renderizarVistaIngresos(); }
+
 async function renderizarVistaIngresos(){
   document.getElementById('tituloMesIngresos').textContent = `${NOMBRES_MES[mesIngresosMostrado]} ${anioIngresosMostrado}`;
   await autoImportarSueldoDependiente();
@@ -4441,17 +4550,18 @@ async function renderizarVistaIngresos(){
   // última boleta generada, sin importar cuándo caiga cada sesión).
   const pendientesEL = obtenerPendientesEntreLazos();
   const tarjetaLazos = document.getElementById('tarjetaLazos');
+  pintarBotonOjo('botonOjoIngLazos', vIngLazos);
+  const totalBrutoEL = pendientesEL.reduce((a,p)=>a+p.info.montoBruto,0);
+  document.getElementById('lazosMontoTotal').textContent = pendientesEL.length === 0 ? textoMontoOculto(0, vIngLazos) : (textoMontoOculto(totalBrutoEL, vIngLazos) + ' bruto');
+  document.getElementById('lazosNota').textContent = pendientesEL.length === 0 ? 'No hay sesiones pendientes de boleta.' : `${pendientesEL.length} sesión${pendientesEL.length===1?'':'es'} pendiente${pendientesEL.length===1?'':'s'} de boleta`;
+  const botonBoleta = document.getElementById('botonDesplegarPendientesBoleta');
+  const seccionBoleta = document.getElementById('seccionPendientesBoleta');
   if(pendientesEL.length === 0){
-    tarjetaLazos.style.display = 'none';
+    botonBoleta.style.display = 'none';
+    seccionBoleta.style.display = 'none';
   }else{
-    tarjetaLazos.style.display = 'block';
-    pintarBotonOjo('botonOjoIngLazos', vIngLazos);
-    const totalBrutoEL = pendientesEL.reduce((a,p)=>a+p.info.montoBruto,0);
-    document.getElementById('lazosMontoTotal').textContent = textoMontoOculto(totalBrutoEL, vIngLazos) + ' bruto';
-    document.getElementById('lazosNota').textContent = `${pendientesEL.length} sesión${pendientesEL.length===1?'':'es'} pendiente${pendientesEL.length===1?'':'s'} de boleta`;
-    const botonBoleta = document.getElementById('botonDesplegarPendientesBoleta');
+    botonBoleta.style.display = 'block';
     botonBoleta.textContent = desplegarPendientesBoleta ? 'Ocultar detalle' : `Ver detalle (${pendientesEL.length})`;
-    const seccionBoleta = document.getElementById('seccionPendientesBoleta');
     seccionBoleta.style.display = desplegarPendientesBoleta ? 'block' : 'none';
     const listaSesionesEL = pendientesEL.map(p => `
       <div class="fila-pendiente-pago">
@@ -4476,10 +4586,15 @@ async function renderizarVistaIngresos(){
   pintarBotonOjo('botonOjoIngMov', vIngMov);
   document.getElementById('conteoMovimientos').textContent = delMes.length;
   const lista = document.getElementById('listaIngresosMes');
-  if(delMes.length === 0){ lista.innerHTML = '<div class="vacio" style="padding:24px;">No hay ingresos registrados este mes.</div>'; }
+  const botonVerTodosMov = document.getElementById('botonVerTodosIngresosMes');
+  if(delMes.length === 0){
+    lista.innerHTML = '<div class="vacio" style="padding:24px;">No hay ingresos registrados este mes.</div>';
+    botonVerTodosMov.style.display = 'none';
+  }
   else{
     lista.innerHTML = '';
-    delMes.forEach(i => {
+    const aMostrarMov = mostrarTodosIngresosMes ? delMes : delMes.slice(0,5);
+    aMostrarMov.forEach(i => {
       const fila = document.createElement('div'); fila.className = 'fila-ingreso'; fila.onclick = () => abrirDetalleIngreso(i.id);
       fila.innerHTML = `
         <div class="detalle">
@@ -4496,6 +4611,8 @@ async function renderizarVistaIngresos(){
       `;
       lista.appendChild(fila);
     });
+    if(delMes.length > 5){ botonVerTodosMov.style.display = 'block'; botonVerTodosMov.textContent = mostrarTodosIngresosMes ? 'Ver menos' : `Ver todos los movimientos (${delMes.length})`; }
+    else botonVerTodosMov.style.display = 'none';
   }
 }
 
