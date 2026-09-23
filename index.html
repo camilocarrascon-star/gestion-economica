@@ -1629,9 +1629,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.28';
+const VERSION_APP = '2.29';
 const VERSION_FECHA = '23 sep 2026';
-const VERSION_DESCRIPCION = 'Actualización automática: la app se revisa sola contra GitHub al abrir y se recarga si hay una versión más nueva publicada';
+const VERSION_DESCRIPCION = 'Si vacías la planilla a propósito, ahora se refleja sola en los aparatos al abrir (antes solo con "Borrar datos")';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -1898,37 +1898,6 @@ function mapearGastoDesdeServidor(fila){
     colaSync: []
   };
 }
-async function recuperarGastosDesdeSheets(){
-  try{
-    const filas = await llamarScript('obtener_gastos', {});
-    if(!Array.isArray(filas) || filas.length === 0) return false;
-    registrosGasto = filas.filter(f => f.id_gasto).map(mapearGastoDesdeServidor);
-    await guardarGastosEnAlmacenamiento();
-    return true;
-  }catch(err){
-    console.error('No se pudo recuperar gastos desde Sheets:', err);
-    return false;
-  }
-}
-async function recuperarGastosManualmente(){
-  const nota = document.getElementById('notaRecuperarGastos');
-  const boton = document.getElementById('botonRecuperarGastos');
-  const pendientes = registrosGasto.filter(r => r.colaSync && r.colaSync.length > 0).length;
-  if(pendientes > 0){
-    nota.textContent = `Hay ${pendientes} gasto${pendientes===1?'':'s'} sin enviar a Sheets todavía. Espera a que se sincronicen (o toca "Reintentar" en Gastos) antes de recuperar.`;
-    return;
-  }
-  boton.disabled = true; nota.textContent = 'Descargando gastos desde Sheets…';
-  const ok = await recuperarGastosDesdeSheets();
-  boton.disabled = false;
-  if(ok){
-    nota.textContent = `Gastos recuperados: ${registrosGasto.length} registro${registrosGasto.length===1?'':'s'}.`;
-    renderizarListaGastos();
-  }else{
-    nota.textContent = 'No se pudo recuperar los gastos (sin conexión, planilla sin gastos o error del servidor). Intenta de nuevo.';
-  }
-}
-
 /* ============================================================
    2. FORMATO DE MONTOS, FECHAS Y HORA
    ============================================================ */
@@ -2724,83 +2693,6 @@ function mapearConsultaDesdeServidor(fila){
 
 // Devuelve true si la agenda local quedó reemplazada por la de Sheets,
 // false si no se pudo (sin conexión, planilla vacía, error).
-async function recuperarAgendaDesdeSheets(){
-  try{
-    const filas = await llamarScript('obtener_eventos', {});
-    if(!Array.isArray(filas) || filas.length === 0) return false;
-
-    // Parte B (v2.3): la pestaña Sesiones guarda el estado de cada
-    // fecha por separado (la hoja Eventos solo recuerda el último
-    // estado de la serie completa). Si esta llamada falla, se sigue
-    // con lo que dice Eventos, que es lo que había hasta v2.2.
-    let sesiones = [];
-    try{
-      const respuestaSesiones = await llamarScript('obtener_sesiones', {});
-      if(Array.isArray(respuestaSesiones)) sesiones = respuestaSesiones;
-    }catch(errSesiones){
-      console.error('No se pudieron recuperar las sesiones por fecha:', errSesiones);
-    }
-
-    const nuevosEventos = [];
-    const nuevasConsultas = [];
-    filas.forEach(fila => {
-      if(!fila.id_evento) return;
-      if(fila.tipo === 'consulta_unica') nuevasConsultas.push(mapearConsultaDesdeServidor(fila));
-      else nuevosEventos.push(mapearEventoDesdeServidor(fila));
-    });
-
-    // Aplica el estado por fecha que viene de Sesiones sobre lo recién
-    // reconstruido. Para eventos sin recurrencia y consultas se guarda
-    // en estadoSesion; para series recurrentes, en estadosPorFecha
-    // bajo su fecha, que es lo que lee obtenerEstadoResuelto.
-    sesiones.forEach(ses => {
-      if(!ses || !ses.id_evento || !ses.estado_sesion) return;
-      const consulta = nuevasConsultas.find(c => c.id === ses.id_evento);
-      if(consulta){ consulta.estadoSesion = ses.estado_sesion; return; }
-      const evento = nuevosEventos.find(e => e.id === ses.id_evento);
-      if(!evento) return;
-      if(evento.recurrencia === 'ninguna'){ evento.estadoSesion = ses.estado_sesion; return; }
-      if(!ses.fecha_evento) return;
-      evento.estadosPorFecha = evento.estadosPorFecha || {};
-      evento.estadosPorFecha[ses.fecha_evento] = ses.estado_sesion;
-    });
-
-    eventosAgenda = nuevosEventos;
-    consultasUnicas = nuevasConsultas;
-    await guardarEventosEnAlmacenamiento();
-    await guardarConsultasEnAlmacenamiento();
-    return true;
-  }catch(err){
-    console.error('No se pudo recuperar la agenda desde Sheets:', err);
-    return false;
-  }
-}
-
-// Botón "Recuperar agenda desde Sheets" en Configuración. Sirve para
-// probar la recuperación sin borrar los datos del teléfono a mano, y
-// para volver a alinear el teléfono con la planilla si divergen.
-// Se niega a correr si hay cambios de agenda todavía sin enviar,
-// porque reemplazar la agenda local los perdería.
-async function recuperarAgendaManualmente(){
-  const nota = document.getElementById('notaRecuperarAgenda');
-  const boton = document.getElementById('botonRecuperarAgenda');
-  const pendientes = eventosAgenda.filter(e => e.colaSync && e.colaSync.length > 0).length
-                   + consultasUnicas.filter(c => c.colaSync && c.colaSync.length > 0).length;
-  if(pendientes > 0){
-    nota.textContent = `Hay ${pendientes} cambio${pendientes===1?'':'s'} de agenda sin enviar a Sheets todavía. Espera a que se sincronicen (o toca "Reintentar" en Agenda) antes de recuperar.`;
-    return;
-  }
-  boton.disabled = true; nota.textContent = 'Descargando agenda desde Sheets…';
-  const ok = await recuperarAgendaDesdeSheets();
-  boton.disabled = false;
-  if(ok){
-    nota.textContent = `Agenda recuperada: ${eventosAgenda.length} evento${eventosAgenda.length===1?'':'s'} y ${consultasUnicas.length} consulta${consultasUnicas.length===1?'':'s'} única${consultasUnicas.length===1?'':'s'}.`;
-    rerenderizarVistaAgendaActual();
-  }else{
-    nota.textContent = 'No se pudo recuperar la agenda (sin conexión, planilla sin eventos o error del servidor). Intenta de nuevo.';
-  }
-}
-
 // Calcula el monto bruto y si es canal Entre Lazos, para una sesión
 // de Atenciones vinculada a un paciente existente (no aplica a
 // consultas única, que ya traen su propio monto/tipoPago).
@@ -5261,14 +5153,23 @@ async function enviarTodoLoPendiente(){
 // individuales que reemplaza, si la planilla devuelve una lista
 // vacía para un módulo, NO se borra lo que hay en este teléfono
 // (una lista vacía suele ser un problema pasajero, no que de verdad
-// no haya nada — ese cuidado ya existía antes y se mantiene igual).
+// Antes había un cuidado extra: si la planilla devolvía una lista
+// vacía, no se aplicaba (por si era un problema pasajero del
+// servidor). Se quitó (23 sep 2026): revisando el Apps Script no hay
+// ningún caso donde devuelva vacío por error habiendo datos reales
+// — una lista vacía siempre significa que la planilla está vacía de
+// verdad — y con ese cuidado, borrar algo a propósito en la planilla
+// no se reflejaba en los aparatos hasta usar "Borrar datos". La
+// protección real (que no se borre algo de este aparato que
+// todavía no se mandó) es un mecanismo aparte, sincronizarTodo() más
+// abajo, que sigue intacto.
 async function aplicarSincronizacionCompleta(paquete){
-  if(Array.isArray(paquete.pacientes) && paquete.pacientes.length > 0){
+  if(Array.isArray(paquete.pacientes)){
     pacientes = paquete.pacientes.map(mapearPacienteDesdeServidor).filter(p => p.id);
     await guardarPacientesEnAlmacenamiento();
   }
 
-  if(Array.isArray(paquete.eventos) && paquete.eventos.length > 0){
+  if(Array.isArray(paquete.eventos)){
     const sesiones = Array.isArray(paquete.sesiones) ? paquete.sesiones : [];
     const nuevosEventos = [];
     const nuevasConsultas = [];
@@ -5294,7 +5195,7 @@ async function aplicarSincronizacionCompleta(paquete){
     await guardarConsultasEnAlmacenamiento();
   }
 
-  if(Array.isArray(paquete.ingresos) && paquete.ingresos.length > 0){
+  if(Array.isArray(paquete.ingresos)){
     ingresos = paquete.ingresos.filter(f => f.id_ingreso).map(mapearIngresoDesdeServidor);
     await guardarIngresosEnAlmacenamiento();
   }
@@ -5316,12 +5217,12 @@ async function aplicarSincronizacionCompleta(paquete){
     await guardarIngresosEnAlmacenamiento();
   }
 
-  if(Array.isArray(paquete.gastos) && paquete.gastos.length > 0){
+  if(Array.isArray(paquete.gastos)){
     registrosGasto = paquete.gastos.filter(f => f.id_gasto).map(mapearGastoDesdeServidor);
     await guardarGastosEnAlmacenamiento();
   }
 
-  if(Array.isArray(paquete.objetivos) && paquete.objetivos.length > 0){
+  if(Array.isArray(paquete.objetivos)){
     const filasAportes = Array.isArray(paquete.aportesObjetivos) ? paquete.aportesObjetivos : [];
     objetivos = paquete.objetivos.filter(f => f.id_objetivo).map(f => mapearObjetivoDesdeServidor(f, filasAportes));
     await guardarObjetivosEnAlmacenamiento();
