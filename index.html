@@ -417,30 +417,6 @@ input{ font-family:inherit; }
   color:var(--texto-terciario); font-family:'Quicksand',sans-serif;
 }
 
-/* Vista mensual: ocupa todo el espacio disponible (flex:1) por defecto.
-   Cuando se abre la semana, se comprime a una altura fija de 300px y
-   el panel semanal pasa a ocupar el resto (flex:1). */
-.grid-mes{
-  display:grid; grid-template-columns:repeat(7,1fr); grid-auto-rows:60px;
-  padding:0 2px; overflow-y:auto; touch-action:pan-y;
-  flex:1; min-height:0;
-}
-.grid-mes.comprimido{ flex:none; height:300px; }
-
-.celda-dia{
-  border-top:1px solid var(--borde);
-  padding:3px 2px 0; display:flex; flex-direction:column; gap:2px;
-  overflow:hidden; touch-action:manipulation;
-}
-.celda-dia .numero-fila{ display:flex; justify-content:center; flex:none; }
-.celda-dia .numero-dia{
-  min-width:19px; height:19px; padding:0 5px; border-radius:10px;
-  display:flex; align-items:center; justify-content:center;
-  font-size:11.5px; font-weight:600; color:var(--texto-principal);
-}
-.celda-dia.hoy .numero-dia{ background:var(--borde-suave); font-weight:700; }
-.celda-dia.fuera-mes .numero-dia{ color:var(--texto-cuaternario); }
-
 /* Chips de evento en el mes: tint del color de categoría al 15% con
    texto en el tono oscuro de esa misma categoría (no texto crema sobre
    fondo sólido). Fuera del mes actual, el tint baja a 7% y el texto se
@@ -450,7 +426,6 @@ input{ font-family:inherit; }
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   font-weight:650; flex:none;
 }
-.celda-dia.fuera-mes .chip-evento-mes{ opacity:0.55; }
 .chip-mes-atenciones{ background:color-mix(in srgb, var(--et-atenciones) 15%, white); color:#33473B; }
 .chip-mes-nel{ background:color-mix(in srgb, var(--et-nel) 15%, white); color:#5C1F2C; }
 .chip-mes-oficina{ background:color-mix(in srgb, var(--et-oficina) 15%, white); color:#6E4B10; }
@@ -462,16 +437,8 @@ input{ font-family:inherit; }
 .chip-mes-seminarios{ background:color-mix(in srgb, var(--et-seminarios) 15%, white); color:#3D4750; }
 .chip-mas-mes{ font-size:8.5px; font-weight:650; color:var(--texto-terciario); padding:0 3px; }
 
-/* Panel semanal: vive dentro del mismo contenedor flex vertical que el
-   mes. Cerrado no ocupa espacio (display:none); abierto se expande con
-   flex:1 para llenar el resto de la pantalla. */
-#panelSemana{
-  display:none; flex-direction:column;
-  background:#FBF7EF; border-top:1px solid var(--borde);
-  min-height:0;
-}
-#panelSemana.abierto{ display:flex; }
-.panel-semana-encabezado{ flex:none; display:flex; align-items:center; gap:7px; padding:9px 10px 6px; }
+/* Panel semanal: el alto y el fondo se aplican desde el JavaScript al
+   abrir o cerrar la semana; acá solo viven los estilos de sus piezas. */
 .boton-cerrar-semana{
   width:26px; height:26px; border-radius:8px; background:var(--borde);
   color:var(--texto-secundario); font-size:13px; display:flex; align-items:center; justify-content:center;
@@ -480,10 +447,6 @@ input{ font-family:inherit; }
 .panel-semana-titulo{ font-size:13px; font-weight:700; color:var(--texto-principal); font-family:'Quicksand',sans-serif; }
 .panel-semana-conteo{ font-size:10.5px; font-weight:600; color:var(--texto-terciario); font-family:'Quicksand',sans-serif; }
 
-.grid-semana{
-  flex:1; min-height:0; overflow-y:auto; touch-action:pan-y;
-  display:grid; grid-template-columns:repeat(7,1fr); gap:2px; padding:0 5px 6px;
-}
 .columna-semana{
   display:flex; flex-direction:column; gap:2px; min-width:0; border-radius:7px;
   padding:3px 2px 0; touch-action:manipulation;
@@ -538,14 +501,6 @@ input{ font-family:inherit; }
   margin-bottom:8px;
 }
 .paciente-confirmado .check{ color:var(--tab-agenda); font-size:15px; }
-
-.estado-chip{
-  font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px;
-  font-family:'Quicksand',sans-serif;
-}
-.estado-realizada_percibida,.estado-ausencia_percibida{ background:color-mix(in srgb, var(--tab-agenda) 16%, white); color:var(--tab-agenda); }
-.estado-realizada_devengada,.estado-ausencia_devengada{ background:color-mix(in srgb, var(--tab-objetivos) 16%, white); color:#8B6516; }
-.estado-ausencia_justificada{ background:var(--borde-suave); color:var(--texto-secundario); }
 
 /* ============================================================
    11. MÓDULO C — GASTOS
@@ -663,7 +618,6 @@ input{ font-family:inherit; }
 .fila-fuente{ display:flex; align-items:center; gap:8px; }
 .fila-fuente .punto{ width:7px; height:7px; border-radius:50%; flex:none; }
 .fila-fuente .nombre{ font-size:12.5px; font-weight:600; color:var(--texto-principal); flex:1; min-width:0; font-family:'Quicksand',sans-serif; }
-.fila-fuente .cuenta{ font-size:11px; font-weight:600; color:var(--texto-terciario); font-variant-numeric:tabular-nums; }
 .fila-fuente .monto{ font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--texto-principal); }
 
 .tarjeta-recibir{ background:var(--recibir-bg); border:1px solid var(--recibir-borde); border-radius:16px; padding:13px 14px; }
@@ -930,6 +884,8 @@ input{ font-family:inherit; }
     <button class="boton-icono" onclick="cambiarMesIngresos(1)">›</button>
   </div>
 
+  <div id="bannerSyncIngresos" style="display:none; margin-bottom:4px; padding:10px 12px; border-radius:12px; background:#FBF3E2; border:1px solid #EBDCBC; font-size:12px; color:#8B6516; align-items:center; gap:8px;"></div>
+
   <div class="tarjeta-ing">
     <div class="tarjeta-ing-encabezado">
       <span class="tarjeta-ing-titulo">Ingresos percibidos del mes</span>
@@ -1169,7 +1125,7 @@ input{ font-family:inherit; }
     <button class="boton-secundario" id="botonRecuperarGastos" onclick="recuperarGastosManualmente()">Recuperar gastos desde Sheets</button>
     <div class="nota-campo" id="notaRecuperarGastos" style="margin-top:6px;"></div>
 
-    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.19 (19 sep 2026) · G1 · C6 · C4 · C7 · C3+G9</div>
+    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.24 (22 sep 2026) · limpieza: CSS y código sin uso eliminados (sin cambios de comportamiento)</div>
   </div>
 </div>
 
@@ -1224,6 +1180,7 @@ input{ font-family:inherit; }
     <div class="campo-modal">
       <span class="etiqueta-campo">Fecha</span>
       <input type="date" id="eventoFecha" oninput="actualizarVisibilidadRecurrenciaPersonalizada(); actualizarResumenDuracion();">
+      <div class="nota-campo" id="notaFechaEventoBloqueada" style="display:none;">Esta sesión pertenece a una serie que se repite. Para cambiar el día de esta sesión en particular, usa el botón "Mover esta sesión a otro día", más abajo. La fecha de inicio de toda la serie no se edita desde acá.</div>
     </div>
     <div class="campo-modal">
       <span class="etiqueta-campo">Hora</span>
@@ -1270,6 +1227,7 @@ input{ font-family:inherit; }
     <button class="boton-secundario" onclick="cerrarFichaEvento()">Cancelar</button>
 
     <div class="zona-archivar" id="zonaEliminarEvento" style="display:none;">
+      <button class="boton-archivar" id="botonMoverSesionEvento" onclick="abrirModalMoverSesion()" style="display:none; margin-bottom:8px;">Mover esta sesión a otro día</button>
       <button class="boton-archivar" id="botonOmitirFechaEvento" onclick="solicitarOmitirFecha()" style="display:none; margin-bottom:8px;">Omitir esta fecha</button>
       <button class="boton-archivar" id="botonEliminarEvento" onclick="solicitarEliminarEvento()">Eliminar</button>
       <div class="confirmacion-archivar" id="confirmacionEliminarEvento" style="display:none;">
@@ -1287,6 +1245,34 @@ input{ font-family:inherit; }
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: MOVER UNA SESIÓN PUNTUAL DE UNA SERIE RECURRENTE
+     A OTRO DÍA (sin tocar la fecha de inicio de la serie)
+     ============================================================ -->
+<div class="fondo-modal" id="fondoModalMoverSesion" onclick="cerrarModalSiFondo(event, 'fondoModalMoverSesion', cerrarModalMoverSesion)">
+  <div class="hoja-modal">
+    <div class="encabezado-modal">
+      <h2>Mover esta sesión</h2>
+      <button class="cerrar-modal" onclick="cerrarModalMoverSesion()">✕</button>
+    </div>
+    <div class="campo-modal">
+      <p class="nota-campo" id="textoInfoMoverSesion" style="margin:0;"></p>
+    </div>
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Nueva fecha</span>
+      <input type="date" id="moverSesionFecha">
+    </div>
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Nueva hora</span>
+      <input type="text" class="campo-hora-texto" id="moverSesionHora" inputmode="numeric" placeholder="HH:MM" maxlength="5" oninput="formatearEntradaHora(this)">
+      <div class="nota-campo">Formato 24 horas, por ejemplo 09:30 o 19:00.</div>
+    </div>
+    <div class="nota-campo" style="margin-bottom:10px;">Esta fecha se quitará de la serie recurrente (igual que "Omitir esta fecha") y se creará como una atención suelta en el nuevo día. Las demás repeticiones de la serie no se ven afectadas.</div>
+    <button class="boton-primario" onclick="guardarMoverSesion()">Mover sesión</button>
+    <button class="boton-secundario" onclick="cerrarModalMoverSesion()">Cancelar</button>
   </div>
 </div>
 
@@ -1530,8 +1516,8 @@ input{ font-family:inherit; }
 
 /* ============================================================
    1. ESTADO Y ALMACENAMIENTO
-   window.storage (persistente entre sesiones en Claude.ai), no
-   localStorage. Datos personales (shared=false).
+   La app vive publicada en GitHub Pages. window.storage es el
+   adaptador de abajo, que guarda en el navegador del iPhone.
 
    CLAVES USADAS POR ESTA APP:
      - 'pacientes-registros'
@@ -1541,6 +1527,8 @@ input{ font-family:inherit; }
      - 'ingresos-registros'
      - 'objetivos-metas'
      - 'gastos-registros'
+     - 'boletas-claves-facturadas'
+     - 'ingresos-cola-sync'
    ============================================================ */
 // ============================================================
 // COMPATIBILIDAD DE ALMACENAMIENTO — Fuera de Claude.ai (GitHub
@@ -1629,6 +1617,11 @@ const CLAVE_AGENDA = 'agenda-eventos';
 const CLAVE_INGRESOS = 'ingresos-registros';
 const CLAVE_OBJETIVOS = 'objetivos-metas';
 const CLAVE_GASTOS = 'gastos-registros';
+// Claves de origen (sesión) que ya salieron en alguna boleta Entre Lazos.
+// Vive en su propia clave de almacenamiento, aparte de los ingresos, para
+// que la memoria de "esto ya lo facturé" sobreviva a una recuperación
+// desde Sheets (los ingresos recuperados no traen esa lista consigo).
+const CLAVE_BOLETAS = 'boletas-claves-facturadas';
 
 const COLOR_TAB = {
   pacientes:'#7C2F3E', agenda:'#4F6B5C', gastos:'#B4653A',
@@ -1666,7 +1659,31 @@ const RECURRENCIAS = [
   { valor:'semanal',               nombre:'Semanal' },
   { valor:'mensual',               nombre:'Mensual' },
   { valor:'mensual_personalizada', nombre:'Mensual (día específico)' },
+  { valor:'anual',                 nombre:'Anual (1 vez al año)' },
 ];
+
+// ============================================================
+// HORIZONTE DE LAS REPETICIONES
+//
+// Antes cada evento recurrente se calculaba hasta el año 2100: una
+// sesión semanal generaba miles de fechas, recalculadas cada vez que
+// se abría Ingresos o el Dashboard. Ahora cada serie se proyecta 1 año
+// desde su fecha de inicio; las anuales, 5 años. Pasado ese tope la
+// serie deja de mostrar fechas nuevas y hay que renovarla.
+// ============================================================
+const HORIZONTE_RECURRENCIA_DIAS = 366;        // 1 año para semanal y mensual
+const HORIZONTE_RECURRENCIA_ANUAL_DIAS = 1827; // 5 años para la recurrencia anual
+
+function finEfectivoRecurrencia(evento, fechaBase, finRango){
+  const dias = (evento.recurrencia === 'anual') ? HORIZONTE_RECURRENCIA_ANUAL_DIAS : HORIZONTE_RECURRENCIA_DIAS;
+  const tope = new Date(fechaBase); tope.setDate(tope.getDate() + dias);
+  return (tope < finRango) ? tope : finRango;
+}
+
+// Ventana de análisis para las pantallas que revisan TODAS las
+// sesiones (Ingresos y Dashboard). Antes iban del año 2000 al 2100.
+function rangoAnalisisInicio(){ const d = new Date(); d.setFullYear(d.getFullYear()-3); return formatoISO(d); }
+function rangoAnalisisFin(){ const d = new Date(); d.setFullYear(d.getFullYear()+5); return formatoISO(d); }
 const SEMANAS_DEL_MES = [
   { valor:1, nombre:'1°' }, { valor:2, nombre:'2°' }, { valor:3, nombre:'3°' }, { valor:4, nombre:'4°' },
 ];
@@ -1746,26 +1763,72 @@ async function recuperarIngresosDesdeSheets(){
     if(!Array.isArray(filas) || filas.length === 0) return false;
     ingresos = filas.filter(f => f.id_ingreso).map(mapearIngresoDesdeServidor);
     await guardarIngresosEnAlmacenamiento();
-    // Se traen también las boletas Entre Lazos ya emitidas. Sin esto, la
-    // app se olvidaba de qué sesiones había facturado y todas volvían a
-    // aparecer como pendientes de boleta, con riesgo de cobrarlas dos veces.
-    try{
-      const boletas = await llamarScript('obtener_boletas', {});
-      if(Array.isArray(boletas)){
-        clavesFacturadasDesdeServidor = new Set();
-        boletas.forEach(b => {
-          String(b.ids_eventos_incluidos || '').split(',').forEach(clave => {
-            const limpia = clave.trim();
-            if(limpia) clavesFacturadasDesdeServidor.add(limpia);
-          });
-        });
-      }
-    }catch(errBoletas){ console.error('No se pudieron recuperar las boletas:', errBoletas); }
     return true;
   }catch(err){
     console.error('No se pudo recuperar ingresos desde Sheets:', err);
     return false;
   }
+}
+
+// ============================================================
+// BOLETAS ENTRE LAZOS — MEMORIA DE LO YA FACTURADO
+//
+// Una boleta guarda qué sesiones incluyó. Esa lista es lo único que
+// impide volver a cobrar la misma sesión en la boleta siguiente, así
+// que no puede vivir solo dentro del ingreso de la boleta: al
+// recuperar ingresos desde Sheets, esa columna no viene, y la app se
+// olvidaba de todo lo facturado. Ahora vive en su propia clave de
+// almacenamiento y se refresca desde la planilla en cada arranque.
+// ============================================================
+let clavesFacturadasDesdeServidor = new Set();
+
+async function cargarClavesFacturadas(){
+  try{
+    const r = await window.storage.get(CLAVE_BOLETAS, false);
+    const lista = (r && r.value) ? JSON.parse(r.value) : [];
+    clavesFacturadasDesdeServidor = new Set(Array.isArray(lista) ? lista : []);
+  }catch(e){ clavesFacturadasDesdeServidor = new Set(); }
+}
+async function guardarClavesFacturadas(){
+  try{ await window.storage.set(CLAVE_BOLETAS, JSON.stringify(Array.from(clavesFacturadasDesdeServidor)), false); }
+  catch(e){ /* si falla, la memoria en curso sigue sirviendo para esta sesión */ }
+}
+function agregarClavesFacturadas(claves){
+  (claves || []).forEach(c => { if(c) clavesFacturadasDesdeServidor.add(c); });
+}
+
+// Descarga las boletas emitidas y (1) suma sus claves a la memoria
+// persistente, (2) le devuelve la lista de sesiones al ingreso local
+// que corresponde a cada boleta, cuando se puede identificar sin
+// ambigüedad (misma fecha de emisión y mismo monto neto).
+async function refrescarBoletasDesdeSheets(){
+  let boletas;
+  try{
+    boletas = await llamarScript('obtener_boletas', {});
+  }catch(err){
+    console.error('No se pudieron recuperar las boletas Entre Lazos:', err);
+    return false;
+  }
+  if(!Array.isArray(boletas)) return false;
+
+  let cambioIngresos = false;
+  boletas.forEach(b => {
+    const claves = String(b.ids_eventos_incluidos || '').split(',').map(c => c.trim()).filter(Boolean);
+    if(claves.length === 0) return;
+    agregarClavesFacturadas(claves);
+
+    const fechaBoleta = String(b.fecha_emision || '').slice(0,10);
+    const netoBoleta = Number(b.monto_neto_total) || 0;
+    const candidatos = ingresos.filter(i =>
+      i.tipo === 'entrelazos' && !i.sesionesIncluidas &&
+      i.fecha === fechaBoleta && Number(i.montoNeto) === netoBoleta
+    );
+    if(candidatos.length === 1){ candidatos[0].sesionesIncluidas = claves; cambioIngresos = true; }
+  });
+
+  await guardarClavesFacturadas();
+  if(cambioIngresos) await guardarIngresosEnAlmacenamiento();
+  return true;
 }
 function objetivosPorDefecto(){
   return [
@@ -2353,8 +2416,12 @@ function cerrarModalSiFondo(evento, idFondo, funcionCierre){ if(evento.target.id
    ============================================================ */
 function generarOcurrencias(evento, inicioRangoISO, finRangoISO){
   const inicioRango = fechaDesdeISO(inicioRangoISO);
-  const finRango = fechaDesdeISO(finRangoISO);
   const fechaBase = fechaDesdeISO(evento.fecha);
+  // El fin del cálculo es el que llegue primero: el fin del rango que
+  // se pidió, o el tope de vida de la serie (1 año, o 5 si es anual).
+  const finRango = (evento.recurrencia === 'ninguna')
+    ? fechaDesdeISO(finRangoISO)
+    : finEfectivoRecurrencia(evento, fechaBase, fechaDesdeISO(finRangoISO));
   const excluidas = evento.fechasExcluidas || [];
   const resultado = [];
 
@@ -2387,6 +2454,22 @@ function generarOcurrencias(evento, inicioRangoISO, finRangoISO){
         if(!excluidas.includes(fechaStr)) resultado.push(fechaStr);
       }
       mes++; if(mes > 11){ mes = 0; anio++; }
+    }
+    return resultado;
+  }
+
+  if(evento.recurrencia === 'anual'){
+    // Mismo día y mes, una vez por año, hasta el tope de 5 años.
+    const diaMes = fechaBase.getDate(), mesBase = fechaBase.getMonth();
+    let anio = Math.max(inicioRango.getFullYear(), fechaBase.getFullYear());
+    while(true){
+      const candidato = new Date(anio, mesBase, diaMes);
+      if(candidato > finRango) break;
+      if(candidato >= fechaBase && candidato >= inicioRango){
+        const fechaStr = formatoISO(candidato);
+        if(!excluidas.includes(fechaStr)) resultado.push(fechaStr);
+      }
+      anio++;
     }
     return resultado;
   }
@@ -2527,21 +2610,7 @@ async function procesarColaEntidadAgendaInterno(entidad, intento, guardarFn){
   }
   const item = entidad.colaSync[0];
   try{
-    const datosRespuesta = await llamarScript(item.accion, item.datosBase);
-
-    // El id del ingreso viene dentro de cuerpo.datos, que es lo que
-    // devuelve llamarScript. Antes se leía un nivel más arriba, así que
-    // idIngresoSheets quedaba siempre vacío y editar_ingreso nunca salía.
-    if(item.accion === 'actualizar_estado_sesion' && item.generaIngreso){
-      if(datosRespuesta && datosRespuesta.id_ingreso){
-        if(item.fechaOcurrencia){
-          entidad.idsIngresoPorFecha = entidad.idsIngresoPorFecha || {};
-          entidad.idsIngresoPorFecha[item.fechaOcurrencia] = datosRespuesta.id_ingreso;
-        }else{
-          entidad.idIngresoSheets = datosRespuesta.id_ingreso;
-        }
-      }
-    }
+    await llamarScript(item.accion, item.datosBase);
 
     entidad.colaSync.shift();
     await procesarColaEntidadAgendaInterno(entidad, 1, guardarFn);
@@ -2729,9 +2798,12 @@ function calcularMontoBrutoParaPaciente(pacienteId){
 // se repite (una corrección, un reintento), el servidor actualiza la
 // misma fila en vez de crear una nueva.
 function encolarActualizarEstadoSesion(entidad, fechaOcurrencia, estado, montoInfo, idIngreso){
-  if(!estado) return;
+  // Un estado nulo o vacío ya no se descarta: significa que el usuario
+  // quitó la marca de la sesión, y eso también hay que mandarlo, porque
+  // si no la planilla sigue mostrando el estado viejo (y, cuando ese
+  // estado generaba ingreso, ese ingreso queda huérfano).
   const fechaEvento = fechaOcurrencia || entidad.fecha;
-  const datosBase = { id_evento: entidad.id, fecha_evento: fechaEvento, estado_sesion: estado };
+  const datosBase = { id_evento: entidad.id, fecha_evento: fechaEvento, estado_sesion: estado || '' };
   let generaIngreso = false;
   if(montoInfo && !montoInfo.esEntreLazos && ESTADOS_QUE_GENERAN_INGRESO.includes(estado)){
     const montoNeto = calcularNeto(montoInfo.montoBruto, false);
@@ -3010,13 +3082,6 @@ function renderizarVistaMensual(){
   }
 }
 
-function abrirSemanaDesdeFecha(fechaISO){
-  inicioSemanaMostrada = obtenerLunesDeSemana(fechaDesdeISO(fechaISO));
-  fechaColumnaSeleccionada = fechaISO;
-  semanaAbierta = true;
-  renderizarVistaMensual();
-  renderizarPanelSemana();
-}
 function cerrarPanelSemana(){
   semanaAbierta = false;
   renderizarVistaMensual();
@@ -3160,6 +3225,8 @@ function abrirFichaEventoNueva(){
   document.getElementById('eventoConsultaMonto').value = '';
   document.getElementById('campoBusquedaPaciente').value = '';
   document.getElementById('eventoFecha').value = fechaColumnaSeleccionada || hoyISO();
+  document.getElementById('eventoFecha').disabled = false;
+  document.getElementById('notaFechaEventoBloqueada').style.display = 'none';
   document.getElementById('eventoHora').value = '';
   document.getElementById('eventoFechaTermino').value = '';
   document.getElementById('eventoHoraTermino').value = '';
@@ -3167,6 +3234,7 @@ function abrirFichaEventoNueva(){
   document.getElementById('resumenDuracionEvento').textContent = '';
   document.getElementById('zonaEliminarEvento').style.display = 'none';
   document.getElementById('botonOmitirFechaEvento').style.display = 'none';
+  document.getElementById('botonMoverSesionEvento').style.display = 'none';
   document.getElementById('confirmacionEliminarEvento').style.display = 'none';
   document.getElementById('confirmacionOmitirFecha').style.display = 'none';
   document.getElementById('botonEliminarEvento').style.display = 'block';
@@ -3193,9 +3261,12 @@ function abrirFichaEventoEdicion(instancia){
     document.getElementById('tituloFichaEvento').textContent = 'Editar sesión de ingreso';
     document.getElementById('eventoConsultaNombre').value = c.nombre;
     document.getElementById('eventoFecha').value = c.fecha;
+    document.getElementById('eventoFecha').disabled = false;
+    document.getElementById('notaFechaEventoBloqueada').style.display = 'none';
     document.getElementById('eventoHora').value = c.hora || '';
     document.getElementById('zonaEliminarEvento').style.display = 'block';
     document.getElementById('botonOmitirFechaEvento').style.display = 'none';
+    document.getElementById('botonMoverSesionEvento').style.display = 'none';
     document.getElementById('botonEliminarEvento').textContent = 'Eliminar registro';
   }else{
     eventoEnEdicionId = instancia.eventoId; consultaEnEdicionId = null;
@@ -3210,14 +3281,23 @@ function abrirFichaEventoEdicion(instancia){
 
     document.getElementById('tituloFichaEvento').textContent = 'Editar evento';
     document.getElementById('eventoNombreLibre').value = evento.nombre || '';
-    document.getElementById('eventoFecha').value = evento.fecha;
+    // La fecha que se muestra es la de ESTA ocurrencia puntual (instancia.fecha),
+    // nunca la fecha de inicio de la serie (evento.fecha) — son lo mismo cuando
+    // el evento no se repite, pero difieren en cualquier ocurrencia posterior de
+    // una serie recurrente. Mostrar la del ancla ahí fue la causa del bug donde
+    // "corregir" la fecha de una sesión recolocaba toda la serie sin avisar.
+    const esRecurrente = evento.recurrencia !== 'ninguna';
+    document.getElementById('eventoFecha').value = instancia.fecha;
+    document.getElementById('eventoFecha').disabled = esRecurrente;
+    document.getElementById('notaFechaEventoBloqueada').style.display = esRecurrente ? 'block' : 'none';
     document.getElementById('eventoHora').value = evento.hora || '';
     document.getElementById('eventoFechaTermino').value = evento.endDate || evento.fecha;
     document.getElementById('eventoHoraTermino').value = evento.endTime || '';
     document.getElementById('camposDuracionDetalle').style.display = hasDurationEventoSeleccionado ? 'block' : 'none';
     document.getElementById('zonaEliminarEvento').style.display = 'block';
-    document.getElementById('botonOmitirFechaEvento').style.display = evento.recurrencia !== 'ninguna' ? 'block' : 'none';
-    document.getElementById('botonEliminarEvento').textContent = evento.recurrencia !== 'ninguna' ? 'Eliminar toda la serie' : 'Eliminar';
+    document.getElementById('botonOmitirFechaEvento').style.display = esRecurrente ? 'block' : 'none';
+    document.getElementById('botonMoverSesionEvento').style.display = esRecurrente ? 'block' : 'none';
+    document.getElementById('botonEliminarEvento').textContent = esRecurrente ? 'Eliminar toda la serie' : 'Eliminar';
   }
 
   document.getElementById('confirmacionEliminarEvento').style.display = 'none';
@@ -3293,12 +3373,14 @@ function actualizarVisibilidadRecurrenciaPersonalizada(){
   const fecha = document.getElementById('eventoFecha').value;
   const nombreDia = fecha ? NOMBRES_DIA[fechaDesdeISO(fecha).getDay()] : '';
   document.getElementById('notaRecurrenciaEvento').textContent = recurrenciaEventoSeleccionada === 'semanal'
-    ? 'Se repite el mismo día de la semana.'
+    ? 'Se repite el mismo día de la semana, durante 1 año.'
     : recurrenciaEventoSeleccionada === 'mensual'
-      ? 'Se repite el mismo número de día del mes.'
+      ? 'Se repite el mismo número de día del mes, durante 1 año.'
       : recurrenciaEventoSeleccionada === 'mensual_personalizada'
-        ? `Se repite cada mes en su N-ésimo ${nombreDia || 'día de la semana'}.`
-        : '';
+        ? `Se repite cada mes en su N-ésimo ${nombreDia || 'día de la semana'}, durante 1 año.`
+        : recurrenciaEventoSeleccionada === 'anual'
+          ? 'Se repite el mismo día y mes, una vez al año, durante 5 años.'
+          : '';
 }
 function pintarSegmentadoSemanaDelMes(){
   const c = document.getElementById('segmentadoSemanaDelMes'); c.innerHTML = '';
@@ -3543,7 +3625,14 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
     evento = eventosAgenda.find(x => x.id === eventoEnEdicionId);
     if(evento){
       evento.etiqueta = etiquetaEventoSeleccionada; evento.nombre = nombre; evento.pacienteId = pacienteId;
-      evento.fecha = fecha; evento.hora = hora; evento.recurrencia = recurrenciaEventoSeleccionada;
+      // Si el evento YA era recurrente antes de este guardado, su fecha de
+      // inicio (el ancla de toda la serie) nunca se toca desde acá — el campo
+      // Fecha del formulario queda bloqueado para estos casos (ver
+      // abrirFichaEventoEdicion), pero esta protección vive también aquí, en
+      // el dato mismo, no solo en la pantalla.
+      const eraRecurrente = evento.recurrencia !== 'ninguna';
+      if(!eraRecurrente) evento.fecha = fecha;
+      evento.hora = hora; evento.recurrencia = recurrenciaEventoSeleccionada;
       if(recurrenciaEventoSeleccionada === 'mensual_personalizada'){ evento.diaSemana = diaSemana; evento.semanaDelMes = semanaDelMesEventoSeleccionada; }
       if(evento.recurrencia === 'ninguna'){
         estadoAnteriorEvento = evento.estadoSesion || null;
@@ -3598,11 +3687,13 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
 
 function solicitarOmitirFecha(){
   document.getElementById('botonOmitirFechaEvento').style.display = 'none';
+  document.getElementById('botonMoverSesionEvento').style.display = 'none';
   document.getElementById('botonEliminarEvento').style.display = 'none';
   document.getElementById('confirmacionOmitirFecha').style.display = 'block';
 }
 function cancelarOmitirFecha(){
   document.getElementById('botonOmitirFechaEvento').style.display = 'block';
+  document.getElementById('botonMoverSesionEvento').style.display = 'block';
   document.getElementById('botonEliminarEvento').style.display = 'block';
   document.getElementById('confirmacionOmitirFecha').style.display = 'none';
 }
@@ -3617,9 +3708,95 @@ async function confirmarOmitirFecha(){
   cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarEventosEnAlmacenamiento();
   if(evento) procesarColaEntidadAgenda(evento, guardarEventosEnAlmacenamiento);
 }
+
+// ============================================================
+// MOVER UNA SESIÓN PUNTUAL DE UNA SERIE RECURRENTE A OTRO DÍA
+//
+// Es la forma correcta de reagendar una sola sesión sin tocar la
+// fecha de inicio de toda la serie (ver notas en guardarEventoGenerico
+// y en abrirFichaEventoEdicion). Internamente hace dos cosas que la
+// app ya sabía hacer por separado: omite esta fecha de la serie
+// (mismo mecanismo que "Omitir esta fecha") y crea una atención
+// suelta, sin repetición, en el nuevo día, con el mismo estado que
+// tenía esta sesión.
+//
+// Por simplicidad y seguridad, solo se permite mover sesiones que
+// TODAVÍA no generaron un ingreso (no están en un estado percibido).
+// Si ya se marcó como pagada, primero hay que quitarle ese estado —
+// así se evita tener que migrar un registro de ingreso de un evento
+// a otro dentro de la planilla.
+// ============================================================
+let eventoEnMovimiento = null;
+let fechaOcurrenciaEnMovimiento = null;
+
+function abrirModalMoverSesion(){
+  const evento = eventosAgenda.find(x => x.id === eventoEnEdicionId);
+  if(!evento || !fechaOcurrenciaEnEdicion) return;
+  if(ESTADOS_QUE_GENERAN_INGRESO.includes(estadoSesionEventoSeleccionado)){
+    alert('Esta sesión ya está marcada como pagada. Para moverla, primero quita el estado de pago, mueve la fecha y vuelve a marcarla en el nuevo día.');
+    return;
+  }
+  eventoEnMovimiento = evento; fechaOcurrenciaEnMovimiento = fechaOcurrenciaEnEdicion;
+  document.getElementById('textoInfoMoverSesion').textContent = `${obtenerNombreEvento(evento)} · actualmente el ${fechaOcurrenciaEnEdicion}`;
+  document.getElementById('moverSesionFecha').value = '';
+  document.getElementById('moverSesionHora').value = evento.hora || '';
+  document.getElementById('fondoModalMoverSesion').classList.add('abierto');
+}
+function cerrarModalMoverSesion(){
+  document.getElementById('fondoModalMoverSesion').classList.remove('abierto');
+  eventoEnMovimiento = null; fechaOcurrenciaEnMovimiento = null;
+}
+async function guardarMoverSesion(){
+  if(!eventoEnMovimiento || !fechaOcurrenciaEnMovimiento) return;
+  const nuevaFecha = document.getElementById('moverSesionFecha').value;
+  const nuevaHora = document.getElementById('moverSesionHora').value;
+  if(!nuevaFecha){ alert('Selecciona la nueva fecha.'); return; }
+  if(!horaEsValida(nuevaHora)){ alert('Ingresa una hora válida en formato HH:MM (24 horas).'); return; }
+
+  const evento = eventoEnMovimiento;
+  const fechaVieja = fechaOcurrenciaEnMovimiento;
+  // Se usa el estado que está seleccionado en pantalla en este momento
+  // (no el guardado), para que "mover" refleje siempre lo que el
+  // usuario está viendo, no una versión desactualizada.
+  const estadoAMover = estadoSesionEventoSeleccionado;
+  if(estadoAMover && estadoAMover.startsWith('realizada') && nuevaFecha > hoyISO()){
+    alert('No se puede mover una sesión "realizada" a una fecha futura. Si corresponde, primero cambia su estado.');
+    return;
+  }
+
+  // 1) Omite la fecha vieja de la serie — igual mecanismo que "Omitir esta fecha".
+  evento.fechasExcluidas = evento.fechasExcluidas || [];
+  if(!evento.fechasExcluidas.includes(fechaVieja)) evento.fechasExcluidas.push(fechaVieja);
+  evento.colaSync = evento.colaSync || [];
+  evento.colaSync.push({ accion:'omitir_fecha_evento', datosBase: { id_evento: evento.id, fecha_omitida: fechaVieja } });
+
+  // 2) Crea una atención suelta (sin repetición) en el nuevo día, con el
+  // mismo paciente/nombre/etiqueta y el estado que tenía esa sesión.
+  const nuevoEvento = {
+    id: generarIdEvento(), etiqueta: evento.etiqueta, nombre: evento.nombre, pacienteId: evento.pacienteId,
+    fecha: nuevaFecha, hora: nuevaHora, recurrencia: 'ninguna',
+    fechasExcluidas: [], estadoSesion: estadoAMover || null,
+    estadosPorFecha: {}, hasDuration: false, endDate: '', endTime: '', creado: Date.now(),
+    pendienteSync:false, colaSync:[]
+  };
+  nuevoEvento.colaSync.push({ accion:'crear_evento', datosBase: construirDatosEventoBase(nuevoEvento) });
+  if(estadoAMover){
+    const montoInfo = (nuevoEvento.etiqueta === 'atenciones' && nuevoEvento.pacienteId) ? calcularMontoBrutoParaPaciente(nuevoEvento.pacienteId) : null;
+    const idIngresoNuevo = idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: nuevoEvento.id, fecha: nuevaFecha }));
+    encolarActualizarEstadoSesion(nuevoEvento, null, estadoAMover, montoInfo, idIngresoNuevo);
+  }
+  eventosAgenda.push(nuevoEvento);
+
+  cerrarModalMoverSesion(); cerrarFichaEvento(); rerenderizarVistaAgendaActual();
+  await guardarEventosEnAlmacenamiento();
+  procesarColaEntidadAgenda(evento, guardarEventosEnAlmacenamiento);
+  procesarColaEntidadAgenda(nuevoEvento, guardarEventosEnAlmacenamiento);
+}
+
 function solicitarEliminarEvento(){
   document.getElementById('botonEliminarEvento').style.display = 'none';
   document.getElementById('botonOmitirFechaEvento').style.display = 'none';
+  document.getElementById('botonMoverSesionEvento').style.display = 'none';
   const eventoActual = eventoEnEdicionId !== null ? eventosAgenda.find(x => x.id === eventoEnEdicionId) : null;
   const esSerie = eventoActual && eventoActual.recurrencia !== 'ninguna';
   document.getElementById('textoConfirmacionEliminarEvento').textContent = esSerie
@@ -3630,12 +3807,16 @@ function solicitarEliminarEvento(){
 function cancelarEliminarEvento(){
   document.getElementById('botonEliminarEvento').style.display = 'block';
   const evento = eventoEnEdicionId !== null ? eventosAgenda.find(x => x.id === eventoEnEdicionId) : null;
-  if(evento && evento.recurrencia !== 'ninguna') document.getElementById('botonOmitirFechaEvento').style.display = 'block';
+  if(evento && evento.recurrencia !== 'ninguna'){
+    document.getElementById('botonOmitirFechaEvento').style.display = 'block';
+    document.getElementById('botonMoverSesionEvento').style.display = 'block';
+  }
   document.getElementById('confirmacionEliminarEvento').style.display = 'none';
 }
-// Envío puntual con reintentos, para acciones que no necesitan una
-// cola persistente por entidad (por ejemplo, eliminar — el registro
-// ya no existe localmente para poder "esperar su turno" después).
+// Envío puntual con reintentos. Lo usan las acciones que no tienen una
+// cola persistente propia (eliminar un evento, un gasto o un objetivo:
+// el registro ya no existe localmente para "esperar su turno"). Los
+// ingresos NO pasan por acá: tienen su propia cola persistente.
 async function enviarAccionAgendaConReintentos(accion, datos, intento){
   intento = intento || 1;
   try{
@@ -3678,7 +3859,7 @@ async function confirmarEliminarEvento(){
     if(consulta){
       enviarAccionAgendaConReintentos('eliminar_evento', { id_evento: consulta.id });
       const ids = idsIngresoAEliminar(consulta, true);
-      ids.forEach(id => enviarAccionAgendaConReintentos('eliminar_ingreso', { id_ingreso: id }));
+      for(const id of ids) await encolarAccionIngreso('eliminar_ingreso', { id_ingreso: id });
       if(ids.length){ ids.forEach(id => sincronizarIngresoLocalDeSesion(id, null)); await guardarIngresosEnAlmacenamiento(); }
     }
   }else if(eventoEnEdicionId !== null){
@@ -3688,7 +3869,7 @@ async function confirmarEliminarEvento(){
     if(evento){
       enviarAccionAgendaConReintentos('eliminar_evento', { id_evento: evento.id });
       const ids = idsIngresoAEliminar(evento, false);
-      ids.forEach(id => enviarAccionAgendaConReintentos('eliminar_ingreso', { id_ingreso: id }));
+      for(const id of ids) await encolarAccionIngreso('eliminar_ingreso', { id_ingreso: id });
       if(ids.length){ ids.forEach(id => sincronizarIngresoLocalDeSesion(id, null)); await guardarIngresosEnAlmacenamiento(); }
     }
   }
@@ -4022,14 +4203,14 @@ function obtenerSesionesPagadasHastaHoy(){
   // como pagada por adelantado, antes de que ocurra (ej. paciente paga
   // con anticipación). El nombre de la función quedó de cuando sí
   // filtraba por "hasta hoy" — ahora filtra solo por estado.
-  return obtenerInstanciasEnRango('2000-01-01', '2100-12-31').filter(inst => inst.etiqueta === 'atenciones' && ESTADOS_QUE_GENERAN_INGRESO.includes(inst.estadoSesion));
+  return obtenerInstanciasEnRango(rangoAnalisisInicio(), rangoAnalisisFin()).filter(inst => inst.etiqueta === 'atenciones' && ESTADOS_QUE_GENERAN_INGRESO.includes(inst.estadoSesion));
 }
-let clavesFacturadasDesdeServidor = new Set();
 function obtenerClavesYaIncluidasEnBoletas(){
   const s = new Set();
   ingresos.filter(i => i.tipo === 'entrelazos' && i.sesionesIncluidas).forEach(i => i.sesionesIncluidas.forEach(c => s.add(c)));
-  // Además de las boletas que este teléfono recuerda, se suman las que
-  // se recuperaron desde la planilla.
+  // Además de las boletas que este teléfono recuerda dentro de sus
+  // ingresos, se suman las que vinieron de la planilla y quedaron
+  // guardadas aparte.
   clavesFacturadasDesdeServidor.forEach(c => s.add(c));
   return s;
 }
@@ -4046,7 +4227,7 @@ function obtenerClavesYaIncluidasEnBoletas(){
 // es Entre Lazos, no C.C. directamente.
 function obtenerPendientesPago(){
   const items = [];
-  obtenerInstanciasEnRango('2000-01-01', hoyISO())
+  obtenerInstanciasEnRango(rangoAnalisisInicio(), hoyISO())
     .filter(inst => inst.etiqueta === 'atenciones' && ['realizada_devengada','ausencia_devengada'].includes(inst.estadoSesion))
     .forEach(inst => {
       const info = clasificarInstanciaIngreso(inst); if(!info) return;
@@ -4152,7 +4333,7 @@ async function autoImportarSueldoDependiente(){
     if(!ingresos.some(i => i.id === idSueldo)){
       const nuevoIngresoSueldo = { id: idSueldo, tipo:'trabajo_dependiente', origenClave: `sueldo:${claveMes}`, fecha: `${claveMes}-01`, montoBruto: monto, montoNeto: monto, medioPago: null, descripcion:'Trabajo dependiente', creado: Date.now() };
       ingresos.push(nuevoIngresoSueldo);
-      enviarAccionAgendaConReintentos('crear_ingreso_manual', { id_ingreso: idSueldo, categoria_manual: 'trabajo_dependiente', descripcion: 'Trabajo dependiente', monto_bruto: monto, monto_neto: monto, forma_pago: '', fecha_evento: nuevoIngresoSueldo.fecha });
+      await encolarAccionIngreso('crear_ingreso_manual', { id_ingreso: idSueldo, categoria_manual: 'trabajo_dependiente', descripcion: 'Trabajo dependiente', monto_bruto: monto, monto_neto: monto, forma_pago: '', fecha_evento: nuevoIngresoSueldo.fecha });
       hubo = true;
     }
     mes++; if(mes > 12){ mes = 1; anio++; }
@@ -4167,7 +4348,7 @@ async function confirmarPagoParticular(idIngreso, medioPago){
   const ing = ingresos.find(i => i.id === idIngreso); if(!ing) return;
   ing.medioPago = medioPago;
   await guardarIngresosEnAlmacenamiento(); renderizarVistaIngresos();
-  enviarAccionAgendaConReintentos('editar_ingreso', { id_ingreso: idIngreso, forma_pago: medioPago });
+  await encolarAccionIngreso('editar_ingreso', { id_ingreso: idIngreso, forma_pago: medioPago });
 }
 let confirmandoBoleta = false;
 function solicitarConfirmacionBoleta(){ confirmandoBoleta = true; renderizarVistaIngresos(); }
@@ -4179,16 +4360,95 @@ async function generarBoletaEntreLazos(){
   const descripcionBoleta = `Boleta Entre Lazos (${pend.length} sesión${pend.length===1?'':'es'})`;
   const nuevaBoleta = { id: generarId(), tipo:'entrelazos', origenClave: null, sesionesIncluidas: pend.map(p => p.clave), fecha: hoyISO(), montoBruto: totalBruto, montoNeto: totalNeto, medioPago:'transferencia', descripcion: descripcionBoleta, creado: Date.now() };
   ingresos.push(nuevaBoleta);
+  // La memoria persistente se actualiza en el mismo momento, para que
+  // estas sesiones no reaparezcan como pendientes aunque después se
+  // pierda o se recupere la lista de ingresos.
+  agregarClavesFacturadas(nuevaBoleta.sesionesIncluidas);
+  await guardarClavesFacturadas();
   confirmandoBoleta = false; await guardarIngresosEnAlmacenamiento(); renderizarVistaIngresos();
-  enviarAccionAgendaConReintentos('generar_boleta_entrelazos', {
+  await encolarAccionIngreso('generar_boleta_entrelazos', {
     mes_correspondiente: hoyISO().slice(0,7),
     ids_eventos_incluidos: pend.map(p => p.clave),
     monto_bruto_total: totalBruto,
     monto_neto_total: totalNeto,
     fecha_emision: hoyISO()
   });
-  enviarAccionAgendaConReintentos('crear_ingreso_manual', { id_ingreso: nuevaBoleta.id, categoria_manual: 'entrelazos', descripcion: descripcionBoleta, monto_bruto: totalBruto, monto_neto: totalNeto, forma_pago: 'transferencia', fecha_evento: nuevaBoleta.fecha });
+  await encolarAccionIngreso('crear_ingreso_manual', { id_ingreso: nuevaBoleta.id, categoria_manual: 'entrelazos', descripcion: descripcionBoleta, monto_bruto: totalBruto, monto_neto: totalNeto, forma_pago: 'transferencia', fecha_evento: nuevaBoleta.fecha });
 }
+
+// ============================================================
+// SINCRONIZACIÓN CON GOOGLE SHEETS (Módulo B — Ingresos)
+//
+// Antes los ingresos eran el ÚNICO módulo sin red de seguridad: usaban
+// un envío de "dispara y olvida" (3 intentos y listo). Si esos 3
+// fallaban por falta de señal, el ingreso quedaba solo en el teléfono,
+// sin aviso y sin reintento, y la planilla quedaba incompleta en
+// silencio.
+//
+// Ahora hay UNA cola persistente y compartida para todo lo que hace
+// Ingresos (crear manual, sueldo dependiente, boleta Entre Lazos,
+// confirmar medio de pago, eliminar). Es una sola cola y no una por
+// registro, porque las eliminaciones tienen que sobrevivir a que el
+// ingreso ya no exista localmente. Se guarda en el teléfono, se
+// procesa en orden estricto, reintenta 3 veces con espera creciente y,
+// si aun así falla, queda esperando: se retoma sola al abrir la app o
+// con el botón "Reintentar" del aviso amarillo.
+// ============================================================
+const CLAVE_COLA_INGRESOS = 'ingresos-cola-sync';
+let colaIngresos = [];
+let colaIngresosProcesando = false;
+
+async function cargarColaIngresos(){
+  try{ const r = await window.storage.get(CLAVE_COLA_INGRESOS, false); colaIngresos = (r && r.value) ? JSON.parse(r.value) : []; }
+  catch(e){ colaIngresos = []; }
+}
+async function guardarColaIngresos(){
+  try{ await window.storage.set(CLAVE_COLA_INGRESOS, JSON.stringify(colaIngresos), false); }
+  catch(e){ /* la cola en memoria sigue sirviendo para esta sesión */ }
+}
+async function encolarAccionIngreso(accion, datos){
+  colaIngresos.push({ accion, datos, creado: Date.now() });
+  await guardarColaIngresos();
+  actualizarBannerSyncIngresos();
+  procesarColaIngresos();
+}
+async function procesarColaIngresos(){
+  if(colaIngresosProcesando) return;
+  colaIngresosProcesando = true;
+  await procesarColaIngresosInterno(1);
+  colaIngresosProcesando = false;
+}
+async function procesarColaIngresosInterno(intento){
+  if(colaIngresos.length === 0){ actualizarBannerSyncIngresos(); return; }
+  const item = colaIngresos[0];
+  try{
+    await llamarScript(item.accion, item.datos);
+    colaIngresos.shift();
+    await guardarColaIngresos();
+    actualizarBannerSyncIngresos();
+    await procesarColaIngresosInterno(1);
+  }catch(err){
+    if(intento < 3){
+      await new Promise(resolver => setTimeout(resolver, 1000 * intento));
+      await procesarColaIngresosInterno(intento + 1);
+      return;
+    }
+    await guardarColaIngresos();
+    actualizarBannerSyncIngresos();
+  }
+}
+function actualizarBannerSyncIngresos(){
+  const banner = document.getElementById('bannerSyncIngresos');
+  if(!banner) return;
+  const pendientes = colaIngresos.length;
+  if(pendientes === 0){ banner.style.display = 'none'; return; }
+  banner.style.display = 'flex';
+  banner.innerHTML = `
+    <span style="flex:1;">⚠️ ${pendientes} movimiento${pendientes===1?'':'s'} de ingresos sin sincronizar con Sheets. Están guardados en el celular, solo falta enviarlos.</span>
+    <button onclick="reintentarSyncIngresosPendientes()" style="flex:none; border:1px solid #E3D4B4; background:var(--superficie); border-radius:8px; padding:5px 11px; font-size:11px; font-weight:650; color:#8B6516; touch-action:manipulation;">Reintentar</button>
+  `;
+}
+function reintentarSyncIngresosPendientes(){ procesarColaIngresos(); }
 
 let mesIngresosMostrado = new Date().getMonth();
 let anioIngresosMostrado = new Date().getFullYear();
@@ -4361,7 +4621,7 @@ async function guardarIngresoManual(){
   const nuevoIngresoManual = { id: generarId(), tipo:'manual', origenClave:null, fecha, montoBruto: monto, montoNeto: monto, medioPago: medioPagoManualSeleccionado, descripcion, creado: Date.now() };
   ingresos.push(nuevoIngresoManual);
   cerrarFichaIngreso(); renderizarVistaIngresos(); await guardarIngresosEnAlmacenamiento();
-  enviarAccionAgendaConReintentos('crear_ingreso_manual', { id_ingreso: nuevoIngresoManual.id, categoria_manual: 'manual', descripcion, monto_bruto: monto, monto_neto: monto, forma_pago: medioPagoManualSeleccionado, fecha_evento: fecha });
+  await encolarAccionIngreso('crear_ingreso_manual', { id_ingreso: nuevoIngresoManual.id, categoria_manual: 'manual', descripcion, monto_bruto: monto, monto_neto: monto, forma_pago: medioPagoManualSeleccionado, fecha_evento: fecha });
 }
 function abrirDetalleIngreso(id){
   const ing = ingresos.find(i => i.id === id); if(!ing) return;
@@ -4394,7 +4654,7 @@ async function confirmarEliminarIngreso(){
   // (manuales, boleta Entre Lazos, sueldo dependiente), así que no hay
   // ninguna sesión de Agenda que descuadrar. Sin este aviso, la fila
   // seguía viva en Sheets y reaparecía inflando el mes.
-  enviarAccionAgendaConReintentos('eliminar_ingreso', { id_ingreso: ingresoEnEdicionId });
+  await encolarAccionIngreso('eliminar_ingreso', { id_ingreso: ingresoEnEdicionId });
   ingresos = ingresos.filter(i => i.id !== ingresoEnEdicionId);
   cerrarFichaIngreso(); renderizarVistaIngresos(); await guardarIngresosEnAlmacenamiento();
 }
@@ -4920,7 +5180,7 @@ async function renderizarDashboard(){
   document.getElementById('dashGaste').textContent = textoMontoOculto(gasteEsteMes, vDashResumen);
   document.getElementById('dashDisponible').textContent = textoMontoOculto(disponible, vDashResumen);
 
-  const instanciasPendientes = obtenerInstanciasEnRango('2000-01-01', hoyISO()).filter(inst => inst.etiqueta === 'atenciones' && ['realizada_devengada','ausencia_devengada'].includes(inst.estadoSesion));
+  const instanciasPendientes = obtenerInstanciasEnRango(rangoAnalisisInicio(), hoyISO()).filter(inst => inst.etiqueta === 'atenciones' && ['realizada_devengada','ausencia_devengada'].includes(inst.estadoSesion));
   let totalPendiente = 0; const pacientesConDeuda = new Set();
   instanciasPendientes.forEach(inst => {
     const info = clasificarInstanciaIngreso(inst); if(!info) return;
@@ -4936,7 +5196,7 @@ async function renderizarDashboard(){
    14. INICIALIZACIÓN
    ============================================================ */
 async function iniciar(){
-  await Promise.all([cargarPacientes(), cargarConfiguracion(), cargarConsultasUnicas(), cargarEventosAgenda(), cargarIngresos(), cargarObjetivos(), cargarRegistrosGasto()]);
+  await Promise.all([cargarPacientes(), cargarConfiguracion(), cargarConsultasUnicas(), cargarEventosAgenda(), cargarIngresos(), cargarObjetivos(), cargarRegistrosGasto(), cargarClavesFacturadas(), cargarColaIngresos()]);
   // La configuración global (montos FONASA) se recupera ANTES que los
   // pacientes: cuando un paciente FONASA se trae desde Sheets, su monto
   // se toma de la configuración vigente. Si los pacientes se recuperaran
@@ -4950,6 +5210,10 @@ async function iniciar(){
   // tiene ninguno todavía, se intenta traer todo desde Sheets.
   if(ingresos.length === 0) await recuperarIngresosDesdeSheets();
   if(registrosGasto.length === 0) await recuperarGastosDesdeSheets();
+  // Las boletas se refrescan SIEMPRE, no solo cuando la lista de
+  // ingresos está vacía: es lo que evita volver a facturar una sesión
+  // que ya salió en una boleta emitida desde otro aparato.
+  await refrescarBoletasDesdeSheets();
   // El sueldo dependiente se actualiza acá (no solo al abrir la
   // pestaña Ingresos), para que el Dashboard nunca muestre un ingreso
   // desactualizado si todavía no se visitó esa pestaña en la sesión.
@@ -4992,6 +5256,8 @@ async function iniciar(){
   consultasUnicas.filter(c => (c.colaSync && c.colaSync.length > 0)).forEach(c => procesarColaEntidadAgenda(c, guardarConsultasEnAlmacenamiento));
   if(configuracion.colaSync && configuracion.colaSync.length > 0) procesarColaConfiguracion();
   objetivos.filter(o => (o.colaSync && o.colaSync.length > 0)).forEach(o => procesarColaObjetivo(o));
+  actualizarBannerSyncIngresos();
+  if(colaIngresos.length > 0) procesarColaIngresos();
   renderizarVistaMensual();
   iniciarModuloGastos();
   activarSwipeAgenda();
