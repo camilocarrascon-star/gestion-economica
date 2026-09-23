@@ -1125,7 +1125,7 @@ input{ font-family:inherit; }
     <button class="boton-secundario" id="botonRecuperarGastos" onclick="recuperarGastosManualmente()">Recuperar gastos desde Sheets</button>
     <div class="nota-campo" id="notaRecuperarGastos" style="margin-top:6px;"></div>
 
-    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.25 (22 sep 2026) · Fase 2: sincronización completa automática al abrir la app (reemplaza las recuperaciones sueltas)</div>
+    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;">v2.26 (23 sep 2026) · Fase 2: la pantalla ya no espera a la planilla para mostrar algo — pinta lo guardado y se actualiza sola al terminar de sincronizar</div>
   </div>
 </div>
 
@@ -5342,6 +5342,18 @@ async function sincronizarTodo(){
    ============================================================ */
 async function iniciar(){
   await Promise.all([cargarPacientes(), cargarConfiguracion(), cargarConsultasUnicas(), cargarEventosAgenda(), cargarIngresos(), cargarObjetivos(), cargarRegistrosGasto(), cargarClavesFacturadas(), cargarColaIngresos()]);
+
+  // Primer dibujo, con lo que ya hubiera guardado este teléfono de
+  // antes (puede estar un poco viejo). Esto evita que la pantalla se
+  // vea "pegada" mientras se espera a la planilla, que a veces
+  // demora bastante ahora que se pregunta todo junto. Apenas termine
+  // de sincronizar (más abajo), se vuelve a dibujar todo con lo más
+  // reciente, sin que el usuario tenga que hacer nada.
+  if(objetivos.length === 0) objetivos = objetivosPorDefecto();
+  renderizarListaPacientes();
+  renderizarListaGastos();
+  renderizarVistaMensual();
+
   // FASE 2: en vez de revisar módulo por módulo si está vacío para
   // decidir si recupera, ahora se sincroniza todo junto, siempre, en
   // un solo viaje a la planilla (ver sincronizarTodo más arriba).
