@@ -399,6 +399,30 @@ input{ font-family:inherit; }
 .segmentado.envolver{ flex-wrap:wrap; }
 .segmentado.envolver button{ flex:1 1 calc(50% - 4px); }
 
+/* --- Ficha de evento: botones pequeños para abrir Duración y Recurrencia --- */
+.fila-opciones-extra{ display:flex; gap:8px; margin:-2px 0 14px; }
+.boton-opcion-extra{
+  padding:6px 12px; border-radius:20px; background:var(--superficie);
+  border:1.5px dashed var(--borde); color:var(--texto-secundario);
+  font-size:11.5px; font-weight:700; font-family:'Quicksand',sans-serif; touch-action:manipulation;
+}
+
+/* --- Ficha de evento: estado de la sesión en dos pasos --- */
+:root{
+  --estado-realizada:#4F7A55;   /* verde */
+  --estado-ausentada:#A33B3B;   /* rojo */
+  --estado-adelantado:#C08A1E;  /* amarillo */
+}
+.estado-grupos{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+.boton-estado{
+  padding:10px 4px; border-radius:11px; border:1.5px solid var(--color-estado);
+  background:color-mix(in srgb, var(--color-estado) 9%, white); color:var(--color-estado);
+  font-size:12.5px; font-weight:700; font-family:'Quicksand',sans-serif; touch-action:manipulation;
+}
+.boton-estado.seleccionado{ background:var(--color-estado); color:#FFF6E8; }
+.estado-subopciones{ margin-top:8px; }
+.aviso-estado{ font-size:11px; font-weight:650; color:var(--estado-ausentada); margin-top:6px; }
+
 .nota-campo{
   font-size:11.5px; color:var(--texto-terciario); margin-top:6px; line-height:1.4;
 }
@@ -442,9 +466,11 @@ input{ font-family:inherit; }
    10. AGENDA
    ============================================================ */
 .agenda-encabezado{
-  flex:none; display:flex; align-items:center; gap:6px; padding-bottom:2px;
+  flex:none; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:6px; padding-bottom:2px;
 }
-.agenda-mes-nombre{ font-size:19px; font-weight:700; letter-spacing:-0.3px; color:var(--texto-principal); font-family:'Quicksand',sans-serif; line-height:1; }
+.agenda-titulo-bloque{ text-align:center; }
+.agenda-botones-encabezado{ display:flex; align-items:center; justify-content:flex-end; gap:6px; }
+.agenda-mes-nombre{ text-transform:capitalize; font-size:19px; font-weight:700; letter-spacing:-0.3px; color:var(--texto-principal); font-family:'Quicksand',sans-serif; line-height:1; }
 .agenda-anio{ font-size:10.5px; font-weight:600; color:var(--texto-secundario); margin-top:2px; font-family:'Quicksand',sans-serif; }
 .agenda-desliza{ font-size:9.5px; font-weight:600; color:var(--texto-cuaternario); font-family:'Quicksand',sans-serif; }
 .boton-hoy-agenda{
@@ -483,6 +509,45 @@ input{ font-family:inherit; }
 .chip-mes-seminarios{ background:color-mix(in srgb, var(--et-seminarios) 15%, white); color:#3D4750; }
 .chip-mas-mes{ font-size:8.5px; font-weight:650; color:var(--texto-terciario); padding:0 3px; }
 
+/* --- 10.1 Ajustes de la Agenda (medidas y colores que se tocan seguido) --- */
+:root{
+  --agenda-fondo-otro-mes:#EEE4D4;    /* fondo de los días del mes anterior y siguiente */
+  --agenda-linea-mes:#A58E70;         /* color de la línea que separa un mes del otro */
+  --agenda-grosor-linea-mes:2px;      /* grosor de esa línea */
+  --agenda-alto-hora:34px;            /* alto de cada hora en la semana abierta */
+  --agenda-linea-hora:#E2D6C3;        /* color de las líneas horizontales de cada hora */
+  --agenda-ancho-columna-horas:24px;  /* ancho de la columna de horas a la izquierda */
+  --agenda-opacidad-realizado:0.42;   /* qué tan tenue se ve un evento realizado (1 = normal) */
+  --agenda-color-seleccion:#4F6B5C;   /* color que marca el día seleccionado */
+  --agenda-fondo-seleccion:color-mix(in srgb, var(--agenda-color-seleccion) 16%, #FBF7EF); /* fondo del día seleccionado en la semana */
+}
+
+/* --- 10.2 Celdas de la vista de mes --- */
+.celda-mes{
+  border-top:1px solid var(--borde); padding:3px 2px 0; display:flex; flex-direction:column;
+  gap:2px; overflow:hidden; touch-action:manipulation; height:100%;
+}
+.celda-mes.otro-mes{ background:var(--agenda-fondo-otro-mes); }
+.celda-mes.seleccionada{ outline:2px solid var(--agenda-color-seleccion); outline-offset:-2px; border-radius:6px; }
+.numero-dia-mes-caja{ display:flex; justify-content:center; flex:none; }
+.numero-dia-mes{
+  min-width:19px; height:19px; padding:0 5px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11.5px; font-weight:600; color:var(--texto-principal);
+}
+.celda-mes.otro-mes .numero-dia-mes{ color:var(--texto-terciario); }
+.celda-mes.seleccionada .numero-dia-mes{ background:var(--agenda-color-seleccion); color:#FFF6E8; font-weight:700; }
+.celda-mes.hoy .numero-dia-mes{ background:var(--acento); color:#FFF6E8; font-weight:700; }
+/* Línea de cambio de mes: arriba de los días cuya semana anterior es de otro mes,
+   y a la izquierda del día 1 (cuando no cae lunes). Juntas forman una "escalera". */
+.celda-mes.borde-mes-arriba{ border-top:var(--agenda-grosor-linea-mes) solid var(--agenda-linea-mes); }
+.celda-mes.borde-mes-izquierda{ box-shadow:inset var(--agenda-grosor-linea-mes) 0 0 var(--agenda-linea-mes); }
+
+/* --- 10.3 Eventos realizados (se ven más tenues) --- */
+.chip-evento-mes.realizado,
+.chip-evento-semana.realizado,
+.chip-multidia-semana.realizado{ opacity:var(--agenda-opacidad-realizado); }
+
 /* Panel semanal: el alto y el fondo se aplican desde el JavaScript al
    abrir o cerrar la semana; acá solo viven los estilos de sus piezas. */
 .boton-cerrar-semana{
@@ -493,31 +558,94 @@ input{ font-family:inherit; }
 .panel-semana-titulo{ font-size:13px; font-weight:700; color:var(--texto-principal); font-family:'Quicksand',sans-serif; }
 .panel-semana-conteo{ font-size:10.5px; font-weight:600; color:var(--texto-terciario); font-family:'Quicksand',sans-serif; }
 
-.columna-semana{
-  display:flex; flex-direction:column; gap:2px; min-width:0; border-radius:7px;
-  padding:3px 2px 0; touch-action:manipulation;
+.grilla-semana{ flex:1; display:flex; flex-direction:column; padding:0 5px; min-height:0; touch-action:pan-y; }
+.semana-fila{
+  display:grid; grid-template-columns:var(--agenda-ancho-columna-horas) repeat(7, minmax(0,1fr)); column-gap:0;
 }
-.columna-semana.seleccionada{ background:var(--borde-suave); }
-.columna-semana-cabecera{ display:flex; flex-direction:column; align-items:center; gap:1px; padding-bottom:3px; }
+/* Eventos de varios días: primera franja dentro de las columnas, con el
+   mismo fondo de columna (otro mes, seleccionado, línea de mes). */
+.celda-todo-el-dia{ display:flex; flex-direction:column; gap:2px; min-width:0; padding:2px 1px 3px; }
+.celda-todo-el-dia.seleccionada{ background:var(--agenda-fondo-seleccion); }
+.celda-todo-el-dia.borde-mes-izquierda{ box-shadow:inset var(--agenda-grosor-linea-mes) 0 0 var(--agenda-linea-mes); }
+.semana-horas{ position:relative; }
+.semana-hora-etiqueta{
+  position:absolute; right:3px; transform:translateY(-50%);
+  font-size:7.5px; font-weight:700; color:var(--texto-terciario); font-family:'Quicksand',sans-serif;
+}
+.columna-semana{
+  position:relative; min-width:0; border-radius:0; touch-action:manipulation;
+  background-image:repeating-linear-gradient(to bottom, var(--agenda-linea-hora) 0 1px, transparent 1px var(--agenda-alto-hora));
+}
+.columna-semana.seleccionada{ background-color:var(--agenda-fondo-seleccion); }
+.columna-semana.borde-mes-izquierda,
+.columna-semana-cabecera.borde-mes-izquierda{ box-shadow:inset var(--agenda-grosor-linea-mes) 0 0 var(--agenda-linea-mes); }
+.columna-semana-cabecera{ display:flex; flex-direction:column; align-items:center; gap:1px; padding:3px 0; border-radius:7px 7px 0 0; touch-action:manipulation; }
+.columna-semana-cabecera.seleccionada{ background:var(--agenda-fondo-seleccion); }
+.columna-semana-cabecera.seleccionada .columna-semana-num{ background:var(--agenda-color-seleccion); color:#FFF6E8; }
+.columna-semana-cabecera.hoy .columna-semana-num{ background:var(--acento); color:#fff; }
 .columna-semana-dow{ font-size:8.5px; font-weight:700; letter-spacing:0.3px; color:var(--texto-terciario); font-family:'Quicksand',sans-serif; }
 .columna-semana-num{
   min-width:17px; height:17px; padding:0 4px; border-radius:9px;
   display:flex; align-items:center; justify-content:center;
   font-size:11px; font-weight:700; color:var(--texto-principal);
 }
-.columna-semana.hoy .columna-semana-num{ background:var(--acento); color:#fff; }
 .chip-evento-semana{
-  border-radius:4px; padding:3px 3px 4px; overflow:hidden; touch-action:manipulation;
+  position:absolute; border-radius:4px; padding:2px 3px; overflow:hidden; touch-action:manipulation;
+  box-shadow:0 0 0 1px #FBF7EF; /* fino borde claro para separar eventos pegados */
+}
+/* Escalera del cambio de mes dentro de la semana abierta: línea arriba de
+   los días del mes nuevo, línea abajo de los días del mes anterior, y la
+   vertical del día 1. Así se une con la vista de mes de arriba y de abajo. */
+.columna-semana-cabecera.borde-mes-arriba{ border-radius:0; box-shadow:inset 0 var(--agenda-grosor-linea-mes) 0 var(--agenda-linea-mes); }
+.columna-semana-cabecera.borde-mes-arriba.borde-mes-izquierda{
+  border-radius:7px 0 0 0;
+  box-shadow:inset var(--agenda-grosor-linea-mes) 0 0 var(--agenda-linea-mes), inset 0 var(--agenda-grosor-linea-mes) 0 var(--agenda-linea-mes);
+}
+.columna-semana.borde-mes-abajo{ box-shadow:inset 0 calc(-1 * var(--agenda-grosor-linea-mes)) 0 var(--agenda-linea-mes); }
+.columna-semana.borde-mes-abajo.borde-mes-izquierda{
+  box-shadow:inset var(--agenda-grosor-linea-mes) 0 0 var(--agenda-linea-mes), inset 0 calc(-1 * var(--agenda-grosor-linea-mes)) 0 var(--agenda-linea-mes);
+}
+
+/* --- 10.4 Dos toques en la semana: primer toque marca, segundo abre --- */
+.chip-evento-semana.elegido,
+.chip-multidia-semana.elegido{ outline:2px solid var(--agenda-color-seleccion); outline-offset:1px; z-index:3; }
+.ranura-nueva{
+  position:absolute; left:1px; right:1px; z-index:2; border-radius:4px;
+  border:1.5px dashed var(--agenda-color-seleccion);
+  background:color-mix(in srgb, var(--agenda-color-seleccion) 12%, transparent);
+  color:var(--agenda-color-seleccion); font-size:8.5px; font-weight:700;
+  display:flex; align-items:center; justify-content:center; touch-action:manipulation;
 }
 .chip-evento-semana .hora{ font-size:7.5px; font-weight:700; line-height:1; color:rgba(255,246,232,0.85); }
-.chip-evento-semana .titulo{ font-size:8.5px; font-weight:700; line-height:1.15; color:#FFF6E8; margin-top:1.5px; overflow-wrap:break-word; }
+.chip-evento-semana .titulo{ font-size:8.5px; font-weight:700; line-height:1.15; color:#FFF6E8; margin-top:1.5px; overflow-wrap:normal; word-break:normal; }
 .chip-mas-semana{ text-align:center; font-size:8px; font-weight:700; color:var(--texto-terciario); padding-top:2px; }
 .chip-multidia-semana{
-  border-radius:4px; padding:3px 4px; overflow:hidden; touch-action:manipulation;
-  font-size:8.5px; font-weight:700; line-height:1.2;
-  white-space:nowrap; text-overflow:ellipsis;
+  border-radius:4px; padding:2px 3px; overflow:hidden; touch-action:manipulation;
+  font-size:8.5px; font-weight:700; line-height:1.15; color:#FFF6E8;
+  height:calc(var(--agenda-alto-hora) - 1px); /* mismo alto que un evento de 1 hora */
+  box-shadow:0 0 0 1px #FBF7EF;
 }
 .sin-eventos-columna{ text-align:center; font-size:8px; font-weight:700; color:var(--texto-terciario); padding-top:6px; }
+
+/* --- Avisos propios de la app (reemplazan los recuadros grises del navegador) --- */
+/* Aviso flotante: aparece arriba de la pantalla unos segundos (fallas de guardado). */
+.aviso-flotante{
+  position:fixed; left:16px; right:16px; top:calc(env(safe-area-inset-top, 0px) + 10px); z-index:1000;
+  padding:12px 14px; border-radius:14px; background:#7A2626; color:#FFF6E8;
+  font-size:13px; font-weight:650; line-height:1.35; box-shadow:0 6px 18px rgba(51,41,31,0.25);
+  opacity:0; transform:translateY(-12px); pointer-events:none; transition:opacity .2s, transform .2s;
+}
+.aviso-flotante.visible{ opacity:1; transform:none; pointer-events:auto; }
+.aviso-formulario{
+  display:none; margin-bottom:10px; padding:10px 12px; border-radius:12px;
+  background:color-mix(in srgb, var(--estado-ausentada) 9%, white);
+  border:1.5px solid color-mix(in srgb, var(--estado-ausentada) 40%, white);
+  color:#7A2626; font-size:12.5px; font-weight:650; line-height:1.35;
+}
+.campo-con-error{
+  border-color:var(--estado-ausentada) !important; border-radius:12px;
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--estado-ausentada) 16%, transparent);
+}
 
 .grid-etiquetas{ display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
 .chip-etiqueta{
@@ -533,6 +661,12 @@ input{ font-family:inherit; }
   background: color-mix(in srgb, var(--chip-color, var(--acento)) 10%, white);
 }
 
+.fila-busqueda-paciente{ display:flex; gap:6px; align-items:stretch; }
+.fila-busqueda-paciente input{ flex:1; min-width:0; }
+.boton-desplegar-lista{
+  flex:none; width:44px; border-radius:12px; background:var(--superficie); border:1.5px solid var(--borde);
+  color:var(--texto-secundario); font-size:15px; touch-action:manipulation;
+}
 .lista-busqueda-paciente{ max-height:200px; overflow-y:auto; margin-bottom:6px; }
 .fila-paciente-busqueda{
   padding:11px 10px; border-radius:11px; background:var(--superficie);
@@ -826,14 +960,15 @@ input{ font-family:inherit; }
      ============================================================ -->
 <div class="contenedor" id="pantallaAgenda" style="display:none;">
   <div class="agenda-encabezado">
-    <div>
+    <div></div>
+    <div class="agenda-titulo-bloque">
       <div class="agenda-mes-nombre" id="tituloMes"></div>
       <div class="agenda-anio" id="agendaAnio"></div>
     </div>
-    <div style="flex:1"></div>
-    <span class="agenda-desliza">desliza ↔</span>
-    <button class="boton-hoy-agenda" onclick="irAHoyAgenda()">Hoy</button>
-    <button class="boton-icono" onclick="abrirConfiguracion()">⚙</button>
+    <div class="agenda-botones-encabezado">
+      <button class="boton-hoy-agenda" onclick="irAHoyAgenda()">Hoy</button>
+      <button class="boton-icono" onclick="abrirConfiguracion()">⚙</button>
+    </div>
   </div>
 
   <div id="bannerSyncAgenda" style="display:none; margin-bottom:6px; padding:9px 12px; border-radius:12px; background:#FBF3E2; border:1px solid #EBDCBC; font-size:11.5px; color:#8B6516; align-items:center; gap:8px;"></div>
@@ -852,7 +987,7 @@ input{ font-family:inherit; }
         <div style="flex:1"></div>
         <button class="boton-cerrar-semana" onclick="cerrarPanelSemana()">⌃</button>
       </div>
-      <div id="gridSemana" style="flex:1; display:grid; grid-template-columns:repeat(7,1fr); gap:2px; padding:0 5px 6px; min-height:0; touch-action:pan-y;"></div>
+      <div id="gridSemana" class="grilla-semana"></div>
     </div>
 
     <div id="gridDiasAbajo" style="display:grid; grid-template-columns:repeat(7,1fr); padding:0 4px; touch-action:pan-y;"></div>
@@ -920,6 +1055,7 @@ input{ font-family:inherit; }
     </div>
   </div>
 
+  <div class="aviso-formulario" id="avisoNuevoGasto" style="margin-top:8px;"></div>
   <button class="boton-guardar-gasto" id="gastoBotonGuardar" style="margin-top:8px;" onclick="guardarNuevoGasto()">Guardar gasto</button>
 
   <div style="margin-top:8px;">
@@ -1123,6 +1259,7 @@ input{ font-family:inherit; }
       <div class="nota-campo" id="notaMonto"></div>
     </div>
 
+<div class="aviso-formulario" id="avisoFichaPaciente"></div>
     <button class="boton-primario" onclick="guardarFicha()">Guardar</button>
     <button class="boton-secundario" onclick="cerrarFicha()">Cancelar</button>
 
@@ -1183,6 +1320,7 @@ input{ font-family:inherit; }
 
     <div class="nota-campo" style="margin-bottom:12px;">Cambiar estos valores no afecta registros ya guardados — solo aplica hacia adelante.</div>
 
+<div class="aviso-formulario" id="avisoConfiguracion"></div>
     <button class="boton-primario" onclick="guardarConfiguracion()">Guardar</button>
     <button class="boton-secundario" onclick="cerrarConfiguracion()">Cancelar</button>
 
@@ -1218,7 +1356,7 @@ input{ font-family:inherit; }
 <div class="fondo-modal" id="fondoModalEvento" onclick="cerrarModalSiFondo(event, 'fondoModalEvento', cerrarFichaEvento)">
   <div class="hoja-modal">
     <div class="encabezado-modal">
-      <h2 id="tituloFichaEvento">Nueva atención</h2>
+      <h2 id="tituloFichaEvento">Nuevo evento</h2>
       <button class="cerrar-modal" onclick="cerrarFichaEvento()">✕</button>
     </div>
 
@@ -1234,7 +1372,10 @@ input{ font-family:inherit; }
 
     <div class="campo-modal" id="campoBuscarPaciente" style="display:none;">
       <span class="etiqueta-campo">Paciente</span>
-      <input type="text" id="campoBusquedaPaciente" placeholder="Escribe para buscar…" oninput="manejarEscrituraBusquedaPaciente()">
+      <div class="fila-busqueda-paciente">
+        <input type="text" id="campoBusquedaPaciente" placeholder="Escribe para buscar…" oninput="manejarEscrituraBusquedaPaciente()">
+        <button class="boton-desplegar-lista" id="botonDesplegarPacientes" onclick="alternarListaPacientes()">▾</button>
+      </div>
       <div id="pacienteSeleccionadoConfirmacion"></div>
       <div class="lista-busqueda-paciente" id="listaBusquedaPaciente"></div>
     </div>
@@ -1266,9 +1407,14 @@ input{ font-family:inherit; }
       <div class="nota-campo" id="notaFechaEventoBloqueada" style="display:none;">Esta sesión pertenece a una serie que se repite. Para cambiar el día de esta sesión en particular, usa el botón "Mover esta sesión a otro día", más abajo. La fecha de inicio de toda la serie no se edita desde acá.</div>
     </div>
     <div class="campo-modal">
-      <span class="etiqueta-campo">Hora</span>
+      <span class="etiqueta-campo" id="etiquetaHoraEvento">Hora</span>
       <input type="text" class="campo-hora-texto" id="eventoHora" inputmode="numeric" placeholder="HH:MM" maxlength="5" oninput="formatearEntradaHora(this); actualizarResumenDuracion();">
       <div class="nota-campo">Formato 24 horas, por ejemplo 09:30 o 19:00.</div>
+    </div>
+
+    <div class="fila-opciones-extra" id="filaOpcionesExtraEvento">
+      <button class="boton-opcion-extra" id="botonAbrirDuracion" onclick="desplegarDuracionEvento()">+ Duración</button>
+      <button class="boton-opcion-extra" id="botonAbrirRecurrencia" onclick="desplegarRecurrenciaEvento()">+ Recurrencia</button>
     </div>
 
     <div class="campo-modal" id="campoDuracionToggle" style="display:none;">
@@ -1302,10 +1448,12 @@ input{ font-family:inherit; }
 
     <div class="campo-modal" id="campoEstadoSesionEvento" style="display:none;">
       <span class="etiqueta-campo">Estado de la sesión</span>
-      <div class="segmentado envolver" id="segmentadoEstadoSesionEvento"></div>
+      <div id="segmentadoEstadoSesionEvento"></div>
       <div class="nota-campo">Opcional. Puedes dejarlo sin marcar y actualizarlo después.</div>
     </div>
 
+    <div class="aviso-formulario" id="avisoFichaEvento"></div>
+    <button class="boton-secundario" id="botonRealizadoEvento" onclick="alternarRealizadoEvento()" style="display:none; margin-bottom:8px;">Marcar como realizado</button>
     <button class="boton-primario" onclick="guardarFichaEvento()">Guardar</button>
     <button class="boton-secundario" onclick="cerrarFichaEvento()">Cancelar</button>
 
@@ -1354,6 +1502,7 @@ input{ font-family:inherit; }
       <div class="nota-campo">Formato 24 horas, por ejemplo 09:30 o 19:00.</div>
     </div>
     <div class="nota-campo" style="margin-bottom:10px;">Esta fecha se quitará de la serie recurrente (igual que "Omitir esta fecha") y se creará como una atención suelta en el nuevo día. Las demás repeticiones de la serie no se ven afectadas.</div>
+    <div class="aviso-formulario" id="avisoMoverSesion"></div>
     <button class="boton-primario" onclick="guardarMoverSesion()">Mover sesión</button>
     <button class="boton-secundario" onclick="cerrarModalMoverSesion()">Cancelar</button>
   </div>
@@ -1390,6 +1539,7 @@ input{ font-family:inherit; }
       </div>
     </div>
 
+<div class="aviso-formulario" id="avisoIngresoManual"></div>
     <button class="boton-primario" id="botonGuardarIngresoManual" onclick="guardarIngresoManual()">Guardar</button>
     <button class="boton-secundario" onclick="cerrarFichaIngreso()">Cancelar</button>
 
@@ -1425,6 +1575,7 @@ input{ font-family:inherit; }
         <button type="button" class="boton-medio-pago" id="botonMedioTransferenciaConfirmar" style="flex:1;" onclick="elegirMedioPagoConfirmar('transferencia')">Transferencia</button>
       </div>
     </div>
+<div class="aviso-formulario" id="avisoConfirmarPago"></div>
     <button class="boton-primario" onclick="guardarConfirmarPago()">Guardar</button>
     <button class="boton-secundario" onclick="cerrarModalConfirmarPago()">Cancelar</button>
   </div>
@@ -1484,6 +1635,7 @@ input{ font-family:inherit; }
       <div id="listaTramosColchon"></div>
     </div>
 
+<div class="aviso-formulario" id="avisoFichaObjetivo"></div>
     <button class="boton-primario" onclick="guardarFichaObjetivo()">Guardar</button>
     <button class="boton-secundario" onclick="cerrarFichaObjetivo()">Cerrar</button>
 
@@ -1515,6 +1667,7 @@ input{ font-family:inherit; }
         <input type="text" id="objetivoAporteMonto" inputmode="numeric" placeholder="Monto" style="flex:1; padding:11px 12px; border-radius:11px; border:1px solid var(--borde); font-size:14px;">
         <button class="boton-medio-pago" style="padding:0 16px; border-radius:11px;" onclick="registrarAporteObjetivo()">Agregar</button>
       </div>
+      <div class="aviso-formulario" id="avisoAporteObjetivo" style="margin-top:8px;"></div>
       <div id="listaAportesObjetivo" style="margin-top:10px;"></div>
     </div>
   </div>
@@ -1532,6 +1685,7 @@ input{ font-family:inherit; }
     <div class="campo-modal">
       <div class="grid-pagos-gasto" id="gridMesesColchon"></div>
     </div>
+<div class="aviso-formulario" id="avisoMesesColchon"></div>
     <button class="boton-primario" onclick="guardarSelectorMesesColchon()">Guardar</button>
     <button class="boton-secundario" onclick="cerrarSelectorMesesColchon()">Cancelar</button>
   </div>
@@ -1590,10 +1744,13 @@ input{ font-family:inherit; }
       <input type="text" id="modalGastoDescripcion">
     </div>
 
+<div class="aviso-formulario" id="avisoEdicionGasto"></div>
     <button class="boton-primario" onclick="guardarEdicionGasto()">Guardar cambios</button>
     <button class="boton-secundario" onclick="cerrarModalGasto()">Cancelar</button>
   </div>
 </div>
+
+<div class="aviso-flotante" id="avisoFlotante" onclick="this.classList.remove('visible')"></div>
 
 <script>
 
@@ -1698,9 +1855,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.30';
-const VERSION_FECHA = '23 sep 2026';
-const VERSION_DESCRIPCION = 'Rediseño de menú inferior, teclado de Gastos, categorías y otros ajustes visuales';
+const VERSION_APP = '2.31';
+const VERSION_FECHA = '24 sep 2026';
+const VERSION_DESCRIPCION = 'Rediseño de la Agenda (semana por horas, realizado, línea de mes, ficha de evento) y avisos propios en toda la app';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -1809,27 +1966,27 @@ async function cargarPacientes(){
   pacientes.forEach(p => { p._procesando = false; }); // el bloqueo de sincronización es solo en memoria, nunca debe empezar "trabado"
 }
 async function guardarPacientesEnAlmacenamiento(){
-  try{ const r = await window.storage.set(CLAVE_PACIENTES, JSON.stringify(pacientes), false); if(!r) alert('No se pudo guardar el cambio.'); }catch(e){ alert('No se pudo guardar el cambio.'); }
+  try{ const r = await window.storage.set(CLAVE_PACIENTES, JSON.stringify(pacientes), false); if(!r) mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }catch(e){ mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }
 }
 async function cargarConsultasUnicas(){
   try{ const r = await window.storage.get(CLAVE_CONSULTAS, false); consultasUnicas = (r && r.value) ? JSON.parse(r.value) : []; }catch(e){ consultasUnicas = []; }
   consultasUnicas.forEach(c => { c._procesando = false; });
 }
 async function guardarConsultasEnAlmacenamiento(){
-  try{ const r = await window.storage.set(CLAVE_CONSULTAS, JSON.stringify(consultasUnicas), false); if(!r) alert('No se pudo guardar el cambio.'); }catch(e){ alert('No se pudo guardar el cambio.'); }
+  try{ const r = await window.storage.set(CLAVE_CONSULTAS, JSON.stringify(consultasUnicas), false); if(!r) mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }catch(e){ mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }
 }
 async function cargarEventosAgenda(){
   try{ const r = await window.storage.get(CLAVE_AGENDA, false); eventosAgenda = (r && r.value) ? JSON.parse(r.value) : []; }catch(e){ eventosAgenda = []; }
   eventosAgenda.forEach(e => { e._procesando = false; });
 }
 async function guardarEventosEnAlmacenamiento(){
-  try{ const r = await window.storage.set(CLAVE_AGENDA, JSON.stringify(eventosAgenda), false); if(!r) alert('No se pudo guardar el cambio.'); }catch(e){ alert('No se pudo guardar el cambio.'); }
+  try{ const r = await window.storage.set(CLAVE_AGENDA, JSON.stringify(eventosAgenda), false); if(!r) mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }catch(e){ mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }
 }
 async function cargarIngresos(){
   try{ const r = await window.storage.get(CLAVE_INGRESOS, false); ingresos = (r && r.value) ? JSON.parse(r.value) : []; }catch(e){ ingresos = []; }
 }
 async function guardarIngresosEnAlmacenamiento(){
-  try{ const r = await window.storage.set(CLAVE_INGRESOS, JSON.stringify(ingresos), false); if(!r) alert('No se pudo guardar el cambio.'); }catch(e){ alert('No se pudo guardar el cambio.'); }
+  try{ const r = await window.storage.set(CLAVE_INGRESOS, JSON.stringify(ingresos), false); if(!r) mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }catch(e){ mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }
 }
 // El tipo específico (particular, FONASA directo, Entre Lazos, sueldo
 // dependiente, manual) vive en categoria_manual. Si esa columna viene
@@ -1938,21 +2095,21 @@ async function cargarObjetivos(){
   objetivos.forEach(o => { o._procesando = false; }); // el bloqueo de sincronización es solo en memoria
 }
 async function guardarObjetivosEnAlmacenamiento(){
-  try{ const r = await window.storage.set(CLAVE_OBJETIVOS, JSON.stringify(objetivos), false); if(!r) alert('No se pudo guardar el cambio.'); }catch(e){ alert('No se pudo guardar el cambio.'); }
+  try{ const r = await window.storage.set(CLAVE_OBJETIVOS, JSON.stringify(objetivos), false); if(!r) mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }catch(e){ mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }
 }
 async function cargarConfiguracion(){
   try{ const r = await window.storage.get(CLAVE_CONFIG, false); if(r && r.value) configuracion = JSON.parse(r.value); }catch(e){ /* valores por defecto */ }
   configuracion._procesando = false; // el bloqueo de sincronización es solo en memoria, nunca debe empezar "trabado"
 }
 async function guardarConfiguracionEnAlmacenamiento(){
-  try{ const r = await window.storage.set(CLAVE_CONFIG, JSON.stringify(configuracion), false); if(!r) alert('No se pudo guardar la configuración.'); }catch(e){ alert('No se pudo guardar la configuración.'); }
+  try{ const r = await window.storage.set(CLAVE_CONFIG, JSON.stringify(configuracion), false); if(!r) mostrarAvisoFlotante('No se pudo guardar la configuración en este aparato.'); }catch(e){ mostrarAvisoFlotante('No se pudo guardar la configuración en este aparato.'); }
 }
 async function cargarRegistrosGasto(){
   try{ const r = await window.storage.get(CLAVE_GASTOS, false); registrosGasto = (r && r.value) ? JSON.parse(r.value) : []; }catch(e){ registrosGasto = []; }
   registrosGasto.forEach(r => { r._procesando = false; });
 }
 async function guardarGastosEnAlmacenamiento(){
-  try{ const r = await window.storage.set(CLAVE_GASTOS, JSON.stringify(registrosGasto), false); if(!r) alert('No se pudo guardar el cambio.'); }catch(e){ alert('No se pudo guardar el cambio.'); }
+  try{ const r = await window.storage.set(CLAVE_GASTOS, JSON.stringify(registrosGasto), false); if(!r) mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }catch(e){ mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }
 }
 function mapearGastoDesdeServidor(fila){
   return {
@@ -1987,8 +2144,56 @@ const NOMBRES_DIA = ['domingo','lunes','martes','miércoles','jueves','viernes',
 
 function formatearEntradaHora(inputEl){
   let d = inputEl.value.replace(/[^\d]/g,'').slice(0,4);
+  // No se aceptan horas imposibles: un primer dígito de 3 a 9 se toma
+  // como 03..09; después de un 2 solo se acepta 0-3; los minutos no
+  // pueden empezar con más de 5. El dígito inválido simplemente no entra.
+  if(d.length >= 1 && d[0] > '2') d = '0' + d;
+  if(d.length >= 2 && d[0] === '2' && d[1] > '3') d = d.slice(0,1) + d.slice(2);
+  if(d.length >= 3 && d[2] > '5') d = d.slice(0,2) + d.slice(3);
+  d = d.slice(0,4);
   inputEl.value = d.length >= 3 ? d.slice(0,2) + ':' + d.slice(2) : d;
 }
+// Aviso propio de la app: muestra el mensaje en el recuadro del
+// formulario, marca en rojo el campo que falta y lo lleva a la vista.
+// La marca roja se quita sola apenas se escribe en ese campo.
+// idCampo puede ser un solo campo o una lista de campos.
+function mostrarAvisoFormulario(idAviso, texto, idCampo){
+  document.querySelectorAll('.campo-con-error').forEach(el => el.classList.remove('campo-con-error'));
+  const aviso = document.getElementById(idAviso);
+  aviso.textContent = texto; aviso.style.display = 'block';
+  const campos = (Array.isArray(idCampo) ? idCampo : [idCampo]).map(id => id && document.getElementById(id)).filter(Boolean);
+  campos.forEach(c => c.classList.add('campo-con-error'));
+  (campos[0] || aviso).scrollIntoView({ block:'center', behavior:'smooth' });
+}
+// Junta varias cosas faltantes en una sola frase: "la hora y el paciente".
+function unirFaltantes(lista){
+  if(lista.length <= 1) return lista.join('');
+  return lista.slice(0,-1).join(', ') + ' y ' + lista[lista.length-1];
+}
+function ocultarAvisoFormulario(idAviso){
+  const aviso = document.getElementById(idAviso);
+  if(aviso){ aviso.style.display = 'none'; aviso.textContent = ''; }
+  document.querySelectorAll('.campo-con-error').forEach(el => el.classList.remove('campo-con-error'));
+}
+// Aviso flotante (para cosas que no son de un formulario, como una
+// falla al guardar en el teléfono). Se va solo a los 5 segundos o al tocarlo.
+let temporizadorAvisoFlotante = null;
+function mostrarAvisoFlotante(texto){
+  const el = document.getElementById('avisoFlotante'); if(!el) return;
+  el.textContent = texto; el.classList.add('visible');
+  clearTimeout(temporizadorAvisoFlotante);
+  temporizadorAvisoFlotante = setTimeout(() => el.classList.remove('visible'), 5000);
+}
+// Al cerrar cualquier ventana, se limpian los avisos que tenía adentro,
+// para que no aparezcan viejos la próxima vez que se abra.
+new MutationObserver(cambios => cambios.forEach(c => {
+  const modal = c.target;
+  if(modal.classList.contains('fondo-modal') && !modal.classList.contains('abierto')) modal.querySelectorAll('.aviso-formulario').forEach(a => ocultarAvisoFormulario(a.id));
+})).observe(document.body, { subtree:true, attributes:true, attributeFilter:['class'] });
+
+document.addEventListener('input', e => { if(e.target && e.target.classList) e.target.classList.remove('campo-con-error'); });
+document.addEventListener('click', e => { const c = e.target && e.target.closest && e.target.closest('.campo-con-error'); if(c) c.classList.remove('campo-con-error'); });
+
 function horaEsValida(h){ return /^([01]\d|2[0-3]):[0-5]\d$/.test(h || ''); }
 function escaparHTML(t){ const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
 
@@ -2168,13 +2373,14 @@ function abrirFichaEdicion(id){
 }
 async function guardarFicha(){
   const nombre = document.getElementById('campoNombre').value.trim();
-  if(!nombre){ alert('Ingresa el nombre completo del paciente.'); return; }
-  if(!canalSeleccionado || !tipoPagoSeleccionado){ alert('Selecciona canal de atención y tipo de pago.'); return; }
+  ocultarAvisoFormulario('avisoFichaPaciente');
+  if(!nombre){ mostrarAvisoFormulario('avisoFichaPaciente', 'Falta el nombre y apellido del paciente.', 'campoNombre'); return; }
+  if(!canalSeleccionado || !tipoPagoSeleccionado){ mostrarAvisoFormulario('avisoFichaPaciente', 'Falta elegir el canal de atención y el tipo de pago.', ['segmentadoCanal','segmentadoTipoPago']); return; }
   let monto;
   if(tipoPagoSeleccionado === 'fonasa') monto = obtenerMontoFonasaSegunCanal(canalSeleccionado);
   else{
     monto = limpiarMontoTexto(document.getElementById('campoMonto').value);
-    if(monto === null || monto <= 0){ alert('Ingresa un monto habitual válido.'); return; }
+    if(monto === null || monto <= 0){ mostrarAvisoFormulario('avisoFichaPaciente', 'Falta el monto habitual de la sesión.', 'campoMonto'); return; }
   }
 
   let pacienteGuardado;
@@ -2389,10 +2595,11 @@ async function guardarConfiguracion(){
   const comisionEL = parseFloat(document.getElementById('configComisionEL').value.replace(',','.'));
   const sueldoDependiente = limpiarMontoTexto(document.getElementById('configSueldoDependiente').value) || 0;
 
-  if(montoFonasa === null || montoFonasa <= 0){ alert('Ingresa un monto FONASA directo válido.'); return; }
-  if(montoFonasaEL === null || montoFonasaEL <= 0){ alert('Ingresa un monto FONASA Entre Lazos válido.'); return; }
-  if(isNaN(impuesto) || impuesto < 0 || impuesto > 100){ alert('Ingresa un porcentaje de impuesto válido.'); return; }
-  if(isNaN(comisionEL) || comisionEL < 0 || comisionEL > 100){ alert('Ingresa un porcentaje de comisión Entre Lazos válido.'); return; }
+  ocultarAvisoFormulario('avisoConfiguracion');
+  if(montoFonasa === null || montoFonasa <= 0){ mostrarAvisoFormulario('avisoConfiguracion', 'Falta el monto FONASA directo.', 'configMontoFonasa'); return; }
+  if(montoFonasaEL === null || montoFonasaEL <= 0){ mostrarAvisoFormulario('avisoConfiguracion', 'Falta el monto FONASA Entre Lazos.', 'configMontoFonasaEL'); return; }
+  if(isNaN(impuesto) || impuesto < 0 || impuesto > 100){ mostrarAvisoFormulario('avisoConfiguracion', 'El porcentaje de impuesto debe ser un número entre 0 y 100.', 'configImpuesto'); return; }
+  if(isNaN(comisionEL) || comisionEL < 0 || comisionEL > 100){ mostrarAvisoFormulario('avisoConfiguracion', 'La comisión de Entre Lazos debe ser un número entre 0 y 100.', 'configComisionEL'); return; }
 
   const hoy = hoyISO();
   const cambios = [];
@@ -2754,7 +2961,7 @@ function mapearEventoDesdeServidor(fila){
     nombre: esAtencionConPaciente ? null : (fila.nombre_temporal || ''),
     pacienteId: esAtencionConPaciente ? fila.id_paciente : null,
     fecha: fila.fecha_evento,
-    hora: fila.hora_inicio || '00:00',
+    hora: fila.hora_inicio || '', // vacío = evento sin hora (permitido fuera de Atenciones)
     recurrencia, diaSemana, semanaDelMes,
     // Parte A (v2.3): fechas_omitidas siempre se guardó bien en la
     // planilla pero nunca se leía de vuelta. Viene como texto separado
@@ -2854,7 +3061,7 @@ function obtenerInstanciasEnRango(inicioRangoISO, finRangoISO){
     generarOcurrencias(evento, inicioRangoISO, finRangoISO).forEach(fechaOcurrencia => {
       instancias.push({
         tipoInstancia:'evento', eventoId: evento.id, etiqueta: evento.etiqueta,
-        nombre: obtenerNombreEvento(evento), fecha: fechaOcurrencia, hora: evento.hora || '00:00',
+        nombre: obtenerNombreEvento(evento), fecha: fechaOcurrencia, hora: evento.hora || '00:00', sinHora: !evento.hora,
         estadoSesion: obtenerEstadoResuelto(evento, fechaOcurrencia), esRecurrente: evento.recurrencia !== 'ninguna'
       });
     });
@@ -2916,7 +3123,6 @@ function renderizarVistaMensual(){
   finGrilla.setDate(finGrilla.getDate() + ((diaSemanaFin === 0) ? 0 : 7 - diaSemanaFin));
 
   const hoy = hoyISO();
-  const instancias = obtenerInstanciasEnRango(formatoISO(inicioGrilla), formatoISO(finGrilla));
 
   // Construir todos los días de la grilla (42 celdas)
   const todosDias = [];
@@ -2954,15 +3160,31 @@ function renderizarVistaMensual(){
     diasAbajo = [];
   }
 
+  // Los eventos se buscan en TODO el rango que se ve en pantalla. Con
+  // una semana abierta, las filas de arriba y abajo pueden caer en el
+  // mes anterior o siguiente, fuera de la grilla del mes: antes se
+  // buscaban solo dentro del mes y esas filas salían vacías.
+  const primerDiaVisible = semanaAbierta ? diasArriba[0] : inicioGrilla;
+  const ultimoDiaVisible = semanaAbierta ? diasAbajo[diasAbajo.length-1] : finGrilla;
+  const instancias = obtenerInstanciasEnRango(formatoISO(primerDiaVisible), formatoISO(ultimoDiaVisible));
+
   const ALTO_BARRA = 17; // px por barra multi-día en la banda de la semana
 
   // Función para crear celda. numBarrasSemana reserva espacio vertical
   // para la banda de barras absolutas de esa fila de semana.
+  const semanaAbiertaMezclaMeses = semanaAbierta && (() => { const f = new Date(inicioSemSel); f.setDate(f.getDate()+6); return f.getMonth() !== inicioSemSel.getMonth(); })();
+  const primeraFilaBajoSemana = new Set(semanaAbiertaMezclaMeses ? diasAbajo.slice(0,7).map(formatoISO) : []);
   const crearCelda = (fecha, numBarrasSemana) => {
     const fechaStr = formatoISO(fecha);
     const dentroDelMes = fecha.getMonth() === mesMostrado;
     const celda = document.createElement('div');
-    celda.style.cssText = `border-top:1px solid var(--borde); padding:3px 2px 0; display:flex; flex-direction:column; gap:2px; overflow:hidden; touch-action:manipulation; height:100%;`;
+    celda.className = 'celda-mes';
+    if(!dentroDelMes) celda.classList.add('otro-mes');
+    if(fechaStr === fechaColumnaSeleccionada) celda.classList.add('seleccionada');
+    // La fila justo debajo de la semana abierta no dibuja su línea de
+    // arriba: esa línea ya la dibuja el borde inferior de la semana.
+    if(empiezaSemanaDeMesNuevo(fecha) && !primeraFilaBajoSemana.has(fechaStr)) celda.classList.add('borde-mes-arriba');
+    if(esPrimerDiaDeMesNoLunes(fecha)) celda.classList.add('borde-mes-izquierda');
 
     // Los eventos multi-día se dibujan como barras absolutas sobre la fila
     // de semana (no aquí). Solo se excluyen de los chips normales.
@@ -2976,13 +3198,9 @@ function renderizarVistaMensual(){
 
     const esHoy = fechaStr === hoy;
     const esSeleccionado = fechaStr === fechaColumnaSeleccionada;
-    const numBg = esHoy ? 'var(--acento)' : esSeleccionado ? '#E5DACA' : 'transparent';
-    const numColor = esHoy ? '#FFF6E8' : dentroDelMes ? 'var(--texto-principal)' : 'var(--texto-cuaternario)';
-    const numWeight = esHoy || esSeleccionado ? '700' : '600';
-    const celdaBg = esSeleccionado ? '#F1EAE0' : 'transparent';
+    if(esHoy) celda.classList.add('hoy');
 
-    celda.style.background = celdaBg;
-    celda.innerHTML = `<div style="display:flex; justify-content:center; flex:none;"><div style="min-width:19px; height:19px; padding:0 5px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:11.5px; font-weight:${numWeight}; color:${numColor}; background:${numBg};">${fecha.getDate()}</div></div>`;
+    celda.innerHTML = `<div class="numero-dia-mes-caja"><div class="numero-dia-mes">${fecha.getDate()}</div></div>`;
 
     // Espaciador que reserva el alto de la banda de barras de esta semana
     if(numBarrasSemana > 0){
@@ -2993,7 +3211,7 @@ function renderizarVistaMensual(){
     const restantes = Math.max(0, limite - numBarrasSemana);
     let chipsHTML = '';
     delDia.slice(0, restantes).forEach(inst => {
-      chipsHTML += `<div class="chip-evento-mes chip-mes-${inst.etiqueta}" style="${!dentroDelMes ? 'opacity:0.55' : ''}">${escaparHTML(inst.nombre)}</div>`;
+      chipsHTML += `<div class="chip-evento-mes chip-mes-${inst.etiqueta}${instanciaEstaRealizada(inst) ? ' realizado' : ''}">${escaparHTML(inst.nombre)}</div>`;
     });
     const ocultos = Math.max(0, delDia.length - restantes);
     if(ocultos > 0) chipsHTML += `<div class="chip-mas-mes">+${ocultos} más</div>`;
@@ -3036,21 +3254,26 @@ function renderizarVistaMensual(){
     }));
 
     // Celdas
-    diasSemana.forEach(fecha => fila.appendChild(crearCelda(fecha, barras.length)));
+    const celdasFila = diasSemana.map(fecha => crearCelda(fecha, barras.length));
+    celdasFila.forEach(c => fila.appendChild(c));
 
     // Barras absolutas continuas (sobre el padding de las celdas)
     barras.forEach((b, idx) => {
       const span = b.colFin - b.colInicio + 1;
       const bar = document.createElement('div');
-      bar.className = `chip-evento-mes chip-mes-${b.ev.etiqueta}`;
+      bar.className = `chip-evento-mes chip-mes-${b.ev.etiqueta}${b.ev.estadoSesion === 'realizado' ? ' realizado' : ''}`;
       bar.textContent = b.ev.nombre || '(sin nombre)';
       bar.style.cssText = `position:absolute; z-index:2; top:${25 + idx * ALTO_BARRA}px;` +
         ` left:calc(${b.colInicio} * 100% / 7 + 2px);` +
         ` width:calc(${span} * 100% / 7 - 4px);` +
         ` height:${ALTO_BARRA - 2}px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; cursor:pointer;`;
+      // Igual que los demás eventos del mes: el primer toque solo
+      // selecciona el día tocado (abre la semana); se edita desde ahí.
       bar.onclick = (evento) => {
         evento.stopPropagation();
-        abrirFichaEventoEdicion({ tipoInstancia:'evento', eventoId: b.ev.id, fecha: b.ev.fecha, etiqueta: b.ev.etiqueta, estadoSesion: b.ev.estadoSesion || null, esRecurrente:false });
+        const r = fila.getBoundingClientRect();
+        const col = Math.min(6, Math.max(0, Math.floor((evento.clientX - r.left) / r.width * 7)));
+        celdasFila[col].onclick();
       };
       fila.appendChild(bar);
     });
@@ -3111,6 +3334,9 @@ function renderizarPanelSemana(){
 
   const grid = document.getElementById('gridSemana');
   grid.innerHTML = '';
+
+  // Los 7 días de la semana, con sus eventos normales y de varios días.
+  const dias = [];
   let cursor = new Date(inicioSemanaMostrada);
   for(let i=0;i<7;i++){
     const fechaStr = formatoISO(cursor);
@@ -3119,57 +3345,251 @@ function renderizarPanelSemana(){
     const delDia = instancias
       .filter(x => x.fecha === fechaStr)
       .filter(x => !(x.tipoInstancia === 'evento' && idsMultidia.has(x.eventoId)))
-      .sort((a,b) => a.hora.localeCompare(b.hora));
-    const columna = document.createElement('div');
-    columna.className = 'columna-semana' + (fechaStr === hoy ? ' hoy' : '') + (fechaStr === fechaColumnaSeleccionada ? ' seleccionada' : '');
-    columna.onclick = () => { fechaColumnaSeleccionada = fechaStr; renderizarPanelSemana(); };
-
-    const cabecera = document.createElement('div');
-    cabecera.className = 'columna-semana-cabecera';
-    cabecera.innerHTML = `<span class="columna-semana-dow">${NOMBRES_DIA[cursor.getDay()].slice(0,3)}</span><span class="columna-semana-num">${cursor.getDate()}</span>`;
-    columna.appendChild(cabecera);
-
-    if(delDia.length === 0 && multidiaHoy.length === 0){
-      const vacio = document.createElement('div');
-      vacio.className = 'sin-eventos-columna';
-      vacio.textContent = '—';
-      columna.appendChild(vacio);
-    }else{
-      // Eventos multi-día primero, con el mismo estilo de barra (tint +
-      // texto oscuro) que en la vista mensual.
-      multidiaHoy.forEach(ev => {
-        const bar = document.createElement('div');
-        bar.className = `chip-multidia-semana chip-mes-${ev.etiqueta}`;
-        bar.textContent = ev.nombre || '(sin nombre)';
-        bar.onclick = (evento) => {
-          evento.stopPropagation();
-          abrirFichaEventoEdicion({ tipoInstancia:'evento', eventoId: ev.id, fecha: ev.fecha, etiqueta: ev.etiqueta, estadoSesion: ev.estadoSesion || null, esRecurrente:false });
-        };
-        columna.appendChild(bar);
-      });
-
-      const espaciosRestantes = Math.max(0, 6 - multidiaHoy.length);
-      delDia.slice(0, espaciosRestantes).forEach(inst => {
-        const info = obtenerEtiquetaInfo(inst.etiqueta);
-        const chip = document.createElement('div');
-        chip.className = 'chip-evento-semana';
-        chip.style.background = info.color;
-        chip.innerHTML = `<div class="hora">${inst.hora}</div><div class="titulo">${escaparHTML(inst.nombre)}</div>`;
-        chip.onclick = (evento) => { evento.stopPropagation(); abrirFichaEventoEdicion(inst); };
-        columna.appendChild(chip);
-      });
-      const totalEventosDia = multidiaHoy.length + delDia.length;
-      const totalMostrado = multidiaHoy.length + Math.min(delDia.length, espaciosRestantes);
-      if(totalEventosDia > totalMostrado){
-        const mas = document.createElement('div');
-        mas.className = 'chip-mas-semana';
-        mas.textContent = `+${totalEventosDia - totalMostrado}`;
-        columna.appendChild(mas);
-      }
-    }
-    grid.appendChild(columna);
+      .map(inst => { const r = rangoMinutosInstancia(inst); return Object.assign({}, inst, { inicioMin: r.inicio, finMin: r.fin }); });
+    const sinHora = delDia.filter(x => x.sinHora);
+    const conHora = delDia.filter(x => !x.sinHora);
+    dias.push({ fecha: new Date(cursor), fechaStr, multidiaHoy, sinHora, delDia: repartirEventosEnCarriles(conHora) });
     cursor.setDate(cursor.getDate()+1);
   }
+
+  // Rango de horas visible: desde la primera hasta la última hora con
+  // eventos en la semana (si no hay ninguno, de 9 a 19).
+  const todos = dias.flatMap(d => d.delDia);
+  let horaInicio = 9, horaFin = 19;
+  if(todos.length){
+    horaInicio = Math.floor(Math.min(...todos.map(e => e.inicioMin)) / 60);
+    horaFin = Math.min(24, Math.ceil(Math.max(...todos.map(e => e.finMin)) / 60));
+    if(horaFin - horaInicio < 3) horaFin = Math.min(24, horaInicio + 3);
+  }
+  const altoHora = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--agenda-alto-hora')) || 34;
+  const altoTotal = (horaFin - horaInicio) * altoHora;
+
+  // La escalera del cambio de mes solo se dibuja en la semana que
+  // realmente tiene días de dos meses.
+  const semanaMezclaMeses = dias[0].fecha.getMonth() !== dias[6].fecha.getMonth();
+  const claseDia = (d) => {
+    let c = '';
+    if(d.fechaStr === hoy) c += ' hoy';
+    if(d.fechaStr === fechaColumnaSeleccionada) c += ' seleccionada';
+    if(esPrimerDiaDeMesNoLunes(d.fecha)) c += ' borde-mes-izquierda';
+    if(semanaMezclaMeses && empiezaSemanaDeMesNuevo(d.fecha)) c += ' borde-mes-arriba';
+    if(semanaMezclaMeses && terminaSemanaDeMes(d.fecha)) c += ' borde-mes-abajo';
+    return c;
+  };
+  const seleccionar = (d) => () => { fechaColumnaSeleccionada = d.fechaStr; eventoElegidoSemana = null; ranuraElegidaSemana = null; renderizarPanelSemana(); };
+  // Primer toque en un evento: lo marca (y selecciona su día). Segundo
+  // toque en el mismo evento: abre la ficha para editarlo.
+  const tocarEvento = (clave, fechaDia, abrir) => (evento) => {
+    evento.stopPropagation();
+    if(eventoElegidoSemana === clave){ eventoElegidoSemana = null; abrir(); return; }
+    eventoElegidoSemana = clave; ranuraElegidaSemana = null; fechaColumnaSeleccionada = fechaDia;
+    renderizarPanelSemana();
+  };
+
+  // Fila 1: cabeceras de los días
+  const filaCab = document.createElement('div');
+  filaCab.className = 'semana-fila';
+  filaCab.appendChild(document.createElement('div'));
+  dias.forEach(d => {
+    const cab = document.createElement('div');
+    cab.className = 'columna-semana-cabecera' + claseDia(d);
+    cab.innerHTML = `<span class="columna-semana-dow">${NOMBRES_DIA[d.fecha.getDay()].slice(0,3)}</span><span class="columna-semana-num">${d.fecha.getDate()}</span>`;
+    cab.onclick = seleccionar(d);
+    filaCab.appendChild(cab);
+  });
+  grid.appendChild(filaCab);
+
+  // Fila 2 (solo si hay): eventos de varios días, arriba de las horas
+  if(dias.some(d => d.multidiaHoy.length || d.sinHora.length)){
+    const filaTodo = document.createElement('div');
+    filaTodo.className = 'semana-fila';
+    filaTodo.appendChild(document.createElement('div'));
+    dias.forEach(d => {
+      const celda = document.createElement('div');
+      celda.className = 'celda-todo-el-dia' + claseDia(d);
+      celda.onclick = seleccionar(d);
+      d.multidiaHoy.forEach(ev => {
+        const bar = document.createElement('div');
+        bar.className = 'chip-multidia-semana' + (ev.estadoSesion === 'realizado' ? ' realizado' : '');
+        bar.style.background = obtenerEtiquetaInfo(ev.etiqueta).color;
+        bar.textContent = ev.nombre || '(sin nombre)';
+        const claveBar = ev.id + '|' + d.fechaStr;
+        if(eventoElegidoSemana === claveBar) bar.classList.add('elegido');
+        bar.onclick = tocarEvento(claveBar, d.fechaStr, () =>
+          abrirFichaEventoEdicion({ tipoInstancia:'evento', eventoId: ev.id, fecha: ev.fecha, etiqueta: ev.etiqueta, estadoSesion: ev.estadoSesion || null, esRecurrente:false }));
+        celda.appendChild(bar);
+      });
+      d.sinHora.forEach(inst => {
+        const bar = document.createElement('div');
+        bar.className = 'chip-multidia-semana' + (instanciaEstaRealizada(inst) ? ' realizado' : '');
+        bar.style.background = obtenerEtiquetaInfo(inst.etiqueta).color;
+        bar.textContent = inst.nombre || '(sin nombre)';
+        const clave = inst.eventoId + '|' + inst.fecha;
+        if(eventoElegidoSemana === clave) bar.classList.add('elegido');
+        bar.onclick = tocarEvento(clave, inst.fecha, () => abrirFichaEventoEdicion(inst));
+        celda.appendChild(bar);
+      });
+      filaTodo.appendChild(celda);
+    });
+    grid.appendChild(filaTodo);
+  }
+
+  // Fila 3: la grilla de horas
+  const cuerpo = document.createElement('div');
+  cuerpo.className = 'semana-fila';
+  const horas = document.createElement('div');
+  horas.className = 'semana-horas';
+  horas.style.height = altoTotal + 'px';
+  for(let h = horaInicio + 1; h < horaFin; h++){
+    const et = document.createElement('div');
+    et.className = 'semana-hora-etiqueta';
+    et.style.top = ((h - horaInicio) * altoHora) + 'px';
+    et.textContent = h + ':00';
+    horas.appendChild(et);
+  }
+  cuerpo.appendChild(horas);
+
+  dias.forEach(d => {
+    const columna = document.createElement('div');
+    columna.className = 'columna-semana' + claseDia(d);
+    columna.style.height = altoTotal + 'px';
+    // Toque en espacio vacío: el primero marca esa hora ("+ 18:00"), el
+    // segundo en la misma marca abre la ficha de evento nuevo, igual
+    // que el botón "+", con el día y la hora ya puestos.
+    columna.onclick = (evento) => {
+      const y = evento.clientY - columna.getBoundingClientRect().top;
+      const hora = Math.min(horaFin - 1, Math.max(horaInicio, horaInicio + Math.floor(y / altoHora)));
+      eventoElegidoSemana = null;
+      ranuraElegidaSemana = { fecha: d.fechaStr, hora };
+      fechaColumnaSeleccionada = d.fechaStr;
+      renderizarPanelSemana();
+    };
+    if(ranuraElegidaSemana && ranuraElegidaSemana.fecha === d.fechaStr){
+      const r = ranuraElegidaSemana;
+      const ranura = document.createElement('div');
+      ranura.className = 'ranura-nueva';
+      ranura.style.top = ((r.hora - horaInicio) * altoHora) + 'px';
+      ranura.style.height = (altoHora - 1) + 'px';
+      ranura.textContent = '+ ' + r.hora + ':00';
+      ranura.onclick = (evento) => {
+        evento.stopPropagation();
+        ranuraElegidaSemana = null;
+        abrirFichaEventoNueva();
+        document.getElementById('eventoHora').value = String(r.hora).padStart(2,'0') + ':00';
+        renderizarPanelSemana();
+      };
+      columna.appendChild(ranura);
+    }
+    d.delDia.forEach(inst => {
+      const info = obtenerEtiquetaInfo(inst.etiqueta);
+      const chip = document.createElement('div');
+      chip.className = 'chip-evento-semana' + (instanciaEstaRealizada(inst) ? ' realizado' : '');
+      chip.style.background = info.color;
+      chip.style.top = ((inst.inicioMin - horaInicio*60) / 60 * altoHora) + 'px';
+      chip.style.height = Math.max(14, (inst.finMin - inst.inicioMin) / 60 * altoHora - 1) + 'px';
+      chip.style.left = `calc(${inst.carril / inst.totalCarriles * 100}% + 1px)`;
+      chip.style.width = `calc(${100 / inst.totalCarriles}% - 2px)`;
+      chip.innerHTML = `<div class="titulo">${escaparHTML(inst.nombre)}</div>`;
+      const claveChip = (inst.eventoId || inst.consultaId) + '|' + inst.fecha;
+      if(eventoElegidoSemana === claveChip) chip.classList.add('elegido');
+      chip.onclick = tocarEvento(claveChip, inst.fecha, () => abrirFichaEventoEdicion(inst));
+      columna.appendChild(chip);
+    });
+    cuerpo.appendChild(columna);
+  });
+  grid.appendChild(cuerpo);
+}
+
+// Minuto de inicio y de término de una instancia. Si el evento tiene
+// hora de término el mismo día, se usa; si no, se asume 1 hora.
+// Qué evento o qué hora vacía quedó marcada con el primer toque.
+let eventoElegidoSemana = null;
+let ranuraElegidaSemana = null;
+
+function rangoMinutosInstancia(inst){
+  const aMin = (hhmm) => { const [h,m] = (hhmm || '00:00').split(':').map(Number); return h*60 + (m||0); };
+  const inicio = aMin(inst.hora);
+  let fin = inicio + 60;
+  if(inst.tipoInstancia === 'evento'){
+    const ev = eventosAgenda.find(e => e.id === inst.eventoId);
+    if(ev && ev.hasDuration && ev.endTime && (!ev.endDate || ev.endDate === ev.fecha)){
+      const f = aMin(ev.endTime); if(f > inicio) fin = f;
+    }
+  }
+  return { inicio, fin: Math.min(fin, 24*60) };
+}
+
+// Cuando dos eventos se superponen en la misma hora, se ponen lado a
+// lado: cada uno recibe un "carril" y el total de carriles de su grupo.
+function repartirEventosEnCarriles(eventos){
+  const orden = eventos.slice().sort((a,b) => a.inicioMin - b.inicioMin || b.finMin - a.finMin);
+  let grupo = [], finesCarril = [], finGrupo = -1;
+  const cerrarGrupo = () => { grupo.forEach(e => e.totalCarriles = finesCarril.length); grupo = []; finesCarril = []; };
+  orden.forEach(e => {
+    if(e.inicioMin >= finGrupo) cerrarGrupo();
+    let carril = finesCarril.findIndex(f => f <= e.inicioMin);
+    if(carril === -1){ carril = finesCarril.length; finesCarril.push(e.finMin); } else finesCarril[carril] = e.finMin;
+    e.carril = carril; grupo.push(e); finGrupo = Math.max(finGrupo, e.finMin);
+  });
+  cerrarGrupo();
+  return orden;
+}
+
+// Línea de cambio de mes (ver estilos 10.2).
+function empiezaSemanaDeMesNuevo(fecha){
+  const antes = new Date(fecha); antes.setDate(antes.getDate() - 7);
+  return antes.getMonth() !== fecha.getMonth();
+}
+function terminaSemanaDeMes(fecha){
+  const despues = new Date(fecha); despues.setDate(despues.getDate() + 7);
+  return despues.getMonth() !== fecha.getMonth();
+}
+function esPrimerDiaDeMesNoLunes(fecha){
+  return fecha.getDate() === 1 && fecha.getDay() !== 1;
+}
+
+// ============================================================
+// EVENTOS REALIZADOS
+// Atenciones: se ven realizadas según su estado de sesión (el mismo
+// dato que cambian Ingresos y Dashboard, así que se actualiza solo).
+// Otros eventos: usan ese MISMO campo de estado, con el valor
+// 'realizado'. Así viajan a Google Sheets por la acción que ya existe
+// (actualizar_estado_sesion, pestaña Sesiones, una fila por fecha) y
+// vuelven al sincronizar, sin cambiar el Apps Script. Ese valor no
+// está en ninguna lista de estados que generen ingreso o deuda, así
+// que Ingresos y Dashboard lo ignoran.
+// ============================================================
+const ESTADOS_SESION_CERRADOS = ['realizada_percibida', 'ausencia_percibida', 'ausencia_justificada'];
+const ESTADO_REALIZADO = 'realizado';
+function instanciaEstaRealizada(inst){
+  if(inst.etiqueta === 'atenciones') return ESTADOS_SESION_CERRADOS.includes(inst.estadoSesion);
+  return inst.estadoSesion === ESTADO_REALIZADO;
+}
+let instanciaRealizadoEnFicha = null;
+function mostrarBotonRealizado(instancia){
+  const boton = document.getElementById('botonRealizadoEvento');
+  if(instancia.tipoInstancia !== 'evento' || instancia.etiqueta === 'atenciones'){ boton.style.display = 'none'; instanciaRealizadoEnFicha = null; return; }
+  instanciaRealizadoEnFicha = instancia;
+  const ev = eventosAgenda.find(e => e.id === instancia.eventoId);
+  const hecho = instanciaEstaRealizada(instancia);
+  const soloEsteDia = ev && ev.recurrencia !== 'ninguna' ? ' (solo este día)' : '';
+  boton.textContent = (hecho ? 'Quitar marca de realizado' : 'Marcar como realizado') + soloEsteDia;
+  boton.style.display = 'block';
+}
+async function alternarRealizadoEvento(){
+  const inst = instanciaRealizadoEnFicha; if(!inst) return;
+  const ev = eventosAgenda.find(e => e.id === inst.eventoId); if(!ev) return;
+  const nuevoEstado = instanciaEstaRealizada(inst) ? null : ESTADO_REALIZADO;
+  const esRecurrente = ev.recurrencia !== 'ninguna';
+  if(!esRecurrente){ ev.estadoSesion = nuevoEstado; }
+  else{
+    ev.estadosPorFecha = ev.estadosPorFecha || {};
+    if(nuevoEstado) ev.estadosPorFecha[inst.fecha] = nuevoEstado; else delete ev.estadosPorFecha[inst.fecha];
+  }
+  encolarActualizarEstadoSesion(ev, esRecurrente ? inst.fecha : null, nuevoEstado, null, null);
+  cerrarFichaEvento(); rerenderizarVistaAgendaActual();
+  await guardarEventosEnAlmacenamiento();
+  procesarColaEntidadAgenda(ev, guardarEventosEnAlmacenamiento);
 }
 
 function rerenderizarVistaAgendaActual(){
@@ -3226,8 +3646,10 @@ function abrirFichaEventoNueva(){
   pacienteEventoSeleccionadoId = null; tipoPagoEventoConsultaSeleccionado = 'particular';
   recurrenciaEventoSeleccionada = 'ninguna'; semanaDelMesEventoSeleccionada = 1;
   estadoSesionEventoSeleccionado = null; hasDurationEventoSeleccionado = false;
+  grupoEstadoEventoElegido = null; avisoEstadoIncompleto = false; duracionDesplegada = false; recurrenciaDesplegada = false;
+  listaPacientesAbierta = false; ocultarAvisoFormulario('avisoFichaEvento');
 
-  document.getElementById('tituloFichaEvento').textContent = 'Nueva atención';
+  document.getElementById('tituloFichaEvento').textContent = 'Nuevo evento';
   document.getElementById('eventoNombreLibre').value = '';
   document.getElementById('eventoConsultaNombre').value = '';
   document.getElementById('eventoConsultaMonto').value = '';
@@ -3258,6 +3680,8 @@ function abrirFichaEventoNueva(){
 function abrirFichaEventoEdicion(instancia){
   fechaOcurrenciaEnEdicion = instancia.fecha;
   estadoSesionEventoSeleccionado = instancia.estadoSesion || null;
+  grupoEstadoEventoElegido = null; avisoEstadoIncompleto = false;
+  listaPacientesAbierta = false; ocultarAvisoFormulario('avisoFichaEvento');
 
   if(instancia.tipoInstancia === 'consulta'){
     consultaEnEdicionId = instancia.consultaId; eventoEnEdicionId = null;
@@ -3310,10 +3734,13 @@ function abrirFichaEventoEdicion(instancia){
 
   document.getElementById('confirmacionEliminarEvento').style.display = 'none';
   document.getElementById('confirmacionOmitirFecha').style.display = 'none';
+  mostrarBotonRealizado(instancia);
 
   pintarGridEtiquetasEvento(); pintarSegmentadoSubtipoAtencion(); pintarSegmentadoTipoPagoEventoConsulta();
   pintarSegmentadoRecurrenciaEvento(); pintarSegmentadoSemanaDelMes(); pintarSegmentadoEstadoSesionEvento();
   pintarSegmentadoDuracion();
+  duracionDesplegada = hasDurationEventoSeleccionado;
+  recurrenciaDesplegada = recurrenciaEventoSeleccionada !== 'ninguna';
   actualizarCamposSegunEtiqueta();
   if(subtipoAtencionSeleccionado === 'consulta') actualizarMontoEventoConsulta();
   actualizarResumenDuracion();
@@ -3328,6 +3755,7 @@ function abrirFichaEventoEdicion(instancia){
 }
 
 function cerrarFichaEvento(){
+  document.getElementById('botonRealizadoEvento').style.display = 'none';
   document.getElementById('fondoModalEvento').classList.remove('abierto');
   eventoEnEdicionId = null; consultaEnEdicionId = null; fechaOcurrenciaEnEdicion = null;
 }
@@ -3339,7 +3767,20 @@ function pintarGridEtiquetasEvento(){
     chip.className = 'chip-etiqueta' + (etiquetaEventoSeleccionada === et.valor ? ' seleccionada' : '');
     chip.style.setProperty('--chip-color', et.color);
     chip.innerHTML = `<span class="punto-etiqueta" style="background:${et.color}"></span><span class="nombre-etiqueta">${et.nombre}</span>`;
-    chip.onclick = () => { etiquetaEventoSeleccionada = et.valor; pintarGridEtiquetasEvento(); actualizarCamposSegunEtiqueta(); };
+    chip.onclick = () => {
+      const cambio = etiquetaEventoSeleccionada !== et.valor;
+      etiquetaEventoSeleccionada = et.valor;
+      // Solo en eventos nuevos: al elegir otra etiqueta, Recurrencia y
+      // Duración vuelven a cerrarse y a su valor por defecto. En un
+      // evento ya guardado no se tocan, para no deshacer una serie.
+      if(cambio && eventoEnEdicionId === null && consultaEnEdicionId === null){
+        recurrenciaDesplegada = false; recurrenciaEventoSeleccionada = 'ninguna';
+        duracionDesplegada = false; hasDurationEventoSeleccionado = false;
+        document.getElementById('camposDuracionDetalle').style.display = 'none';
+        pintarSegmentadoRecurrenciaEvento(); pintarSegmentadoDuracion();
+      }
+      pintarGridEtiquetasEvento(); actualizarCamposSegunEtiqueta();
+    };
     grid.appendChild(chip);
   });
 }
@@ -3400,15 +3841,70 @@ function pintarSegmentadoSemanaDelMes(){
     c.appendChild(b);
   });
 }
+// Estado de la sesión en dos pasos: primero Realizada / Ausentada /
+// Pago adelantado; después, si corresponde, el detalle. Cada detalle
+// equivale exactamente a uno de los estados de siempre (ESTADOS_SESION),
+// así que Ingresos, Dashboard y la planilla no cambian en nada.
+const GRUPOS_ESTADO_SESION = [
+  { valor:'realizada', nombre:'Realizada', color:'var(--estado-realizada)', subs:[
+    { valor:'realizada_percibida', nombre:'Percibida' },
+    { valor:'realizada_devengada', nombre:'Devengada' },
+  ]},
+  { valor:'ausentada', nombre:'Ausentada', color:'var(--estado-ausentada)', subs:[
+    { valor:'ausencia_justificada', nombre:'Justificada' },
+    { valor:'ausencia_devengada',   nombre:'Devengada' },
+    { valor:'ausencia_percibida',   nombre:'Percibida' },
+  ]},
+  { valor:'adelantado', nombre:'Pago adelantado', color:'var(--estado-adelantado)', estadoDirecto:'no_realizada_pagada', subs:[] },
+];
+let grupoEstadoEventoElegido = null;
+let avisoEstadoIncompleto = false;
+function grupoDeEstado(estado){
+  return GRUPOS_ESTADO_SESION.find(g => g.estadoDirecto === estado || g.subs.some(sb => sb.valor === estado)) || null;
+}
 function pintarSegmentadoEstadoSesionEvento(){
   const c = document.getElementById('segmentadoEstadoSesionEvento'); c.innerHTML = '';
-  ESTADOS_SESION.forEach(es => {
+  if(!grupoEstadoEventoElegido && estadoSesionEventoSeleccionado){
+    const g = grupoDeEstado(estadoSesionEventoSeleccionado);
+    grupoEstadoEventoElegido = g ? g.valor : null;
+  }
+  const fila = document.createElement('div');
+  fila.className = 'estado-grupos';
+  GRUPOS_ESTADO_SESION.forEach(g => {
     const b = document.createElement('button');
-    b.className = estadoSesionEventoSeleccionado === es.valor ? 'seleccionado' : '';
-    b.textContent = es.nombre;
-    b.onclick = () => { estadoSesionEventoSeleccionado = (estadoSesionEventoSeleccionado === es.valor) ? null : es.valor; pintarSegmentadoEstadoSesionEvento(); };
-    c.appendChild(b);
+    b.className = 'boton-estado' + (grupoEstadoEventoElegido === g.valor ? ' seleccionado' : '');
+    b.style.setProperty('--color-estado', g.color);
+    b.textContent = g.nombre;
+    b.onclick = () => {
+      avisoEstadoIncompleto = false;
+      if(grupoEstadoEventoElegido === g.valor){ grupoEstadoEventoElegido = null; estadoSesionEventoSeleccionado = null; }
+      else{ grupoEstadoEventoElegido = g.valor; estadoSesionEventoSeleccionado = g.estadoDirecto || null; }
+      pintarSegmentadoEstadoSesionEvento();
+    };
+    fila.appendChild(b);
   });
+  c.appendChild(fila);
+
+  const grupo = GRUPOS_ESTADO_SESION.find(g => g.valor === grupoEstadoEventoElegido);
+  if(grupo && grupo.subs.length){
+    const subs = document.createElement('div');
+    subs.className = 'segmentado estado-subopciones';
+    subs.style.setProperty('--chip-color', grupo.color);
+    grupo.subs.forEach(sb => {
+      const b = document.createElement('button');
+      b.className = estadoSesionEventoSeleccionado === sb.valor ? 'seleccionado' : '';
+      b.textContent = sb.nombre;
+      b.onclick = () => { avisoEstadoIncompleto = false; estadoSesionEventoSeleccionado = sb.valor; pintarSegmentadoEstadoSesionEvento(); };
+      subs.appendChild(b);
+    });
+    c.appendChild(subs);
+    if(avisoEstadoIncompleto && !estadoSesionEventoSeleccionado){
+      const aviso = document.createElement('div');
+      aviso.className = 'aviso-estado';
+      aviso.textContent = grupo.valor === 'realizada' ? 'Elige si está percibida o devengada.' : 'Elige si es justificada, devengada o percibida.';
+      c.appendChild(aviso);
+    }
+  }
 }
 
 function pintarSegmentadoDuracion(){
@@ -3448,28 +3944,47 @@ function actualizarCamposSegunEtiqueta(){
   document.getElementById('campoSubtipoAtencion').style.display = esAtenciones ? 'block' : 'none';
   document.getElementById('campoNombreLibreEvento').style.display = esAtenciones ? 'none' : 'block';
   document.getElementById('campoEstadoSesionEvento').style.display = esAtenciones ? 'block' : 'none';
+  document.getElementById('etiquetaHoraEvento').textContent = esAtenciones ? 'Hora' : 'Hora (opcional)';
 
   const esExistente = esAtenciones && subtipoAtencionSeleccionado === 'existente';
   const esConsulta = esAtenciones && subtipoAtencionSeleccionado === 'consulta';
   document.getElementById('campoBuscarPaciente').style.display = esExistente ? 'block' : 'none';
   document.getElementById('camposConsultaUnica').style.display = esConsulta ? 'block' : 'none';
-  document.getElementById('campoRecurrenciaEvento').style.display = esConsulta ? 'none' : 'block';
+  document.getElementById('campoRecurrenciaEvento').style.display = (esConsulta || !recurrenciaDesplegada) ? 'none' : 'block';
   if(esConsulta) recurrenciaEventoSeleccionada = 'ninguna';
   actualizarVisibilidadRecurrenciaPersonalizada();
 
   // La duración solo aplica a categorías que no son Atenciones ni
   // Análisis y Supervisión (sesiones de duración fija, no variable).
   const mostrarDuracion = etiquetaEventoSeleccionada !== 'atenciones' && etiquetaEventoSeleccionada !== 'analisis';
-  document.getElementById('campoDuracionToggle').style.display = mostrarDuracion ? 'block' : 'none';
+  document.getElementById('campoDuracionToggle').style.display = (mostrarDuracion && duracionDesplegada) ? 'block' : 'none';
   if(!mostrarDuracion){
     hasDurationEventoSeleccionado = false;
     document.getElementById('camposDuracionDetalle').style.display = 'none';
   }
+  // Botones pequeños: solo aparecen si esa opción aplica y sigue cerrada.
+  const verBotonDuracion = mostrarDuracion && !duracionDesplegada;
+  const verBotonRecurrencia = !esConsulta && !recurrenciaDesplegada;
+  document.getElementById('botonAbrirDuracion').style.display = verBotonDuracion ? 'inline-block' : 'none';
+  document.getElementById('botonAbrirRecurrencia').style.display = verBotonRecurrencia ? 'inline-block' : 'none';
+  document.getElementById('filaOpcionesExtraEvento').style.display = (verBotonDuracion || verBotonRecurrencia) ? 'flex' : 'none';
 }
+let duracionDesplegada = false;
+let recurrenciaDesplegada = false;
+function desplegarDuracionEvento(){ duracionDesplegada = true; actualizarCamposSegunEtiqueta(); }
+function desplegarRecurrenciaEvento(){ recurrenciaDesplegada = true; actualizarCamposSegunEtiqueta(); }
 
-function manejarEscrituraBusquedaPaciente(){ pacienteEventoSeleccionadoId = null; renderizarBusquedaPaciente(); }
+// La lista de pacientes parte cerrada; se abre con el botón de la
+// derecha o al empezar a escribir.
+let listaPacientesAbierta = false;
+function alternarListaPacientes(){
+  if(pacienteEventoSeleccionadoId){ pacienteEventoSeleccionadoId = null; document.getElementById('campoBusquedaPaciente').value = ''; listaPacientesAbierta = true; }
+  else listaPacientesAbierta = !listaPacientesAbierta;
+  renderizarBusquedaPaciente();
+}
+function manejarEscrituraBusquedaPaciente(){ pacienteEventoSeleccionadoId = null; listaPacientesAbierta = true; renderizarBusquedaPaciente(); }
 function seleccionarPacienteBusqueda(id, nombre){
-  pacienteEventoSeleccionadoId = id;
+  pacienteEventoSeleccionadoId = id; listaPacientesAbierta = false;
   document.getElementById('campoBusquedaPaciente').value = nombre;
   renderizarBusquedaPaciente();
 }
@@ -3486,6 +4001,8 @@ function renderizarBusquedaPaciente(){
     lista.innerHTML = ''; return;
   }
   confirmacion.innerHTML = ''; lista.innerHTML = '';
+  document.getElementById('botonDesplegarPacientes').textContent = listaPacientesAbierta ? '▴' : '▾';
+  if(!listaPacientesAbierta) return;
   if(filtrados.length === 0){ lista.innerHTML = '<div class="nota-campo">No se encontraron pacientes activos.</div>'; return; }
   filtrados.forEach(p => {
     const fila = document.createElement('div');
@@ -3512,10 +4029,36 @@ function actualizarMontoEventoConsulta(){
 }
 
 async function guardarFichaEvento(){
+  if(etiquetaEventoSeleccionada === 'atenciones' && grupoEstadoEventoElegido && !estadoSesionEventoSeleccionado){
+    avisoEstadoIncompleto = true; pintarSegmentadoEstadoSesionEvento(); return;
+  }
   const fecha = document.getElementById('eventoFecha').value;
   const hora = document.getElementById('eventoHora').value;
-  if(!fecha){ alert('Selecciona la fecha.'); return; }
-  if(!horaEsValida(hora)){ alert('Ingresa una hora válida en formato HH:MM (24 horas).'); return; }
+  ocultarAvisoFormulario('avisoFichaEvento');
+
+  // Primero se revisa todo lo que falta, para avisarlo de una sola vez.
+  const esAtencion = etiquetaEventoSeleccionada === 'atenciones';
+  const faltan = [], camposFaltan = [];
+  const falta = (texto, campo) => { faltan.push(texto); camposFaltan.push(campo); };
+  if(esAtencion && subtipoAtencionSeleccionado === 'existente' && !pacienteEventoSeleccionadoId) falta('el paciente', 'campoBusquedaPaciente');
+  if(esAtencion && subtipoAtencionSeleccionado === 'consulta'){
+    if(!document.getElementById('eventoConsultaNombre').value.trim()) falta('el nombre del paciente', 'eventoConsultaNombre');
+    if(!tipoPagoEventoConsultaSeleccionado) falta('el tipo de pago', 'segmentadoTipoPagoEventoConsulta');
+  }
+  if(!esAtencion && !document.getElementById('eventoNombreLibre').value.trim()) falta('el nombre del evento', 'eventoNombreLibre');
+  if(!fecha) falta('la fecha', 'eventoFecha');
+  if(esAtencion && !hora) falta('la hora', 'eventoHora');
+  if(faltan.length){
+    const texto = 'Falta ' + unirFaltantes(faltan) + '.';
+    mostrarAvisoFormulario('avisoFichaEvento', texto.charAt(0) + texto.slice(1), camposFaltan);
+    return;
+  }
+
+  if(!fecha){ mostrarAvisoFormulario('avisoFichaEvento', 'Falta la fecha.', 'eventoFecha'); return; }
+  // La hora es obligatoria solo en Atenciones; en los demás eventos es
+  // opcional, pero si se escribe tiene que estar completa.
+  if(!hora && etiquetaEventoSeleccionada === 'atenciones'){ mostrarAvisoFormulario('avisoFichaEvento', 'Falta la hora de la atención.', 'eventoHora'); return; }
+  if(hora && !horaEsValida(hora)){ mostrarAvisoFormulario('avisoFichaEvento', 'La hora está incompleta. Usa el formato 24 horas, por ejemplo 09:30.', 'eventoHora'); return; }
 
   // No tiene sentido marcar como "realizada" algo que todavía no pasó.
   // Solo se valida cuando el estado realmente se va a aplicar a una
@@ -3523,18 +4066,18 @@ async function guardarFichaEvento(){
   const aplicaValidacionEstado = recurrenciaEventoSeleccionada === 'ninguna' || !!fechaOcurrenciaEnEdicion;
   const fechaEstadoRelevante = fechaOcurrenciaEnEdicion || fecha;
   if(aplicaValidacionEstado && estadoSesionEventoSeleccionado && estadoSesionEventoSeleccionado.startsWith('realizada') && fechaEstadoRelevante > hoyISO()){
-    alert('No se puede marcar como "realizada" una sesión con fecha posterior a hoy. Si ya se pagó por adelantado, usa el estado "No realizada aún y pagada".');
+    mostrarAvisoFormulario('avisoFichaEvento', 'Una sesión con fecha futura no puede estar realizada. Si ya la pagaron, usa Pago adelantado.', 'segmentadoEstadoSesionEvento');
     return;
   }
 
   if(etiquetaEventoSeleccionada === 'atenciones' && subtipoAtencionSeleccionado === 'consulta'){
     const nombre = document.getElementById('eventoConsultaNombre').value.trim();
-    if(!nombre){ alert('Ingresa el nombre del paciente.'); return; }
-    if(!tipoPagoEventoConsultaSeleccionado){ alert('Selecciona el tipo de pago.'); return; }
+    if(!nombre){ mostrarAvisoFormulario('avisoFichaEvento', 'Falta el nombre del paciente.', 'eventoConsultaNombre'); return; }
+    if(!tipoPagoEventoConsultaSeleccionado){ mostrarAvisoFormulario('avisoFichaEvento', 'Falta elegir el tipo de pago.', 'segmentadoTipoPagoEventoConsulta'); return; }
     let monto;
     if(tipoPagoEventoConsultaSeleccionado === 'fonasa_directo') monto = configuracion.montoFonasa || 0;
     else if(tipoPagoEventoConsultaSeleccionado === 'fonasa_el') monto = configuracion.montoFonasaEL || 0;
-    else{ monto = limpiarMontoTexto(document.getElementById('eventoConsultaMonto').value); if(monto === null || monto <= 0){ alert('Ingresa un monto válido.'); return; } }
+    else{ monto = limpiarMontoTexto(document.getElementById('eventoConsultaMonto').value); if(monto === null || monto <= 0){ mostrarAvisoFormulario('avisoFichaEvento', 'Falta el monto de la sesión.', 'eventoConsultaMonto'); return; } }
 
     let consultaGuardada;
     let estadoAnteriorConsulta = null, montoAnteriorConsulta = null;
@@ -3590,12 +4133,12 @@ async function guardarFichaEvento(){
   }
 
   if(etiquetaEventoSeleccionada === 'atenciones' && subtipoAtencionSeleccionado === 'existente'){
-    if(!pacienteEventoSeleccionadoId){ alert('Selecciona un paciente de la lista.'); return; }
+    if(!pacienteEventoSeleccionadoId){ mostrarAvisoFormulario('avisoFichaEvento', 'Falta elegir el paciente de la lista.', 'campoBusquedaPaciente'); return; }
     await guardarEventoGenerico(fecha, hora, null, pacienteEventoSeleccionadoId); return;
   }
 
   const nombreLibre = document.getElementById('eventoNombreLibre').value.trim();
-  if(!nombreLibre){ alert('Ingresa el nombre del evento.'); return; }
+  if(!nombreLibre){ mostrarAvisoFormulario('avisoFichaEvento', 'Falta el nombre del evento.', 'eventoNombreLibre'); return; }
   await guardarEventoGenerico(fecha, hora, nombreLibre, null);
 }
 
@@ -3607,9 +4150,9 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
   let endDate = '', endTime = '';
   if(hasDuration){
     endDate = document.getElementById('eventoFechaTermino').value || fecha;
-    if(endDate < fecha){ alert('La fecha de término no puede ser anterior a la fecha de inicio.'); return; }
+    if(endDate < fecha){ mostrarAvisoFormulario('avisoFichaEvento', 'La fecha de término no puede ser anterior a la de inicio.', 'eventoFechaTermino'); return; }
     const horaTerminoTexto = document.getElementById('eventoHoraTermino').value;
-    if(horaTerminoTexto && !horaEsValida(horaTerminoTexto)){ alert('Ingresa una hora de término válida en formato HH:MM (24 horas).'); return; }
+    if(horaTerminoTexto && !horaEsValida(horaTerminoTexto)){ mostrarAvisoFormulario('avisoFichaEvento', 'La hora de término está incompleta. Usa el formato 24 horas, por ejemplo 18:00.', 'eventoHoraTermino'); return; }
     endTime = horaTerminoTexto || '';
   }
 
@@ -3741,13 +4284,14 @@ function abrirModalMoverSesion(){
   const evento = eventosAgenda.find(x => x.id === eventoEnEdicionId);
   if(!evento || !fechaOcurrenciaEnEdicion) return;
   if(ESTADOS_QUE_GENERAN_INGRESO.includes(estadoSesionEventoSeleccionado)){
-    alert('Esta sesión ya está marcada como pagada. Para moverla, primero quita el estado de pago, mueve la fecha y vuelve a marcarla en el nuevo día.');
+    mostrarAvisoFormulario('avisoFichaEvento', 'Esta sesión ya está pagada. Para moverla, primero quita el estado de pago, muévela y vuelve a marcarla en el nuevo día.', null);
     return;
   }
   eventoEnMovimiento = evento; fechaOcurrenciaEnMovimiento = fechaOcurrenciaEnEdicion;
   document.getElementById('textoInfoMoverSesion').textContent = `${obtenerNombreEvento(evento)} · actualmente el ${fechaOcurrenciaEnEdicion}`;
   document.getElementById('moverSesionFecha').value = '';
   document.getElementById('moverSesionHora').value = evento.hora || '';
+  ocultarAvisoFormulario('avisoMoverSesion');
   document.getElementById('fondoModalMoverSesion').classList.add('abierto');
 }
 function cerrarModalMoverSesion(){
@@ -3758,8 +4302,9 @@ async function guardarMoverSesion(){
   if(!eventoEnMovimiento || !fechaOcurrenciaEnMovimiento) return;
   const nuevaFecha = document.getElementById('moverSesionFecha').value;
   const nuevaHora = document.getElementById('moverSesionHora').value;
-  if(!nuevaFecha){ alert('Selecciona la nueva fecha.'); return; }
-  if(!horaEsValida(nuevaHora)){ alert('Ingresa una hora válida en formato HH:MM (24 horas).'); return; }
+  ocultarAvisoFormulario('avisoMoverSesion');
+  if(!nuevaFecha){ mostrarAvisoFormulario('avisoMoverSesion', 'Falta la nueva fecha.', 'moverSesionFecha'); return; }
+  if(!horaEsValida(nuevaHora)){ mostrarAvisoFormulario('avisoMoverSesion', 'Falta la hora o está incompleta. Usa el formato 24 horas, por ejemplo 09:30.', 'moverSesionHora'); return; }
 
   const evento = eventoEnMovimiento;
   const fechaVieja = fechaOcurrenciaEnMovimiento;
@@ -3768,7 +4313,7 @@ async function guardarMoverSesion(){
   // usuario está viendo, no una versión desactualizada.
   const estadoAMover = estadoSesionEventoSeleccionado;
   if(estadoAMover && estadoAMover.startsWith('realizada') && nuevaFecha > hoyISO()){
-    alert('No se puede mover una sesión "realizada" a una fecha futura. Si corresponde, primero cambia su estado.');
+    mostrarAvisoFormulario('avisoMoverSesion', 'Una sesión realizada no se puede mover a una fecha futura. Primero cambia su estado.', 'moverSesionFecha');
     return;
   }
 
@@ -3989,9 +4534,12 @@ function seleccionarPagoPrincipalGasto(medio){ pagoSeleccionadoGasto = medio; pi
 
 async function guardarNuevoGasto(){
   const monto = evaluarExpresionGasto(expresionGasto);
-  if(monto === null || monto <= 0){ alert('Ingresa un monto válido.'); return; }
-  if(!categoriaSeleccionadaGasto){ alert('Selecciona una categoría.'); return; }
-  if(!pagoSeleccionadoGasto){ alert('Selecciona un medio de pago.'); return; }
+  ocultarAvisoFormulario('avisoNuevoGasto');
+  const faltanGasto = [], camposGasto = [];
+  if(monto === null || monto <= 0){ faltanGasto.push('el monto'); camposGasto.push('gastoMontoPantalla'); }
+  if(!categoriaSeleccionadaGasto){ faltanGasto.push('la categoría'); camposGasto.push('gastoGridCategorias'); }
+  if(!pagoSeleccionadoGasto){ faltanGasto.push('el medio de pago'); camposGasto.push('gastoGridPagos'); }
+  if(faltanGasto.length){ mostrarAvisoFormulario('avisoNuevoGasto', 'Falta ' + unirFaltantes(faltanGasto) + '.', camposGasto); return; }
   const nuevoRegistro = { id: generarId(), fecha: document.getElementById('gastoCampoFecha').value, categoria: categoriaSeleccionadaGasto, medioPago: pagoSeleccionadoGasto, monto, descripcion: document.getElementById('gastoCampoDescripcion').value.trim(), creado: Date.now(), pendienteSync:false, colaSync:[] };
   nuevoRegistro.colaSync.push({ accion:'crear_gasto', datosBase: construirDatosGastoBase(nuevoRegistro) });
   registrosGasto.push(nuevoRegistro);
@@ -4073,8 +4621,9 @@ function seleccionarPagoModalGasto(medio){ pagoModalGasto = medio; pintarPagosGa
 async function guardarEdicionGasto(){
   const registro = registrosGasto.find(r => r.id === idGastoEnEdicion); if(!registro) return;
   const monto = parseInt(document.getElementById('modalGastoMonto').value.replace(/[^\d]/g,''), 10);
-  if(isNaN(monto) || monto <= 0){ alert('Ingresa un monto válido.'); return; }
-  if(!categoriaModalGasto || !pagoModalGasto){ alert('Selecciona categoría y medio de pago.'); return; }
+  ocultarAvisoFormulario('avisoEdicionGasto');
+  if(isNaN(monto) || monto <= 0){ mostrarAvisoFormulario('avisoEdicionGasto', 'Falta el monto.', 'modalGastoMonto'); return; }
+  if(!categoriaModalGasto || !pagoModalGasto){ mostrarAvisoFormulario('avisoEdicionGasto', 'Falta elegir la categoría y el medio de pago.', ['modalGastoGridCategorias','modalGastoGridPagos']); return; }
   registro.monto = monto; registro.categoria = categoriaModalGasto; registro.medioPago = pagoModalGasto;
   registro.fecha = document.getElementById('modalGastoFecha').value; registro.descripcion = document.getElementById('modalGastoDescripcion').value.trim();
   registro.colaSync = registro.colaSync || [];
@@ -4319,7 +4868,7 @@ function cerrarModalConfirmarPago(){
 async function guardarConfirmarPago(){
   if(!pendienteEnConfirmacion) return;
   const item = pendienteEnConfirmacion;
-  if(!item.esEntreLazos && !medioPagoElegidoConfirmar){ alert('Selecciona efectivo o transferencia.'); return; }
+  if(!item.esEntreLazos && !medioPagoElegidoConfirmar){ mostrarAvisoFormulario('avisoConfirmarPago', 'Falta elegir si fue en efectivo o por transferencia.', 'campoMedioPagoConfirmar'); return; }
   if(item.origen === 'devengada'){
     await confirmarPagoDesdeIngresos(item.inst, item.esEntreLazos ? null : medioPagoElegidoConfirmar);
   }else{
@@ -4646,10 +5195,13 @@ async function guardarIngresoManual(){
   const descripcion = document.getElementById('ingresoManualDescripcion').value.trim();
   const monto = limpiarMontoTexto(document.getElementById('ingresoManualMonto').value);
   const fecha = document.getElementById('ingresoManualFecha').value;
-  if(!descripcion){ alert('Ingresa una descripción.'); return; }
-  if(monto === null || monto <= 0){ alert('Ingresa un monto válido.'); return; }
-  if(!fecha){ alert('Selecciona la fecha.'); return; }
-  if(!medioPagoManualSeleccionado){ alert('Selecciona el medio de pago.'); return; }
+  ocultarAvisoFormulario('avisoIngresoManual');
+  const faltanIng = [], camposIng = [];
+  if(!descripcion){ faltanIng.push('la descripción'); camposIng.push('ingresoManualDescripcion'); }
+  if(monto === null || monto <= 0){ faltanIng.push('el monto'); camposIng.push('ingresoManualMonto'); }
+  if(!fecha){ faltanIng.push('la fecha'); camposIng.push('ingresoManualFecha'); }
+  if(!medioPagoManualSeleccionado){ faltanIng.push('el medio de pago'); camposIng.push('segmentadoMedioPagoManual'); }
+  if(faltanIng.length){ mostrarAvisoFormulario('avisoIngresoManual', 'Falta ' + unirFaltantes(faltanIng) + '.', camposIng); return; }
   const nuevoIngresoManual = { id: generarId(), tipo:'manual', origenClave:null, fecha, montoBruto: monto, montoNeto: monto, medioPago: medioPagoManualSeleccionado, descripcion, creado: Date.now() };
   ingresos.push(nuevoIngresoManual);
   cerrarFichaIngreso(); renderizarVistaIngresos(); await guardarIngresosEnAlmacenamiento();
@@ -4984,7 +5536,7 @@ function cerrarSelectorMesesColchon(){
   document.getElementById('fondoModalMesesColchon').classList.remove('abierto');
 }
 function guardarSelectorMesesColchon(){
-  if(mesesColchonEnEdicion.length === 0){ alert('Selecciona al menos un mes.'); return; }
+  if(mesesColchonEnEdicion.length === 0){ mostrarAvisoFormulario('avisoMesesColchon', 'Elige al menos un mes.', 'gridMesesColchon'); return; }
   mesesColchonTemp = mesesColchonEnEdicion.slice();
   actualizarTextoMesesSeleccionados();
   actualizarMetaCalculadaColchon();
@@ -5110,27 +5662,28 @@ function abrirFichaObjetivo(id){
   document.getElementById('fondoModalObjetivo').classList.add('abierto');
 }
 async function guardarFichaObjetivo(){
+  ocultarAvisoFormulario('avisoFichaObjetivo');
   const esNuevo = objetivoEnEdicionId === null; let obj;
   if(esNuevo){
     const nombre = document.getElementById('objetivoNombre').value.trim();
-    if(!nombre){ alert('Ingresa un nombre para el objetivo.'); return; }
+    if(!nombre){ mostrarAvisoFormulario('avisoFichaObjetivo', 'Falta el nombre del objetivo.', 'objetivoNombre'); return; }
     obj = { id: generarId(), nombre, tipo:'meta_manual', fijo:false, estado:'activo', acumulado:0, aportes:[], metaManual:0, fechaObjetivo:null, creadoEnServidor:false, pendienteSync:false, colaSync:[] };
   }else{
     obj = objetivos.find(o => o.id === objetivoEnEdicionId); if(!obj) return;
     const nombre = document.getElementById('objetivoNombre').value.trim();
-    if(!nombre){ alert('Ingresa un nombre para el objetivo.'); return; }
+    if(!nombre){ mostrarAvisoFormulario('avisoFichaObjetivo', 'Falta el nombre del objetivo.', 'objetivoNombre'); return; }
     obj.nombre = nombre;
   }
   if(obj.tipo === 'colchon'){
     const gasto = limpiarMontoTexto(document.getElementById('objetivoGastoFijoMensual').value);
-    if(mesesColchonTemp.length === 0){ alert('Selecciona al menos un mes a cubrir.'); return; }
-    if(gasto === null || gasto < 0){ alert('Ingresa un gasto fijo mensual válido.'); return; }
+    if(mesesColchonTemp.length === 0){ mostrarAvisoFormulario('avisoFichaObjetivo', 'Falta elegir al menos un mes a cubrir.', 'textoMesesSeleccionados'); return; }
+    if(gasto === null || gasto < 0){ mostrarAvisoFormulario('avisoFichaObjetivo', 'Falta el gasto fijo mensual.', 'objetivoGastoFijoMensual'); return; }
     obj.mesesSeleccionados = mesesColchonTemp.slice();
     obj.mesesACubrir = obj.mesesSeleccionados.length;
     obj.gastoFijoMensual = gasto;
   }else{
     const meta = limpiarMontoTexto(document.getElementById('objetivoMetaManual').value);
-    if(meta === null || meta < 0){ alert('Ingresa una meta válida.'); return; }
+    if(meta === null || meta < 0){ mostrarAvisoFormulario('avisoFichaObjetivo', 'Falta la meta en pesos.', 'objetivoMetaManual'); return; }
     obj.metaManual = meta;
   }
   if(obj.tipo !== 'colchon'){
@@ -5167,11 +5720,12 @@ async function confirmarEliminarObjetivoCompleto(){
   if(obj.creadoEnServidor) enviarAccionAgendaConReintentos('eliminar_objetivo_completo', { id_objetivo: obj.id });
 }
 async function registrarAporteObjetivo(){
-  if(objetivoEnEdicionId === null){ alert('Guarda el objetivo primero.'); return; }
+  ocultarAvisoFormulario('avisoAporteObjetivo');
+  if(objetivoEnEdicionId === null){ mostrarAvisoFormulario('avisoAporteObjetivo', 'Primero guarda el objetivo; después podrás agregarle montos.', null); return; }
   const objRevisado = objetivos.find(o => o.id === objetivoEnEdicionId);
-  if(objRevisado && objRevisado.estado === 'archivado'){ alert('Este objetivo está archivado, no se pueden agregar más aportes.'); return; }
+  if(objRevisado && objRevisado.estado === 'archivado'){ mostrarAvisoFormulario('avisoAporteObjetivo', 'Este objetivo está archivado: no se le pueden agregar más montos.', null); return; }
   const monto = limpiarMontoTexto(document.getElementById('objetivoAporteMonto').value);
-  if(monto === null || monto <= 0){ alert('Ingresa un monto válido para el aporte.'); return; }
+  if(monto === null || monto <= 0){ mostrarAvisoFormulario('avisoAporteObjetivo', 'Falta el monto a agregar.', 'objetivoAporteMonto'); return; }
   const obj = objetivos.find(o => o.id === objetivoEnEdicionId); if(!obj) return;
   const aporte = { id: generarId(), monto, fecha: hoyISO(), creado: Date.now() };
   obj.aportes = obj.aportes || []; obj.aportes.push(aporte);
