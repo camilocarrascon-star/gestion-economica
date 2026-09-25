@@ -342,7 +342,28 @@ input{ font-family:inherit; }
   display:flex; align-items:center; justify-content:center;
   background:var(--bg-app); color:var(--texto-principal);
 }
-.icono-config-menu svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linejoin:round; }
+.icono-config-menu svg{ width:21px; height:21px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+
+/* Ficha de evento al EDITAR: acciones rápidas arriba */
+.fila-realizado-evento{
+  display:flex; align-items:center; gap:11px; padding:12px 13px; margin-bottom:12px;
+  border:1px solid var(--borde); border-radius:12px; background:var(--superficie); touch-action:manipulation;
+}
+.fila-realizado-evento input{ position:absolute; opacity:0; pointer-events:none; }
+.casilla-realizado{
+  width:22px; height:22px; border-radius:6px; border:2px solid var(--texto-terciario); flex:none;
+  display:flex; align-items:center; justify-content:center; background:var(--superficie);
+}
+.fila-realizado-evento input:checked + .casilla-realizado{ background:var(--agenda-color-seleccion); border-color:var(--agenda-color-seleccion); }
+.fila-realizado-evento input:checked + .casilla-realizado::after{ content:'✓'; color:#FFF6E8; font-size:14px; font-weight:800; line-height:1; }
+.texto-realizado{ font-size:14px; font-weight:650; color:var(--texto-principal); font-family:'Quicksand',sans-serif; }
+.fila-acciones-serie-evento{ display:flex; gap:8px; margin-top:8px; }
+.fila-acciones-serie-evento:empty{ display:none; }
+.boton-accion-serie{
+  flex:1; padding:11px 8px; border-radius:12px; background:var(--borde-suave); color:var(--texto-principal);
+  font-size:12.5px; font-weight:650; font-family:'Quicksand',sans-serif; line-height:1.25; touch-action:manipulation;
+}
+.separador-edicion-evento{ height:1px; background:var(--borde); margin:16px 0 14px; }
 
 /* Pregunta "¿Efectivo o transferencia?" al guardar una sesión pagada */
 .botones-medio-pago-sesion{ display:flex; gap:10px; margin-bottom:6px; }
@@ -525,16 +546,23 @@ input{ font-family:inherit; }
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   font-weight:650; flex:none; height:var(--agenda-alto-chip-mes); box-sizing:border-box;
 }
-.chip-mes-atenciones{ background:color-mix(in srgb, var(--et-atenciones) 15%, white); color:#33473B; }
-.chip-mes-nel{ background:color-mix(in srgb, var(--et-nel) 15%, white); color:#5C1F2C; }
-.chip-mes-oficina{ background:color-mix(in srgb, var(--et-oficina) 15%, white); color:#6E4B10; }
-.chip-mes-eventos{ background:color-mix(in srgb, var(--et-eventos) 15%, white); color:#7A4527; }
-.chip-mes-casa{ background:color-mix(in srgb, var(--et-casa) 15%, white); color:#47512E; }
-.chip-mes-entrelazos{ background:color-mix(in srgb, var(--et-entrelazos) 15%, white); color:#5C3A1C; }
-.chip-mes-analisis{ background:color-mix(in srgb, var(--et-analisis) 15%, white); color:#4A331C; }
-.chip-mes-lecturas{ background:color-mix(in srgb, var(--et-lecturas) 15%, white); color:#5C4F40; }
-.chip-mes-seminarios{ background:color-mix(in srgb, var(--et-seminarios) 15%, white); color:#3D4750; }
+.chip-mes-atenciones{ background:color-mix(in srgb, var(--et-atenciones) var(--agenda-intensidad-chip-mes), white); color:#33473B; }
+.chip-mes-nel{ background:color-mix(in srgb, var(--et-nel) var(--agenda-intensidad-chip-mes), white); color:#5C1F2C; }
+.chip-mes-oficina{ background:color-mix(in srgb, var(--et-oficina) var(--agenda-intensidad-chip-mes), white); color:#6E4B10; }
+.chip-mes-eventos{ background:color-mix(in srgb, var(--et-eventos) var(--agenda-intensidad-chip-mes), white); color:#7A4527; }
+.chip-mes-casa{ background:color-mix(in srgb, var(--et-casa) var(--agenda-intensidad-chip-mes), white); color:#47512E; }
+.chip-mes-entrelazos{ background:color-mix(in srgb, var(--et-entrelazos) var(--agenda-intensidad-chip-mes), white); color:#5C3A1C; }
+.chip-mes-analisis{ background:color-mix(in srgb, var(--et-analisis) var(--agenda-intensidad-chip-mes), white); color:#4A331C; }
+.chip-mes-lecturas{ background:color-mix(in srgb, var(--et-lecturas) var(--agenda-intensidad-chip-mes), white); color:#5C4F40; }
+.chip-mes-seminarios{ background:color-mix(in srgb, var(--et-seminarios) var(--agenda-intensidad-chip-mes), white); color:#3D4750; }
 .chip-mas-mes{ font-size:8.5px; font-weight:650; color:var(--texto-terciario); padding:0 3px; }
+/* "+N" de eventos que no caben: va junto al número del día, así no
+   ocupa el espacio de un evento */
+.numero-dia-mes-caja{ position:relative; }
+.mas-eventos-dia{
+  position:absolute; right:0; top:3px; font-size:8.5px; font-weight:750; line-height:1;
+  color:var(--texto-secundario); font-family:'Quicksand',sans-serif;
+}
 
 /* --- 10.1 Ajustes de la Agenda (medidas y colores que se tocan seguido) --- */
 :root{
@@ -546,6 +574,7 @@ input{ font-family:inherit; }
   --agenda-ancho-columna-horas:24px;  /* ancho de la columna de horas a la izquierda */
   --agenda-opacidad-realizado:0.42;   /* qué tan tenue se ve un evento realizado (1 = normal) */
   --agenda-alto-chip-mes:15px;        /* alto de cada evento en la vista de mes (define cuántos caben por día) */
+  --agenda-intensidad-chip-mes:30%;   /* qué tan fuerte es el color de fondo de los eventos en la vista de mes */
   --agenda-margen-lateral:6px;        /* margen a los lados de la Agenda (el resto de la app usa 16px) */
   --agenda-color-seleccion:#4F6B5C;   /* color que marca el día seleccionado */
   --agenda-fondo-seleccion:color-mix(in srgb, var(--agenda-color-seleccion) 16%, #FBF7EF); /* fondo del día seleccionado en la semana */
@@ -911,6 +940,9 @@ input{ font-family:inherit; }
 .tarjeta-lazos-encabezado{ display:flex; align-items:center; gap:8px; }
 .tarjeta-lazos-titulo{ font-size:11px; font-weight:700; letter-spacing:0.3px; color:var(--lazos-texto); font-family:'Quicksand',sans-serif; flex:1; text-transform:uppercase; }
 .tarjeta-lazos-monto{ font-size:18px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:-0.5px; margin-top:3px; color:var(--lazos-texto); }
+/* Total (sin descuento) al lado del título, igual que en Sesiones devengadas */
+.tarjeta-lazos .fila-pendiente-pago .monto{ color:var(--lazos-texto); }
+.tarjeta-lazos-monto-encabezado{ font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--lazos-texto); }
 .tarjeta-lazos-nota{ font-size:10.5px; font-weight:600; color:var(--lazos-texto2); margin-top:3px; font-family:'Quicksand',sans-serif; }
 .boton-generar-boleta{ width:100%; margin-top:11px; border-radius:11px; background:var(--acento); color:#FFF6E8; font-size:13px; font-weight:700; padding:11px; font-family:'Quicksand',sans-serif; touch-action:manipulation; }
 
@@ -1230,10 +1262,10 @@ input{ font-family:inherit; }
 
   <div class="tarjeta-lazos" id="tarjetaLazos">
     <div class="tarjeta-lazos-encabezado">
-      <span class="tarjeta-lazos-titulo">Boleta Entre Lazos</span>
+      <span class="tarjeta-lazos-titulo">Sesiones Entre Lazos devengadas</span>
+      <span class="tarjeta-lazos-monto-encabezado monto-fuente" id="lazosMontoTotal"></span>
       <button class="boton-ojo" id="botonOjoIngLazos" onclick="alternarVisibilidadIngLazos()"></button>
     </div>
-    <div class="tarjeta-lazos-monto monto-fuente" id="lazosMontoTotal"></div>
     <div class="tarjeta-lazos-nota" id="lazosNota"></div>
     <button class="boton-ver-todos-gasto" id="botonDesplegarPendientesBoleta" style="margin-top:8px; width:100%;" onclick="alternarDesplegarPendientesBoleta()"></button>
     <div id="seccionPendientesBoleta" style="display:none;"></div>
@@ -1355,8 +1387,8 @@ input{ font-family:inherit; }
     <button class="boton-config-menu" onclick="cerrarMenuMas(); abrirConfiguracion()" aria-label="Configuración">
       <span class="icono-config-menu">
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M10.3 3.2h3.4l.5 2.4c.6.2 1.2.5 1.7.9l2.3-.8 1.7 2.9-1.8 1.6c.1.6.1 1.3 0 1.9l1.8 1.6-1.7 2.9-2.3-.8c-.5.4-1.1.7-1.7.9l-.5 2.4h-3.4l-.5-2.4c-.6-.2-1.2-.5-1.7-.9l-2.3.8-1.7-2.9 1.8-1.6c-.1-.6-.1-1.3 0-1.9L4.1 8.6l1.7-2.9 2.3.8c.5-.4 1.1-.7 1.7-.9z"/>
-          <circle cx="12" cy="12" r="3.1"/>
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+          <circle cx="12" cy="12" r="3"/>
         </svg>
       </span>
       <span>Configuración</span>
@@ -1492,6 +1524,31 @@ input{ font-family:inherit; }
       <button class="cerrar-modal" onclick="cerrarFichaEvento()">✕</button>
     </div>
 
+    <!-- Acciones rápidas: solo al EDITAR. Al abrir una ficha existente, el
+         estado, el aviso y el botón Guardar se mueven acá arriba (ver
+         colocarControlesFichaEvento), para que lo más común esté a mano. -->
+    <div id="zonaSuperiorEdicionEvento" style="display:none;">
+      <label class="fila-realizado-evento" id="filaRealizadoEvento" style="display:none;">
+        <input type="checkbox" id="checkRealizadoEvento">
+        <span class="casilla-realizado" aria-hidden="true"></span>
+        <span class="texto-realizado" id="textoRealizadoEvento">Marcar como realizado</span>
+      </label>
+      <span id="lugarSuperiorEstadoSesion"></span>
+      <span id="lugarSuperiorGuardar"></span>
+      <div class="fila-acciones-serie-evento">
+        <button class="boton-accion-serie" id="botonMoverSesionEvento" onclick="abrirModalMoverSesion()" style="display:none;">Mover esta sesión a otro día</button>
+        <button class="boton-accion-serie" id="botonOmitirFechaEvento" onclick="solicitarOmitirFecha()" style="display:none;">Omitir esta fecha</button>
+      </div>
+      <div class="confirmacion-archivar" id="confirmacionOmitirFecha" style="display:none;">
+        <p>Esta fecha puntual se omitirá. Las demás repeticiones de este evento se mantienen sin cambios.</p>
+        <div class="fila-confirmacion">
+          <button class="boton-confirmar-no" onclick="cancelarOmitirFecha()">Cancelar</button>
+          <button class="boton-confirmar-si" onclick="confirmarOmitirFecha()">Sí, omitir</button>
+        </div>
+      </div>
+      <div class="separador-edicion-evento"></div>
+    </div>
+
     <div class="campo-modal">
       <span class="etiqueta-campo">Etiqueta</span>
       <div class="grid-etiquetas" id="gridEtiquetasEvento"></div>
@@ -1536,7 +1593,7 @@ input{ font-family:inherit; }
     <div class="campo-modal">
       <span class="etiqueta-campo">Fecha</span>
       <input type="date" id="eventoFecha" oninput="actualizarVisibilidadRecurrenciaPersonalizada(); actualizarResumenDuracion();">
-      <div class="nota-campo" id="notaFechaEventoBloqueada" style="display:none;">Esta sesión pertenece a una serie que se repite. Para cambiar el día de esta sesión en particular, usa el botón "Mover esta sesión a otro día", más abajo. La fecha de inicio de toda la serie no se edita desde acá.</div>
+      <div class="nota-campo" id="notaFechaEventoBloqueada" style="display:none;"></div>
     </div>
     <div class="campo-modal">
       <span class="etiqueta-campo" id="etiquetaHoraEvento">Hora</span>
@@ -1578,33 +1635,27 @@ input{ font-family:inherit; }
       <div class="nota-campo" style="margin-bottom:10px;">Se repite ese día de la semana (el mismo de la fecha elegida arriba), en su N-ésima aparición del mes.</div>
     </div>
 
+    <span id="lugarOriginalEstadoSesion"></span>
     <div class="campo-modal" id="campoEstadoSesionEvento" style="display:none;">
       <span class="etiqueta-campo">Estado de la sesión</span>
       <div id="segmentadoEstadoSesionEvento"></div>
       <div class="nota-campo">Opcional. Puedes dejarlo sin marcar y actualizarlo después.</div>
     </div>
 
-    <div class="aviso-formulario" id="avisoFichaEvento"></div>
-    <button class="boton-secundario" id="botonRealizadoEvento" onclick="alternarRealizadoEvento()" style="display:none; margin-bottom:8px;">Marcar como realizado</button>
-    <button class="boton-primario" onclick="guardarFichaEvento()">Guardar</button>
+    <span id="lugarOriginalGuardar"></span>
+    <div id="bloqueGuardarEvento">
+      <div class="aviso-formulario" id="avisoFichaEvento"></div>
+      <button class="boton-primario" onclick="guardarFichaEvento()">Guardar</button>
+    </div>
     <button class="boton-secundario" onclick="cerrarFichaEvento()">Cancelar</button>
 
     <div class="zona-archivar" id="zonaEliminarEvento" style="display:none;">
-      <button class="boton-archivar" id="botonMoverSesionEvento" onclick="abrirModalMoverSesion()" style="display:none; margin-bottom:8px;">Mover esta sesión a otro día</button>
-      <button class="boton-archivar" id="botonOmitirFechaEvento" onclick="solicitarOmitirFecha()" style="display:none; margin-bottom:8px;">Omitir esta fecha</button>
       <button class="boton-archivar" id="botonEliminarEvento" onclick="solicitarEliminarEvento()">Eliminar</button>
       <div class="confirmacion-archivar" id="confirmacionEliminarEvento" style="display:none;">
         <p id="textoConfirmacionEliminarEvento">Este registro se eliminará permanentemente. No se puede deshacer.</p>
         <div class="fila-confirmacion">
           <button class="boton-confirmar-no" onclick="cancelarEliminarEvento()">Cancelar</button>
           <button class="boton-confirmar-si" onclick="confirmarEliminarEvento()">Sí, eliminar</button>
-        </div>
-      </div>
-      <div class="confirmacion-archivar" id="confirmacionOmitirFecha" style="display:none;">
-        <p>Esta fecha puntual se omitirá. Las demás repeticiones de este evento se mantienen sin cambios.</p>
-        <div class="fila-confirmacion">
-          <button class="boton-confirmar-no" onclick="cancelarOmitirFecha()">Cancelar</button>
-          <button class="boton-confirmar-si" onclick="confirmarOmitirFecha()">Sí, omitir</button>
         </div>
       </div>
     </div>
@@ -1618,7 +1669,7 @@ input{ font-family:inherit; }
 <div class="fondo-modal" id="fondoModalMoverSesion" onclick="cerrarModalSiFondo(event, 'fondoModalMoverSesion', cerrarModalMoverSesion)">
   <div class="hoja-modal">
     <div class="encabezado-modal">
-      <h2>Mover esta sesión</h2>
+      <h2 id="tituloModalMoverSesion">Mover esta sesión</h2>
       <button class="cerrar-modal" onclick="cerrarModalMoverSesion()">✕</button>
     </div>
     <div class="campo-modal">
@@ -1629,13 +1680,13 @@ input{ font-family:inherit; }
       <input type="date" id="moverSesionFecha">
     </div>
     <div class="campo-modal">
-      <span class="etiqueta-campo">Nueva hora</span>
+      <span class="etiqueta-campo" id="etiquetaHoraMoverSesion">Nueva hora</span>
       <input type="text" class="campo-hora-texto" id="moverSesionHora" inputmode="numeric" placeholder="HH:MM" maxlength="5" oninput="formatearEntradaHora(this)">
       <div class="nota-campo">Formato 24 horas, por ejemplo 09:30 o 19:00.</div>
     </div>
-    <div class="nota-campo" style="margin-bottom:10px;">Esta fecha se quitará de la serie recurrente (igual que "Omitir esta fecha") y se creará como una atención suelta en el nuevo día. Las demás repeticiones de la serie no se ven afectadas.</div>
+    <div class="nota-campo" id="notaModalMoverSesion" style="margin-bottom:10px;"></div>
     <div class="aviso-formulario" id="avisoMoverSesion"></div>
-    <button class="boton-primario" onclick="guardarMoverSesion()">Mover sesión</button>
+    <button class="boton-primario" id="botonConfirmarMoverSesion" onclick="guardarMoverSesion()">Mover sesión</button>
     <button class="boton-secundario" onclick="cerrarModalMoverSesion()">Cancelar</button>
   </div>
 </div>
@@ -2036,9 +2087,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.33';
+const VERSION_APP = '2.34';
 const VERSION_FECHA = '25 sep 2026';
-const VERSION_DESCRIPCION = 'Objetivos: retirar, editar y eliminar movimientos; Dashboard por meses y pendiente de cobrar con descuento; Rucalaf; efectivo o transferencia al guardar un pago; Sesiones devengadas por mes; eventos de varios días que se repiten; búsqueda con todas las repeticiones; nuevo menú de módulos';
+const VERSION_DESCRIPCION = 'Ficha de edición con acciones rápidas arriba y casilla de realizado; vista de mes muestra todos los eventos que caben y colores más intensos; búsqueda con Anteriores, Todos y Próximos; Ingresos sin descuento, Dashboard con descuento; nuevo engranaje';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -3365,6 +3416,8 @@ function renderizarVistaMensual(){
   let eventosQueCabenPorDia = 3;
   if(!semanaAbierta){
     const zona = document.getElementById('gridDiasArriba').parentElement;
+    altoZonaMesMedido = zona.clientHeight;
+    vigilarAltoZonaMes(zona);
     const numFilas = Math.ceil(todosDias.length / 7);
     const altoFila = zona.clientHeight / numFilas;
     const raiz = getComputedStyle(document.documentElement);
@@ -3403,23 +3456,22 @@ function renderizarVistaMensual(){
     if(esHoy) celda.classList.add('hoy');
 
     celda.innerHTML = `<div class="numero-dia-mes-caja"><div class="numero-dia-mes">${fecha.getDate()}</div></div>`;
+    const cajaNumero = celda.firstElementChild;
 
     // Espaciador que reserva el alto de la banda de barras de esta semana
     if(numBarrasSemana > 0){
       celda.insertAdjacentHTML('beforeend', `<div style="flex:none; height:${numBarrasSemana * ALTO_BARRA}px;"></div>`);
     }
 
-    // Chips normales, usando los espacios restantes
-    let restantes = Math.max(0, limite - numBarrasSemana);
-    // En la vista de mes, si no caben todos, se deja el último espacio
-    // para el "+N más", así nunca queda cortado.
-    if(!semanaAbierta && delDia.length > restantes && restantes > 0) restantes -= 1;
+    // Chips normales, usando todos los espacios restantes. Los que no
+    // caben se indican con un "+N" chico al lado del número del día.
+    const restantes = Math.max(0, limite - numBarrasSemana);
     let chipsHTML = '';
     delDia.slice(0, restantes).forEach(inst => {
       chipsHTML += `<div class="chip-evento-mes chip-mes-${inst.etiqueta}${instanciaEstaRealizada(inst) ? ' realizado' : ''}">${escaparHTML(inst.nombre)}</div>`;
     });
     const ocultos = Math.max(0, delDia.length - restantes);
-    if(ocultos > 0) chipsHTML += `<div class="chip-mas-mes">+${ocultos} más</div>`;
+    if(ocultos > 0) cajaNumero.insertAdjacentHTML('beforeend', `<span class="mas-eventos-dia">+${ocultos}</span>`);
     celda.insertAdjacentHTML('beforeend', chipsHTML);
 
     celda.onclick = () => {
@@ -3792,36 +3844,60 @@ function instanciaEstaRealizada(inst){
   return inst.estadoSesion === ESTADO_REALIZADO;
 }
 let instanciaRealizadoEnFicha = null;
+// (v2.33) "Marcar como realizado" es una casilla en la parte de arriba
+// de la ficha (solo al editar un evento que no sea Atención). La marca
+// se aplica recién al tocar Guardar, junto con el resto de la ficha.
 function mostrarBotonRealizado(instancia){
-  const boton = document.getElementById('botonRealizadoEvento');
-  if(instancia.tipoInstancia !== 'evento' || instancia.etiqueta === 'atenciones'){ boton.style.display = 'none'; instanciaRealizadoEnFicha = null; return; }
+  const fila = document.getElementById('filaRealizadoEvento');
+  if(instancia.tipoInstancia !== 'evento' || instancia.etiqueta === 'atenciones'){ fila.style.display = 'none'; instanciaRealizadoEnFicha = null; return; }
   instanciaRealizadoEnFicha = instancia;
   const ev = eventosAgenda.find(e => e.id === instancia.eventoId);
-  const hecho = instanciaEstaRealizada(instancia);
-  const soloEsteDia = ev && ev.recurrencia !== 'ninguna' ? ' (solo este día)' : '';
-  boton.textContent = (hecho ? 'Quitar marca de realizado' : 'Marcar como realizado') + soloEsteDia;
-  boton.style.display = 'block';
+  document.getElementById('checkRealizadoEvento').checked = instanciaEstaRealizada(instancia);
+  document.getElementById('textoRealizadoEvento').textContent = 'Marcar como realizado' + (ev && ev.recurrencia !== 'ninguna' ? ' (solo este día)' : '');
+  fila.style.display = 'flex';
 }
-async function alternarRealizadoEvento(){
-  const inst = instanciaRealizadoEnFicha; if(!inst) return;
-  const ev = eventosAgenda.find(e => e.id === inst.eventoId); if(!ev) return;
-  const nuevoEstado = instanciaEstaRealizada(inst) ? null : ESTADO_REALIZADO;
-  const esRecurrente = ev.recurrencia !== 'ninguna';
-  if(!esRecurrente){ ev.estadoSesion = nuevoEstado; }
-  else{
-    ev.estadosPorFecha = ev.estadosPorFecha || {};
-    if(nuevoEstado) ev.estadosPorFecha[inst.fecha] = nuevoEstado; else delete ev.estadosPorFecha[inst.fecha];
+// Mueve el estado de la sesión y el botón Guardar arriba (al editar) o
+// los devuelve a su lugar de siempre (al crear).
+function colocarControlesFichaEvento(modoEdicion){
+  const mover = (idElemento, idLugar) => { const lugar = document.getElementById(idLugar); lugar.parentNode.insertBefore(document.getElementById(idElemento), lugar.nextSibling); };
+  if(modoEdicion){
+    mover('campoEstadoSesionEvento', 'lugarSuperiorEstadoSesion');
+    mover('bloqueGuardarEvento', 'lugarSuperiorGuardar');
+  }else{
+    mover('campoEstadoSesionEvento', 'lugarOriginalEstadoSesion');
+    mover('bloqueGuardarEvento', 'lugarOriginalGuardar');
   }
-  encolarActualizarEstadoSesion(ev, esRecurrente ? inst.fecha : null, nuevoEstado, null, null);
-  cerrarFichaEvento(); rerenderizarVistaAgendaActual();
-  await guardarEventosEnAlmacenamiento();
-  procesarColaEntidadAgenda(ev, guardarEventosEnAlmacenamiento);
+  document.getElementById('zonaSuperiorEdicionEvento').style.display = modoEdicion ? 'block' : 'none';
+}
+// Textos de "mover" según si es una sesión (Atenciones) u otro evento.
+function textosMoverSegunEtiqueta(etiqueta){
+  const esSesion = etiqueta === 'atenciones';
+  document.getElementById('botonMoverSesionEvento').textContent = esSesion ? 'Mover esta sesión a otro día' : 'Mover este evento para otro día';
+  document.getElementById('notaFechaEventoBloqueada').textContent = esSesion
+    ? 'Esta sesión pertenece a una serie que se repite. Para cambiar el día de esta sesión en particular, usa "Mover esta sesión a otro día", arriba. La fecha de inicio de toda la serie no se edita desde acá.'
+    : 'Este evento pertenece a una serie que se repite. Para cambiar solo este día, usa "Mover este evento para otro día", arriba. La fecha de inicio de toda la serie no se edita desde acá.';
 }
 
 window.addEventListener('resize', () => {
   const pantalla = document.getElementById('pantallaAgenda');
   if(pantalla && pantalla.style.display !== 'none' && !semanaAbierta) renderizarVistaMensual();
 });
+// En el iPhone, la app a veces dibuja el mes antes de que la pantalla
+// tenga su alto final (al abrir, al volver desde segundo plano), y
+// calculaba que cabía un solo evento por día. Ahora se vigila el alto
+// del área del mes: si cambia, se vuelve a dibujar con la medida real.
+let altoZonaMesMedido = -1, observadorAltoMes = null, redibujoMesPendiente = false;
+function vigilarAltoZonaMes(zona){
+  if(observadorAltoMes || typeof ResizeObserver === 'undefined') return;
+  observadorAltoMes = new ResizeObserver(() => {
+    const pantalla = document.getElementById('pantallaAgenda');
+    if(!pantalla || pantalla.style.display === 'none' || semanaAbierta) return;
+    if(Math.abs(zona.clientHeight - altoZonaMesMedido) < 4 || redibujoMesPendiente) return;
+    redibujoMesPendiente = true;
+    requestAnimationFrame(() => { redibujoMesPendiente = false; renderizarVistaMensual(); });
+  });
+  observadorAltoMes.observe(zona);
+}
 function rerenderizarVistaAgendaActual(){
   renderizarVistaMensual();
   if(semanaAbierta) renderizarPanelSemana();
@@ -3880,6 +3956,8 @@ function abrirFichaEventoNueva(){
   listaPacientesAbierta = false; ocultarAvisoFormulario('avisoFichaEvento');
 
   document.getElementById('tituloFichaEvento').textContent = 'Nuevo evento';
+  colocarControlesFichaEvento(false);
+  document.getElementById('filaRealizadoEvento').style.display = 'none'; instanciaRealizadoEnFicha = null;
   document.getElementById('eventoNombreLibre').value = '';
   document.getElementById('eventoConsultaNombre').value = '';
   document.getElementById('eventoConsultaMonto').value = '';
@@ -3964,6 +4042,8 @@ function abrirFichaEventoEdicion(instancia){
 
   document.getElementById('confirmacionEliminarEvento').style.display = 'none';
   document.getElementById('confirmacionOmitirFecha').style.display = 'none';
+  colocarControlesFichaEvento(true);
+  textosMoverSegunEtiqueta(etiquetaEventoSeleccionada);
   mostrarBotonRealizado(instancia);
 
   pintarGridEtiquetasEvento(); pintarSegmentadoSubtipoAtencion(); pintarSegmentadoTipoPagoEventoConsulta();
@@ -3985,7 +4065,7 @@ function abrirFichaEventoEdicion(instancia){
 }
 
 function cerrarFichaEvento(){
-  document.getElementById('botonRealizadoEvento').style.display = 'none';
+  document.getElementById('filaRealizadoEvento').style.display = 'none'; instanciaRealizadoEnFicha = null;
   document.getElementById('fondoModalEvento').classList.remove('abierto');
   eventoEnEdicionId = null; consultaEnEdicionId = null; fechaOcurrenciaEnEdicion = null;
 }
@@ -4404,6 +4484,10 @@ async function guardarFichaEventoInterno(){
 
   const nombreLibre = document.getElementById('eventoNombreLibre').value.trim();
   if(!nombreLibre){ mostrarAvisoFormulario('avisoFichaEvento', 'Falta el nombre del evento.', 'eventoNombreLibre'); return; }
+  // La casilla "Marcar como realizado" decide el estado de este día.
+  if(instanciaRealizadoEnFicha && document.getElementById('filaRealizadoEvento').style.display !== 'none'){
+    estadoSesionEventoSeleccionado = document.getElementById('checkRealizadoEvento').checked ? ESTADO_REALIZADO : null;
+  }
   await guardarEventoGenerico(fecha, hora, nombreLibre, null);
 }
 
@@ -4515,6 +4599,13 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
     }
   }
 
+  // Eventos que no son Atenciones: si cambió la marca de realizado de
+  // ese día, se manda a la planilla (misma acción de siempre).
+  if(evento && etiquetaEventoSeleccionada !== 'atenciones' && eventoEnEdicionId !== null && fechaOcurrenciaAfectada
+     && (estadoAnteriorEvento || null) !== (estadoSesionEventoSeleccionado || null)){
+    encolarActualizarEstadoSesion(evento, evento.recurrencia === 'ninguna' ? null : fechaOcurrenciaAfectada, estadoSesionEventoSeleccionado || null, null, null);
+  }
+
   cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarEventosEnAlmacenamiento();
   if(evento) procesarColaEntidadAgenda(evento, guardarEventosEnAlmacenamiento);
 }
@@ -4571,6 +4662,13 @@ function abrirModalMoverSesion(){
     return;
   }
   eventoEnMovimiento = evento; fechaOcurrenciaEnMovimiento = fechaOcurrenciaEnEdicion;
+  const esSesion = evento.etiqueta === 'atenciones';
+  document.getElementById('tituloModalMoverSesion').textContent = esSesion ? 'Mover esta sesión' : 'Mover este evento';
+  document.getElementById('botonConfirmarMoverSesion').textContent = esSesion ? 'Mover sesión' : 'Mover evento';
+  document.getElementById('etiquetaHoraMoverSesion').textContent = esSesion ? 'Nueva hora' : 'Nueva hora (opcional)';
+  document.getElementById('notaModalMoverSesion').textContent = esSesion
+    ? 'Esta fecha se quitará de la serie recurrente (igual que "Omitir esta fecha") y se creará como una atención suelta en el nuevo día. Las demás repeticiones de la serie no se ven afectadas.'
+    : 'Este día se quitará de la serie (igual que "Omitir esta fecha") y el evento se creará suelto en el nuevo día. Las demás repeticiones no se ven afectadas.';
   document.getElementById('textoInfoMoverSesion').textContent = `${obtenerNombreEvento(evento)} · actualmente el ${fechaOcurrenciaEnEdicion}`;
   document.getElementById('moverSesionFecha').value = '';
   document.getElementById('moverSesionHora').value = evento.hora || '';
@@ -4587,7 +4685,8 @@ async function guardarMoverSesion(){
   const nuevaHora = document.getElementById('moverSesionHora').value;
   ocultarAvisoFormulario('avisoMoverSesion');
   if(!nuevaFecha){ mostrarAvisoFormulario('avisoMoverSesion', 'Falta la nueva fecha.', 'moverSesionFecha'); return; }
-  if(!horaEsValida(nuevaHora)){ mostrarAvisoFormulario('avisoMoverSesion', 'Falta la hora o está incompleta. Usa el formato 24 horas, por ejemplo 09:30.', 'moverSesionHora'); return; }
+  const horaObligatoria = eventoEnMovimiento.etiqueta === 'atenciones';
+  if((horaObligatoria || nuevaHora) && !horaEsValida(nuevaHora)){ mostrarAvisoFormulario('avisoMoverSesion', 'Falta la hora o está incompleta. Usa el formato 24 horas, por ejemplo 09:30.', 'moverSesionHora'); return; }
 
   const evento = eventoEnMovimiento;
   const fechaVieja = fechaOcurrenciaEnMovimiento;
@@ -4612,7 +4711,11 @@ async function guardarMoverSesion(){
     id: generarIdEvento(), etiqueta: evento.etiqueta, nombre: evento.nombre, pacienteId: evento.pacienteId,
     fecha: nuevaFecha, hora: nuevaHora, recurrencia: 'ninguna',
     fechasExcluidas: [], estadoSesion: estadoAMover || null,
-    estadosPorFecha: {}, hasDuration: false, endDate: '', endTime: '', creado: Date.now(),
+    estadosPorFecha: {}, creado: Date.now(),
+    // Un evento de varios días conserva su duración en el nuevo día.
+    hasDuration: !!(evento.hasDuration && evento.endDate && evento.endDate !== evento.fecha),
+    endDate: (evento.hasDuration && evento.endDate && evento.endDate !== evento.fecha) ? (() => { const f = fechaDesdeISO(nuevaFecha); f.setDate(f.getDate() + diasEntreFechas(evento.fecha, evento.endDate)); return formatoISO(f); })() : '',
+    endTime: evento.hasDuration ? (evento.endTime || '') : '',
     pendienteSync:false, colaSync:[]
   };
   nuevoEvento.colaSync.push({ accion:'crear_evento', datosBase: construirDatosEventoBase(nuevoEvento) });
@@ -5317,11 +5420,11 @@ async function renderizarVistaIngresos(){
   // anteriores aparecen al volver a ese mes con las flechas).
   const pendientesPago = obtenerPendientesPago().filter(i => i.fecha >= inicioMes && i.fecha <= finMes);
   pintarBotonOjo('botonOjoIngRecibir', vIngRecibir);
-  const totalRecibir = pendientesPago.reduce((a,i)=>a+i.montoNeto,0);
+  const totalRecibir = pendientesPago.reduce((a,i)=>a+i.montoBruto,0);
   document.getElementById('recibirTotalMonto').textContent = textoMontoOculto(totalRecibir, vIngRecibir);
   document.getElementById('recibirNota').textContent = pendientesPago.length === 0
     ? 'No hay sesiones sin pagar en este mes.'
-    : `${pendientesPago.length} ${pendientesPago.length===1?'sesión':'sesiones'} sin pagar · montos con descuento incorporado`;
+    : `${pendientesPago.length} ${pendientesPago.length===1?'sesión':'sesiones'} sin pagar · montos sin descuento`;
   const botonPend = document.getElementById('botonDesplegarPendientesPago');
   const seccionPend = document.getElementById('seccionPendientesPago');
   if(pendientesPago.length === 0){
@@ -5334,7 +5437,7 @@ async function renderizarVistaIngresos(){
       <div class="fila-pendiente-pago">
         <div class="fila-top">
           <span class="nombre">${escaparHTML(i.nombre || '')}</span>
-          <span class="monto monto-fuente">${textoMontoOculto(i.montoNeto, vIngRecibir)}</span>
+          <span class="monto monto-fuente">${textoMontoOculto(i.montoBruto, vIngRecibir)}</span>
         </div>
         <div class="fila-bottom">
           <span class="fecha">${formatearFechaMovimiento(i.fecha)}</span>
@@ -5351,8 +5454,8 @@ async function renderizarVistaIngresos(){
   const tarjetaLazos = document.getElementById('tarjetaLazos');
   pintarBotonOjo('botonOjoIngLazos', vIngLazos);
   const totalBrutoEL = pendientesEL.reduce((a,p)=>a+p.info.montoBruto,0);
-  document.getElementById('lazosMontoTotal').textContent = pendientesEL.length === 0 ? textoMontoOculto(0, vIngLazos) : (textoMontoOculto(totalBrutoEL, vIngLazos) + ' bruto');
-  document.getElementById('lazosNota').textContent = pendientesEL.length === 0 ? 'No hay sesiones pendientes de boleta.' : `${pendientesEL.length} ${pendientesEL.length===1?'sesión':'sesiones'} pendiente${pendientesEL.length===1?'':'s'} de boleta`;
+  document.getElementById('lazosMontoTotal').textContent = textoMontoOculto(totalBrutoEL, vIngLazos);
+  document.getElementById('lazosNota').textContent = pendientesEL.length === 0 ? 'No hay sesiones pendientes de boleta.' : `${pendientesEL.length} ${pendientesEL.length===1?'sesión':'sesiones'} pendiente${pendientesEL.length===1?'':'s'} de boleta · montos sin descuento`;
   const botonBoleta = document.getElementById('botonDesplegarPendientesBoleta');
   const seccionBoleta = document.getElementById('seccionPendientesBoleta');
   if(pendientesEL.length === 0){
@@ -5366,9 +5469,10 @@ async function renderizarVistaIngresos(){
       <div class="fila-pendiente-pago">
         <div class="fila-top">
           <span class="nombre">${escaparHTML(p.info.nombre || '')}</span>
+          <span class="monto monto-fuente">${textoMontoOculto(p.info.montoBruto, vIngLazos)}</span>
         </div>
         <div class="fila-bottom">
-          <span class="fecha">${p.instancia.fecha}</span>
+          <span class="fecha">${formatearFechaMovimiento(p.instancia.fecha)}</span>
         </div>
       </div>
     `).join('');
@@ -6596,7 +6700,7 @@ function pintarFiltroEtiquetasAgenda(){
 function verTodosTiposAgenda(){ filtroAgendaEtiquetas = []; pintarFiltroEtiquetasAgenda(); renderizarResultadosBusquedaAgenda(); }
 function pintarSegmentadoPeriodoAgenda(){
   const c = document.getElementById('segmentadoPeriodoAgenda'); c.innerHTML = '';
-  [['proximos','Próximos'],['anteriores','Anteriores']].forEach(([valor, nombre]) => {
+  [['anteriores','Anteriores'],['todos','Todos'],['proximos','Próximos']].forEach(([valor, nombre]) => {
     const b = document.createElement('button');
     b.className = filtroAgendaPeriodo === valor ? 'seleccionado' : '';
     b.textContent = nombre;
@@ -6614,7 +6718,12 @@ function renderizarResultadosBusquedaAgenda(){
   // termina ayer. La lista se muestra de a 40, así que no se hace pesada.
   const hoy = hoyISO();
   const desplazar = (dias) => { const f = fechaDesdeISO(hoy); f.setDate(f.getDate() + dias); return formatoISO(f); };
-  const [inicio, fin] = filtroAgendaPeriodo === 'proximos' ? [hoy, desplazar(HORIZONTE_RECURRENCIA_ANUAL_DIAS)] : [desplazar(-HORIZONTE_RECURRENCIA_ANUAL_DIAS), desplazar(-1)];
+  const RANGOS_BUSQUEDA = {
+    anteriores: [desplazar(-HORIZONTE_RECURRENCIA_ANUAL_DIAS), desplazar(-1)],
+    todos:      [desplazar(-HORIZONTE_RECURRENCIA_ANUAL_DIAS), desplazar(HORIZONTE_RECURRENCIA_ANUAL_DIAS)],
+    proximos:   [hoy, desplazar(HORIZONTE_RECURRENCIA_ANUAL_DIAS)]
+  };
+  const [inicio, fin] = RANGOS_BUSQUEDA[filtroAgendaPeriodo] || RANGOS_BUSQUEDA.proximos;
   const texto = normalizarTextoBusqueda(filtroAgendaTexto);
 
   let lista = obtenerInstanciasEnRango(inicio, fin)
