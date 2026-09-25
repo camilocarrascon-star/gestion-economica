@@ -65,12 +65,13 @@
   --fuente-particular:#6B7A45;
   --fuente-fonasa_directo:#B4653A;
   --fuente-entrelazos:#7C2F3E;
-  --fuente-trabajo_dependiente:#A9741B;
+  --fuente-rucalaf:#A9741B;
   --fuente-manual:#8C7A63;
 
   --obj-colchon:#6B7A45;
   --obj-congreso:#A9741B;
   --obj-emergencia:#7C2F3E;
+  --obj-retiro:#9B4A4A;          /* color de los retiros en el historial de un objetivo */
 
   --recibir-bg:#FBF3E2;
   --recibir-borde:#EBDCBC;
@@ -303,11 +304,14 @@ input{ font-family:inherit; }
 #navAgenda.activo .texto{ color:#FFF8EC; }
 
 .nav-item-mas .simbolo-mas{
-  font-size:25px; font-weight:500; line-height:1;
+  display:flex; align-items:center; justify-content:center; line-height:1;
   color:var(--texto-secundario);
-  transition:transform 0.18s ease, color 0.15s ease;
+  transition:transform 0.2s ease, color 0.15s ease;
 }
-.nav-item-mas.abierto .simbolo-mas{ transform:rotate(45deg); }
+/* Flecha del botón que abre el menú de módulos (apunta hacia arriba,
+   y se da vuelta hacia abajo cuando el menú está abierto) */
+.icono-menu-modulos{ width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
+.nav-item-mas.abierto .simbolo-mas{ transform:rotate(180deg); }
 
 .overlay-menu-mas{ position:absolute; inset:0; z-index:29; display:none; }
 .overlay-menu-mas.visible{ display:block; }
@@ -327,7 +331,29 @@ input{ font-family:inherit; }
   touch-action:manipulation;
 }
 .menu-mas button:active{ background:var(--bg-app); }
-.menu-mas .boton-config-menu{ justify-content:center; font-size:21px; color:var(--texto-secundario); padding:9px 14px; }
+.menu-mas .boton-config-menu{
+  gap:11px; margin-top:4px; padding:11px 12px;
+  border-top:1px solid var(--borde-suave); border-radius:0 0 10px 10px;
+  color:var(--texto-principal);
+}
+/* Ícono de engranaje dentro de un cuadrado suave */
+.icono-config-menu{
+  width:34px; height:34px; border-radius:10px; flex:none;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--bg-app); color:var(--texto-principal);
+}
+.icono-config-menu svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linejoin:round; }
+
+/* Pregunta "¿Efectivo o transferencia?" al guardar una sesión pagada */
+.botones-medio-pago-sesion{ display:flex; gap:10px; margin-bottom:6px; }
+.botones-medio-pago-sesion button{
+  flex:1; padding:18px 10px; border-radius:14px; border:1px solid var(--borde);
+  background:var(--superficie); font-size:15px; font-weight:700; font-family:'Quicksand',sans-serif;
+  color:var(--texto-principal); touch-action:manipulation;
+}
+.botones-medio-pago-sesion button:active{ transform:scale(0.98); background:var(--bg-app); }
+/* El modal de la pregunta va encima de la ficha del evento */
+#fondoModalMedioPagoSesion{ z-index:60; }
 
 /* ============================================================
    9. MODALES (hoja deslizante desde abajo)
@@ -941,10 +967,50 @@ input{ font-family:inherit; }
 .fila-tramo-montos{ font-size:11px; font-weight:600; color:var(--texto-secundario); margin-top:6px; font-variant-numeric:tabular-nums; }
 .boton-alerta-tramo{ flex:none; font-size:15px; line-height:1; padding:2px 4px; touch-action:manipulation; }
 
+/* --- Agregar / retirar monto (ficha del objetivo) --- */
+.controles-aporte{ display:flex; gap:7px; margin-top:8px; }
+.campo-monto-aporte{ flex:1; min-width:0; padding:11px 12px; border-radius:11px; border:1px solid var(--borde); font-size:14px; background:var(--superficie); color:var(--texto-principal); }
+.boton-aporte{
+  flex:none; padding:0 14px; border-radius:11px; border:1px solid var(--borde); background:var(--superficie);
+  font-size:13px; font-weight:700; font-family:'Quicksand',sans-serif; color:var(--texto-principal); touch-action:manipulation;
+}
+.boton-aporte:active{ transform:scale(0.97); }
+.boton-aporte.retiro{ color:var(--obj-retiro); }
+
+/* --- Historial de movimientos (aportes, retiros y cierres) --- */
+.titulo-historial-aportes{ font-size:10.5px; font-weight:700; letter-spacing:0.5px; color:var(--texto-terciario); font-family:'Quicksand',sans-serif; margin-top:14px; text-transform:uppercase; }
+.fila-movimiento-objetivo{
+  position:relative; background:var(--superficie); border:1px solid var(--borde-suave);
+  border-radius:11px; padding:9px 6px 9px 11px; margin-top:7px; display:flex; align-items:center; gap:8px;
+}
+.fila-movimiento-objetivo .tipo-mov{ font-size:12px; font-weight:650; color:var(--texto-secundario); font-family:'Quicksand',sans-serif; flex:1; min-width:0; }
+.fila-movimiento-objetivo .fecha-mov{ display:block; font-size:10.5px; font-weight:600; color:var(--texto-terciario); margin-top:1px; }
+.fila-movimiento-objetivo .monto-mov{ font-size:13.5px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--texto-principal); flex:none; }
+.fila-movimiento-objetivo.retiro .monto-mov{ color:var(--obj-retiro); }
+.fila-movimiento-objetivo.cierre .monto-mov{ color:var(--texto-terciario); font-weight:650; }
+.fila-movimiento-objetivo .boton-menu-gasto{ padding:4px 6px; }
+.boton-ver-todos-movimientos{ display:block; width:100%; margin-top:8px; }
+.fila-movimiento-objetivo .menu-contextual-gasto{ top:34px; }
+/* Edición dentro de la misma fila */
+.fila-movimiento-objetivo.editando{ flex-direction:column; align-items:stretch; padding:10px 11px; }
+.edicion-mov-campos{ display:flex; gap:7px; margin-top:7px; }
+.edicion-mov-campos input{ flex:1; min-width:0; padding:9px 10px; border-radius:10px; border:1px solid var(--borde); font-size:14px; background:var(--superficie); color:var(--texto-principal); }
+.edicion-mov-botones{ display:flex; gap:7px; margin-top:8px; }
+.edicion-mov-botones button{ flex:1; padding:9px; border-radius:10px; font-size:13px; font-weight:700; font-family:'Quicksand',sans-serif; border:1px solid var(--borde); background:var(--superficie); color:var(--texto-principal); touch-action:manipulation; }
+.edicion-mov-botones button.guardar{ background:var(--texto-principal); color:var(--superficie); border-color:var(--texto-principal); }
+
 /* ============================================================
    14. MÓDULO E — DASHBOARD
    ============================================================ */
-.dash-encabezado{ flex:none; display:flex; align-items:baseline; gap:7px; padding-bottom:2px; }
+.dash-encabezado{ flex:none; display:flex; align-items:center; gap:7px; padding-bottom:2px; }
+/* Flechas para ver el resumen de meses anteriores */
+.dash-flecha-mes{
+  flex:none; width:30px; height:30px; border-radius:9px; border:1px solid var(--borde);
+  background:var(--superficie); color:var(--texto-secundario); font-size:19px; line-height:1;
+  display:flex; align-items:center; justify-content:center; touch-action:manipulation;
+}
+.dash-flecha-mes:disabled{ opacity:0.3; }
+.dash-flecha-mes:active{ transform:scale(0.95); }
 .dash-mes-actual{ font-size:20px; font-weight:700; letter-spacing:-0.4px; color:var(--texto-principal); font-family:'Quicksand',sans-serif; text-transform:capitalize; }
 .dash-anio-actual{ font-size:12px; font-weight:600; color:var(--texto-secundario); font-family:'Quicksand',sans-serif; }
 .dash-dia-actual{ font-size:11px; font-weight:600; color:var(--texto-terciario); font-family:'Quicksand',sans-serif; margin-left:auto; }
@@ -968,8 +1034,14 @@ input{ font-family:inherit; }
 .tarjeta-pendiente-dash{ background:var(--recibir-bg); border:1px solid var(--recibir-borde); border-radius:15px; padding:13px 15px; }
 .pendiente-dash-encabezado{ display:flex; align-items:center; gap:8px; }
 .pendiente-dash-titulo{ font-size:11px; font-weight:700; letter-spacing:0.3px; color:var(--recibir-texto); font-family:'Quicksand',sans-serif; flex:1; text-transform:uppercase; }
-.pendiente-dash-fila{ display:flex; align-items:flex-end; gap:13px; margin-top:8px; }
-.pendiente-dash-monto{ font-size:18px; font-weight:700; letter-spacing:-0.4px; font-variant-numeric:tabular-nums; flex:1; color:var(--recibir-texto); }
+.pendiente-dash-fila{ display:flex; align-items:center; gap:13px; margin-top:10px; }
+.pendiente-dash-fila.con-borde{ padding-top:10px; border-top:1px solid var(--recibir-fila-borde); }
+.pendiente-dash-izquierda{ flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+.pendiente-dash-concepto{ font-size:12.5px; font-weight:700; color:#7E560F; font-family:'Quicksand',sans-serif; }
+.pendiente-dash-detalle{ font-size:10.5px; font-weight:600; color:var(--recibir-texto2); font-family:'Quicksand',sans-serif; }
+.pendiente-dash-monto{ font-size:18px; font-weight:700; letter-spacing:-0.4px; font-variant-numeric:tabular-nums; flex:none; color:var(--recibir-texto); }
+/* Aviso de que los montos ya tienen el descuento aplicado */
+.pendiente-dash-aviso{ margin-top:10px; font-size:10.5px; font-weight:600; line-height:1.35; color:var(--recibir-texto2); font-family:'Quicksand',sans-serif; }
 .pendiente-dash-derecha{ text-align:right; display:flex; flex-direction:column; gap:1px; flex:none; }
 .pendiente-dash-numero{ font-size:16px; font-weight:700; color:#7E560F; font-variant-numeric:tabular-nums; }
 .pendiente-dash-etiqueta{ font-size:10.5px; font-weight:600; line-height:1.2; color:var(--recibir-texto2); font-family:'Quicksand',sans-serif; }
@@ -988,7 +1060,6 @@ input{ font-family:inherit; }
     <h1>Pacientes</h1>
     <div class="relleno"></div>
     <button class="boton-ojo" id="botonOjoPacientes" onclick="alternarVisibilidadPacientes()"></button>
-    <button class="boton-icono" onclick="abrirConfiguracion()">⚙</button>
   </div>
 
   <div class="interruptor-estado">
@@ -1148,7 +1219,7 @@ input{ font-family:inherit; }
 
   <div class="tarjeta-recibir">
     <div class="tarjeta-recibir-encabezado">
-      <span class="tarjeta-recibir-titulo">Pagos por confirmar</span>
+      <span class="tarjeta-recibir-titulo">Sesiones devengadas</span>
       <span class="tarjeta-recibir-monto monto-fuente" id="recibirTotalMonto"></span>
       <button class="boton-ojo" id="botonOjoIngRecibir" onclick="alternarVisibilidadIngRecibir()"></button>
     </div>
@@ -1201,14 +1272,16 @@ input{ font-family:inherit; }
      ============================================================ -->
 <div class="contenedor" id="pantallaDashboard" style="display:none;">
   <div class="dash-encabezado">
+    <button class="dash-flecha-mes" id="dashFlechaAnterior" onclick="cambiarMesDashboard(-1)" aria-label="Mes anterior">‹</button>
     <span class="dash-mes-actual" id="dashMesActual"></span>
     <span class="dash-anio-actual" id="dashAnioActual"></span>
+    <button class="dash-flecha-mes" id="dashFlechaSiguiente" onclick="cambiarMesDashboard(1)" aria-label="Mes siguiente">›</button>
     <span class="dash-dia-actual" id="dashDiaActual"></span>
   </div>
 
   <div class="tarjeta-resumen-dash">
     <div class="resumen-dash-encabezado">
-      <span class="resumen-dash-titulo">Resumen del mes</span>
+      <span class="resumen-dash-titulo" id="dashTituloResumen">Resumen del mes</span>
       <button class="boton-ojo" id="dashBotonOjoResumen" onclick="alternarVisibilidadResumen()"></button>
     </div>
     <div class="grid-resumen-dash">
@@ -1223,24 +1296,32 @@ input{ font-family:inherit; }
     </div>
     <div class="separador-dash"></div>
     <div class="bloque-disponible-dash">
-      <span class="etiqueta">Disponible</span>
+      <span class="etiqueta" id="dashEtiquetaDisponible">Disponible</span>
       <span class="valor monto-fuente" id="dashDisponible">$0</span>
-      <span class="nota">después de gastos e ingresos registrados</span>
+      <span class="nota" id="dashNotaDisponible">después de gastos e ingresos registrados</span>
     </div>
   </div>
 
-  <div class="tarjeta-pendiente-dash">
+  <div class="tarjeta-pendiente-dash" id="dashTarjetaPendiente">
     <div class="pendiente-dash-encabezado">
       <span class="pendiente-dash-titulo">Pendiente de cobrar</span>
       <button class="boton-ojo" id="dashBotonOjoPendiente" onclick="alternarVisibilidadPendiente()"></button>
     </div>
     <div class="pendiente-dash-fila">
-      <span class="pendiente-dash-monto monto-fuente" id="dashMontoPendiente">$0</span>
-      <div class="pendiente-dash-derecha">
-        <span class="pendiente-dash-numero monto-fuente" id="dashNumeroPacientes">0</span>
-        <span class="pendiente-dash-etiqueta">pacientes<br>con deuda</span>
+      <div class="pendiente-dash-izquierda">
+        <span class="pendiente-dash-concepto">Sesiones devengadas</span>
+        <span class="pendiente-dash-detalle" id="dashDetalleDevengadas"></span>
       </div>
+      <span class="pendiente-dash-monto monto-fuente" id="dashMontoPendiente">$0</span>
     </div>
+    <div class="pendiente-dash-fila con-borde">
+      <div class="pendiente-dash-izquierda">
+        <span class="pendiente-dash-concepto">Entre Lazos por cobrar</span>
+        <span class="pendiente-dash-detalle" id="dashDetalleEntreLazos"></span>
+      </div>
+      <span class="pendiente-dash-monto monto-fuente" id="dashMontoEntreLazos">$0</span>
+    </div>
+    <div class="pendiente-dash-aviso" id="dashAvisoDescuento"></div>
   </div>
 </div>
 
@@ -1263,7 +1344,7 @@ input{ font-family:inherit; }
     <span class="texto etiqueta">Agenda</span>
   </button>
   <button class="nav-item nav-item-mas" id="navMas" onclick="alternarMenuMas()">
-    <span class="simbolo-mas">+</span>
+    <span class="simbolo-mas"><svg class="icono-menu-modulos" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></span>
   </button>
 
   <div class="overlay-menu-mas" id="overlayMenuMas" onclick="cerrarMenuMas()"></div>
@@ -1271,7 +1352,15 @@ input{ font-family:inherit; }
     <button onclick="irAPantalla('pacientes')">Pacientes</button>
     <button onclick="irAPantalla('objetivos')">Objetivos</button>
     <button onclick="irAPantalla('dashboard')">Dashboard</button>
-    <button class="boton-config-menu" onclick="cerrarMenuMas(); abrirConfiguracion()" aria-label="Configuración">⚙&#xFE0E;</button>
+    <button class="boton-config-menu" onclick="cerrarMenuMas(); abrirConfiguracion()" aria-label="Configuración">
+      <span class="icono-config-menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M10.3 3.2h3.4l.5 2.4c.6.2 1.2.5 1.7.9l2.3-.8 1.7 2.9-1.8 1.6c.1.6.1 1.3 0 1.9l1.8 1.6-1.7 2.9-2.3-.8c-.5.4-1.1.7-1.7.9l-.5 2.4h-3.4l-.5-2.4c-.6-.2-1.2-.5-1.7-.9l-2.3.8-1.7-2.9 1.8-1.6c-.1-.6-.1-1.3 0-1.9L4.1 8.6l1.7-2.9 2.3.8c.5-.4 1.1-.7 1.7-.9z"/>
+          <circle cx="12" cy="12" r="3.1"/>
+        </svg>
+      </span>
+      <span>Configuración</span>
+    </button>
   </div>
 </div>
 
@@ -1359,12 +1448,6 @@ input{ font-family:inherit; }
       <span class="etiqueta-campo">% comisión Entre Lazos</span>
       <input type="text" id="configComisionEL" inputmode="decimal">
       <div class="nota-campo">Aplica solo a pacientes con canal Entre Lazos. Por defecto 10%.</div>
-    </div>
-
-    <div class="campo-modal">
-      <span class="etiqueta-campo">Sueldo fijo mensual neto — Trabajo dependiente (CLP)</span>
-      <input type="text" id="configSueldoDependiente" inputmode="numeric">
-      <div class="nota-campo">Déjalo en 0 si todavía no aplica. El mes desde cuándo se recibe se registra solo, la primera vez que pongas un monto mayor a 0; para un reajuste más adelante, solo cambia este monto.</div>
     </div>
 
     <div class="nota-campo" style="margin-bottom:12px;">Cambiar estos valores no afecta registros ya guardados — solo aplica hacia adelante.</div>
@@ -1563,7 +1646,7 @@ input{ font-family:inherit; }
 <div class="fondo-modal" id="fondoModalIngreso" onclick="cerrarModalSiFondo(event, 'fondoModalIngreso', cerrarFichaIngreso)">
   <div class="hoja-modal">
     <div class="encabezado-modal">
-      <h2 id="tituloFichaIngreso">Nuevo ingreso manual</h2>
+      <h2 id="tituloFichaIngreso">Nuevo ingreso</h2>
       <button class="cerrar-modal" onclick="cerrarFichaIngreso()">✕</button>
     </div>
 
@@ -1571,7 +1654,11 @@ input{ font-family:inherit; }
 
     <div id="camposIngresoManual">
       <div class="campo-modal">
-        <span class="etiqueta-campo">Descripción</span>
+        <span class="etiqueta-campo">Tipo de ingreso</span>
+        <div class="segmentado" id="segmentadoTipoIngresoManual"></div>
+      </div>
+      <div class="campo-modal">
+        <span class="etiqueta-campo" id="etiquetaDescripcionIngresoManual">Descripción</span>
         <input type="text" id="ingresoManualDescripcion" placeholder="Ej: reembolso, otro ingreso">
       </div>
       <div class="campo-modal">
@@ -1582,7 +1669,7 @@ input{ font-family:inherit; }
         <span class="etiqueta-campo">Fecha</span>
         <input type="date" id="ingresoManualFecha">
       </div>
-      <div class="campo-modal">
+      <div class="campo-modal" id="campoMedioPagoManual">
         <span class="etiqueta-campo">Medio de pago</span>
         <div class="segmentado" id="segmentadoMedioPagoManual"></div>
       </div>
@@ -1676,7 +1763,7 @@ input{ font-family:inherit; }
     <div class="campo-modal">
       <span class="etiqueta-campo">Acumulado actual (CLP)</span>
       <div class="detalle-ingreso-lectura monto-fuente" id="textoAcumuladoObjetivo"></div>
-      <div class="nota-campo">Solo cambia agregando un aporte abajo (así el historial de aportes siempre explica de dónde salió el acumulado).</div>
+      <div class="nota-campo">Cambia al agregar o retirar montos abajo. Cada movimiento queda en el historial, así siempre se sabe de dónde salió el acumulado.</div>
     </div>
 
     <div class="campo-modal" id="campoTramosColchon" style="display:none;">
@@ -1711,10 +1798,11 @@ input{ font-family:inherit; }
     </div>
 
     <div class="zona-archivar">
-      <span class="etiqueta-campo" id="etiquetaAgregarAporte">Agregar monto</span>
-      <div id="controlesAgregarAporte" style="display:flex; gap:8px; margin-top:8px;">
-        <input type="text" id="objetivoAporteMonto" inputmode="numeric" placeholder="Monto" style="flex:1; padding:11px 12px; border-radius:11px; border:1px solid var(--borde); font-size:14px;">
-        <button class="boton-medio-pago" style="padding:0 16px; border-radius:11px;" onclick="registrarAporteObjetivo()">Agregar</button>
+      <span class="etiqueta-campo" id="etiquetaAgregarAporte">Agregar o retirar monto</span>
+      <div id="controlesAgregarAporte" class="controles-aporte">
+        <input type="text" id="objetivoAporteMonto" class="campo-monto-aporte" inputmode="numeric" placeholder="Monto">
+        <button class="boton-aporte" onclick="registrarAporteObjetivo('aporte')">Agregar</button>
+        <button class="boton-aporte retiro" onclick="registrarAporteObjetivo('retiro')">Retirar</button>
       </div>
       <div class="aviso-formulario" id="avisoAporteObjetivo" style="margin-top:8px;"></div>
       <div id="listaAportesObjetivo" style="margin-top:10px;"></div>
@@ -1824,6 +1912,25 @@ input{ font-family:inherit; }
   </div>
 </div>
 
+<!-- ============================================================
+     MODAL: ¿EFECTIVO O TRANSFERENCIA?
+     Aparece al tocar Guardar en una sesión que queda pagada.
+     ============================================================ -->
+<div class="fondo-modal" id="fondoModalMedioPagoSesion" onclick="cerrarModalSiFondo(event, 'fondoModalMedioPagoSesion', cancelarMedioPagoSesion)">
+  <div class="hoja-modal">
+    <div class="encabezado-modal">
+      <h2>¿Efectivo o transferencia?</h2>
+      <button class="cerrar-modal" onclick="cancelarMedioPagoSesion()">✕</button>
+    </div>
+    <p class="nota-campo" id="textoMedioPagoSesion" style="margin:0 0 14px;"></p>
+    <div class="botones-medio-pago-sesion">
+      <button type="button" onclick="elegirMedioPagoSesion('efectivo')">Efectivo</button>
+      <button type="button" onclick="elegirMedioPagoSesion('transferencia')">Transferencia</button>
+    </div>
+    <button class="boton-secundario" onclick="cancelarMedioPagoSesion()">Volver a la sesión</button>
+  </div>
+</div>
+
 <div class="aviso-flotante" id="avisoFlotante" onclick="this.classList.remove('visible')"></div>
 
 <script>
@@ -1929,9 +2036,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.32';
-const VERSION_FECHA = '24 sep 2026';
-const VERSION_DESCRIPCION = 'Agenda: mes a pantalla completa, búsqueda y filtros, nombre del mes en la línea divisoria; corrección del horario de verano; sincroniza al volver a la app';
+const VERSION_APP = '2.33';
+const VERSION_FECHA = '25 sep 2026';
+const VERSION_DESCRIPCION = 'Objetivos: retirar, editar y eliminar movimientos; Dashboard por meses y pendiente de cobrar con descuento; Rucalaf; efectivo o transferencia al guardar un pago; Sesiones devengadas por mes; eventos de varios días que se repiten; búsqueda con todas las repeticiones; nuevo menú de módulos';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -2056,8 +2163,12 @@ async function cargarEventosAgenda(){
 async function guardarEventosEnAlmacenamiento(){
   try{ const r = await window.storage.set(CLAVE_AGENDA, JSON.stringify(eventosAgenda), false); if(!r) mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }catch(e){ mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }
 }
+// El sueldo automático de antes ("trabajo_dependiente") ahora se
+// muestra y se cuenta como Rucalaf.
+function normalizarTipoIngreso(tipo){ return tipo === 'trabajo_dependiente' ? 'rucalaf' : tipo; }
 async function cargarIngresos(){
   try{ const r = await window.storage.get(CLAVE_INGRESOS, false); ingresos = (r && r.value) ? JSON.parse(r.value) : []; }catch(e){ ingresos = []; }
+  ingresos.forEach(i => { i.tipo = normalizarTipoIngreso(i.tipo); });
 }
 async function guardarIngresosEnAlmacenamiento(){
   try{ const r = await window.storage.set(CLAVE_INGRESOS, JSON.stringify(ingresos), false); if(!r) mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }catch(e){ mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }
@@ -2067,7 +2178,7 @@ async function guardarIngresosEnAlmacenamiento(){
 // vacía (registros de antes de que esto existiera), se adivina lo más
 // razonable a partir de "origen" nada más, sin pretender ser exacto.
 function mapearIngresoDesdeServidor(fila){
-  const tipo = fila.categoria_manual || (fila.origen === 'sesion_paciente' ? 'particular' : 'manual');
+  const tipo = normalizarTipoIngreso(fila.categoria_manual || (fila.origen === 'sesion_paciente' ? 'particular' : 'manual'));
   return {
     id: fila.id_ingreso,
     tipo,
@@ -2322,7 +2433,7 @@ function irAPantalla(nombre){
   if(nombre === 'agenda') renderizarVistaMensual();
   else if(nombre === 'ingresos') renderizarVistaIngresos();
   else if(nombre === 'objetivos') renderizarVistaObjetivos();
-  else if(nombre === 'dashboard') renderizarDashboard();
+  else if(nombre === 'dashboard'){ reiniciarMesDashboard(); renderizarDashboard(); }
 }
 
 function alternarMenuMas(){
@@ -2658,7 +2769,6 @@ function abrirConfiguracion(){
   document.getElementById('configMontoFonasaEL').value = configuracion.montoFonasaEL ? configuracion.montoFonasaEL.toLocaleString('es-CL') : '';
   document.getElementById('configImpuesto').value = configuracion.porcentajeImpuesto;
   document.getElementById('configComisionEL').value = configuracion.porcentajeComisionEL;
-  document.getElementById('configSueldoDependiente').value = configuracion.sueldoDependienteMonto ? configuracion.sueldoDependienteMonto.toLocaleString('es-CL') : '';
   actualizarBannerSyncConfig();
   document.getElementById('fondoModalConfig').classList.add('abierto');
 }
@@ -2672,7 +2782,6 @@ async function guardarConfiguracion(){
   const montoFonasaEL = limpiarMontoTexto(document.getElementById('configMontoFonasaEL').value);
   const impuesto = parseFloat(document.getElementById('configImpuesto').value.replace(',','.'));
   const comisionEL = parseFloat(document.getElementById('configComisionEL').value.replace(',','.'));
-  const sueldoDependiente = limpiarMontoTexto(document.getElementById('configSueldoDependiente').value) || 0;
 
   ocultarAvisoFormulario('avisoConfiguracion');
   if(montoFonasa === null || montoFonasa <= 0){ mostrarAvisoFormulario('avisoConfiguracion', 'Falta el monto FONASA directo.', 'configMontoFonasa'); return; }
@@ -2687,24 +2796,8 @@ async function guardarConfiguracion(){
   if(impuesto !== configuracion.porcentajeImpuesto) cambios.push({ tipo:'porcentaje_impuesto', monto_o_porcentaje: impuesto, vigente_desde: hoy });
   if(comisionEL !== configuracion.porcentajeComisionEL) cambios.push({ tipo:'porcentaje_entrelazos', monto_o_porcentaje: comisionEL, vigente_desde: hoy });
 
-  // El mes de inicio del sueldo fijo ya no lo escribe el usuario: nace
-  // solo la primera vez que el monto pasa de 0 a algo mayor que 0 (se
-  // asume que empieza este mes). Si luego solo se ajusta el monto
-  // (un reajuste anual), el mes de inicio no se vuelve a tocar. Si se
-  // vuelve a poner en 0, se borra, para que si más adelante se
-  // reactiva, cuente como un inicio nuevo.
-  const montoSueldoAnterior = configuracion.sueldoDependienteMonto || 0;
-  let inicioSueldo = configuracion.sueldoDependienteInicio || '';
-  if(sueldoDependiente > 0 && montoSueldoAnterior <= 0) inicioSueldo = hoy.slice(0,7);
-  else if(sueldoDependiente <= 0) inicioSueldo = '';
-  if(sueldoDependiente !== montoSueldoAnterior || inicioSueldo !== (configuracion.sueldoDependienteInicio||'')){
-    cambios.push({ tipo:'sueldo_dependiente', monto_o_porcentaje: sueldoDependiente, vigente_desde: (inicioSueldo || hoy.slice(0,7)) + '-01' });
-  }
-
   configuracion.montoFonasa = montoFonasa; configuracion.montoFonasaEL = montoFonasaEL;
   configuracion.porcentajeImpuesto = impuesto; configuracion.porcentajeComisionEL = comisionEL;
-  configuracion.sueldoDependienteMonto = sueldoDependiente;
-  configuracion.sueldoDependienteInicio = inicioSueldo;
   configuracion.colaSync = configuracion.colaSync || [];
   cambios.forEach(c => configuracion.colaSync.push({ accion:'nueva_config_global', datosBase: c }));
 
@@ -3124,11 +3217,29 @@ function encolarEliminarIngresoDeSesion(entidad, idIngreso){
 // Eventos con duración (hasDuration) cuyo rango [fecha, endDate] incluye la
 // fecha dada. Solo aplica a eventos sin recurrencia — un rango de días fijo
 // no tiene un sentido claro combinado con repeticiones.
+// (v2.33) También considera los eventos de varios días que se repiten
+// (por ejemplo, Fiestas Patrias del 18 al 19 de septiembre, cada año):
+// cada repetición dura lo mismo que la original. Devuelve una copia del
+// evento por cada repetición que cubre ese día, con la fecha en que
+// empieza esa repetición (fechaOcurrenciaMultidia) y su estado propio.
+function diasEntreFechas(desdeISO, hastaISO){ return Math.round((fechaDesdeISO(hastaISO) - fechaDesdeISO(desdeISO)) / 86400000); }
 function obtenerEventosMultidiaEnFecha(fechaStr){
-  return eventosAgenda.filter(ev =>
-    ev.recurrencia === 'ninguna' && ev.hasDuration && ev.endDate && ev.endDate !== ev.fecha &&
-    fechaStr >= ev.fecha && fechaStr <= ev.endDate
-  );
+  const resultado = [];
+  eventosAgenda.forEach(ev => {
+    if(!ev.hasDuration || !ev.endDate || ev.endDate === ev.fecha) return;
+    const duracion = diasEntreFechas(ev.fecha, ev.endDate);
+    if(duracion <= 0) return;
+    const desde = fechaDesdeISO(fechaStr); desde.setDate(desde.getDate() - duracion);
+    generarOcurrencias(ev, formatoISO(desde), fechaStr).forEach(ocurrencia => {
+      if(ocurrencia > fechaStr) return;
+      resultado.push(Object.assign({}, ev, {
+        fechaOcurrenciaMultidia: ocurrencia,
+        claveMultidia: ev.id + '|' + ocurrencia,
+        estadoSesion: obtenerEstadoResuelto(ev, ocurrencia)
+      }));
+    });
+  });
+  return resultado;
 }
 function obtenerEstadoResuelto(evento, fechaOcurrencia){
   if(evento.recurrencia === 'ninguna') return evento.estadoSesion || null;
@@ -3337,8 +3448,8 @@ function renderizarVistaMensual(){
     const presencia = {}; // id -> { ev, cols:[indices] }
     diasSemana.forEach((fecha, i) => {
       obtenerEventosMultidiaEnFecha(formatoISO(fecha)).forEach(ev => {
-        if(!presencia[ev.id]) presencia[ev.id] = { ev, cols: [] };
-        presencia[ev.id].cols.push(i);
+        if(!presencia[ev.claveMultidia]) presencia[ev.claveMultidia] = { ev, cols: [] };
+        presencia[ev.claveMultidia].cols.push(i);
       });
     });
     const barras = Object.values(presencia).map(p => ({
@@ -3530,7 +3641,7 @@ function renderizarPanelSemana(){
         const claveBar = ev.id + '|' + d.fechaStr;
         if(eventoElegidoSemana === claveBar) bar.classList.add('elegido');
         bar.onclick = tocarEvento(claveBar, d.fechaStr, () =>
-          abrirFichaEventoEdicion({ tipoInstancia:'evento', eventoId: ev.id, fecha: ev.fecha, etiqueta: ev.etiqueta, estadoSesion: ev.estadoSesion || null, esRecurrente:false }));
+          abrirFichaEventoEdicion({ tipoInstancia:'evento', eventoId: ev.id, fecha: ev.fechaOcurrenciaMultidia, etiqueta: ev.etiqueta, estadoSesion: ev.estadoSesion || null, esRecurrente: ev.recurrencia !== 'ninguna' }));
         celda.appendChild(bar);
       });
       d.sinHora.forEach(inst => {
@@ -4147,7 +4258,37 @@ function actualizarMontoEventoConsulta(){
   }
 }
 
+// Al guardar una sesión que queda pagada (percibida o pago adelantado),
+// se pregunta en ese momento si fue en efectivo o por transferencia.
+// No se pregunta en Entre Lazos (el pago lo recibe Entre Lazos) ni si
+// ese pago ya tenía el medio anotado. La respuesta queda en
+// medioPagoSesionElegido mientras se vuelve a ejecutar el guardado.
+let medioPagoSesionElegido = null;
+function sesionNecesitaMedioPago(idIngresoExistente, esEntreLazos, estadoNuevo){
+  if(medioPagoSesionElegido) return false;
+  if(esEntreLazos) return false;
+  if(!ESTADOS_QUE_GENERAN_INGRESO.includes(estadoNuevo)) return false;
+  const existente = idIngresoExistente ? ingresos.find(i => i.id === idIngresoExistente) : null;
+  return !(existente && existente.medioPago);
+}
+function preguntarMedioPagoSesion(nombre){
+  document.getElementById('textoMedioPagoSesion').textContent = nombre ? `¿Cómo pagó ${nombre} esta sesión?` : '¿Cómo se pagó esta sesión?';
+  document.getElementById('fondoModalMedioPagoSesion').classList.add('abierto');
+}
+function elegirMedioPagoSesion(medio){
+  medioPagoSesionElegido = medio;
+  document.getElementById('fondoModalMedioPagoSesion').classList.remove('abierto');
+  guardarFichaEvento();
+}
+function cancelarMedioPagoSesion(){
+  medioPagoSesionElegido = null;
+  document.getElementById('fondoModalMedioPagoSesion').classList.remove('abierto');
+}
 async function guardarFichaEvento(){
+  try{ await guardarFichaEventoInterno(); }
+  finally{ if(!document.getElementById('fondoModalMedioPagoSesion').classList.contains('abierto')) medioPagoSesionElegido = null; }
+}
+async function guardarFichaEventoInterno(){
   if(etiquetaEventoSeleccionada === 'atenciones' && grupoEstadoEventoElegido && !estadoSesionEventoSeleccionado){
     avisoEstadoIncompleto = true; pintarSegmentadoEstadoSesionEvento(); return;
   }
@@ -4198,6 +4339,11 @@ async function guardarFichaEvento(){
     else if(tipoPagoEventoConsultaSeleccionado === 'fonasa_el') monto = configuracion.montoFonasaEL || 0;
     else{ monto = limpiarMontoTexto(document.getElementById('eventoConsultaMonto').value); if(monto === null || monto <= 0){ mostrarAvisoFormulario('avisoFichaEvento', 'Falta el monto de la sesión.', 'eventoConsultaMonto'); return; } }
 
+    {
+      const idIngresoPrevio = consultaEnEdicionId !== null ? idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'consulta', consultaId: consultaEnEdicionId })) : null;
+      if(sesionNecesitaMedioPago(idIngresoPrevio, tipoPagoEventoConsultaSeleccionado === 'fonasa_el', estadoSesionEventoSeleccionado)){ preguntarMedioPagoSesion(nombre); return; }
+    }
+    const medioElegidoConsulta = medioPagoSesionElegido;
     let consultaGuardada;
     let estadoAnteriorConsulta = null, montoAnteriorConsulta = null;
     if(consultaEnEdicionId === null){
@@ -4224,8 +4370,8 @@ async function guardarFichaEvento(){
       // Solo se avisa a Ingresos si el estado cambió, o si sigue pagada
       // pero el monto se corrigió. Editar solo el nombre, por ejemplo,
       // ya no vuelve a generar un ingreso.
-      if(cambioEstado || cambioMontoEnPagada){
-        encolarActualizarEstadoSesion(consultaGuardada, null, estadoSesionEventoSeleccionado, { montoBruto: monto, esEntreLazos, tipo: tipoIngresoConsulta, nombre }, idIngreso);
+      if(cambioEstado || cambioMontoEnPagada || (medioElegidoConsulta && siguePagada)){
+        encolarActualizarEstadoSesion(consultaGuardada, null, estadoSesionEventoSeleccionado, { montoBruto: monto, esEntreLazos, tipo: tipoIngresoConsulta, nombre, formaPago: medioElegidoConsulta || (ingresos.find(i => i.id === idIngreso) || {}).medioPago || '' }, idIngreso);
       }
       // Si dejó de estar pagada (y antes sí lo estaba, y no era Entre
       // Lazos), el ingreso que ya existía en la planilla queda huérfano
@@ -4239,7 +4385,7 @@ async function guardarFichaEvento(){
       // sesión deja de estar pagada.
       if(!esEntreLazos){
         if(siguePagada){
-          sincronizarIngresoLocalDeSesion(idIngreso, { tipo: tipoIngresoConsulta, claveOrigen: obtenerClaveOrigen({ tipoInstancia:'consulta', consultaId: consultaGuardada.id }), fecha, montoBruto: monto, montoNeto: calcularNeto(monto, false), nombre });
+          sincronizarIngresoLocalDeSesion(idIngreso, { tipo: tipoIngresoConsulta, claveOrigen: obtenerClaveOrigen({ tipoInstancia:'consulta', consultaId: consultaGuardada.id }), fecha, montoBruto: monto, montoNeto: calcularNeto(monto, false), nombre, medioPago: medioElegidoConsulta });
         }else{
           sincronizarIngresoLocalDeSesion(idIngreso, null);
         }
@@ -4274,6 +4420,23 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
     if(horaTerminoTexto && !horaEsValida(horaTerminoTexto)){ mostrarAvisoFormulario('avisoFichaEvento', 'La hora de término está incompleta. Usa el formato 24 horas, por ejemplo 18:00.', 'eventoHoraTermino'); return; }
     endTime = horaTerminoTexto || '';
   }
+
+  // ¿Esta sesión queda pagada ahora? Entonces, antes de guardar, se
+  // pregunta efectivo o transferencia.
+  if(etiquetaEventoSeleccionada === 'atenciones' && pacienteId && estadoSesionEventoSeleccionado){
+    const infoPaciente = calcularMontoBrutoParaPaciente(pacienteId);
+    const eventoPrevio = eventoEnEdicionId !== null ? eventosAgenda.find(x => x.id === eventoEnEdicionId) : null;
+    const seAplicaEstado = recurrenciaEventoSeleccionada === 'ninguna' || !!fechaOcurrenciaEnEdicion;
+    if(infoPaciente && seAplicaEstado){
+      let idIngresoPrevio = null;
+      if(eventoPrevio){
+        const fechaClave = recurrenciaEventoSeleccionada === 'ninguna' ? (eventoPrevio.recurrencia !== 'ninguna' ? eventoPrevio.fecha : fecha) : fechaOcurrenciaEnEdicion;
+        idIngresoPrevio = idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: eventoPrevio.id, fecha: fechaClave }));
+      }
+      if(sesionNecesitaMedioPago(idIngresoPrevio, infoPaciente.esEntreLazos, estadoSesionEventoSeleccionado)){ preguntarMedioPagoSesion(infoPaciente.nombre); return; }
+    }
+  }
+  const medioElegidoEvento = medioPagoSesionElegido;
 
   let evento;
   let fechaOcurrenciaAfectada = null;
@@ -4326,10 +4489,11 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
     const fechaClaveOrigen = evento.recurrencia === 'ninguna' ? evento.fecha : fechaOcurrenciaAfectada;
     const idIngreso = idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaClaveOrigen }));
     const siguePagada = ESTADOS_QUE_GENERAN_INGRESO.includes(estadoSesionEventoSeleccionado);
+    if(montoInfo) montoInfo.formaPago = medioElegidoEvento || (ingresos.find(i => i.id === idIngreso) || {}).medioPago || '';
     // Solo se avisa a Ingresos si el estado de esa fecha realmente
-    // cambió. Corregir otro dato de la ficha ya no vuelve a generar
-    // un ingreso para esa sesión.
-    if(estadoAnteriorEvento !== estadoSesionEventoSeleccionado){
+    // cambió (o si recién se eligió el medio de pago). Corregir otro
+    // dato de la ficha no vuelve a generar un ingreso para esa sesión.
+    if(estadoAnteriorEvento !== estadoSesionEventoSeleccionado || (medioElegidoEvento && siguePagada)){
       encolarActualizarEstadoSesion(evento, evento.recurrencia === 'ninguna' ? null : fechaOcurrenciaAfectada, estadoSesionEventoSeleccionado, montoInfo, idIngreso);
       // Si esa fecha dejó de estar pagada (y no era Entre Lazos), el
       // ingreso que ya existía en la planilla queda huérfano si no se
@@ -4343,7 +4507,7 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
     // guardado, y se borra si esa fecha deja de estar pagada.
     if(montoInfo && !montoInfo.esEntreLazos){
       if(siguePagada){
-        sincronizarIngresoLocalDeSesion(idIngreso, { tipo: montoInfo.tipo, claveOrigen: obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaClaveOrigen }), fecha: fechaClaveOrigen, montoBruto: montoInfo.montoBruto, montoNeto: calcularNeto(montoInfo.montoBruto, false), nombre: montoInfo.nombre || '' });
+        sincronizarIngresoLocalDeSesion(idIngreso, { tipo: montoInfo.tipo, claveOrigen: obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaClaveOrigen }), fecha: fechaClaveOrigen, montoBruto: montoInfo.montoBruto, montoNeto: calcularNeto(montoInfo.montoBruto, false), nombre: montoInfo.nombre || '', medioPago: medioElegidoEvento });
       }else{
         sincronizarIngresoLocalDeSesion(idIngreso, null);
       }
@@ -4903,28 +5067,18 @@ function obtenerClavesYaIncluidasEnBoletas(){
   clavesFacturadasDesdeServidor.forEach(c => s.add(c));
   return s;
 }
-// Sesiones particulares o FONASA directo ya pagadas cuyo ingreso local
-// todavía no tiene medio de pago confirmado (efectivo/transferencia).
-// Lista unificada para "Pagos por confirmar": junta dos casos distintos
-// bajo una misma forma para poder mostrarlos en una sola lista.
-// - "devengada": la sesión todavía no está marcada como pagada en Agenda.
-// - "confirmar_medio": ya está marcada como pagada, pero falta decir si
-//   fue efectivo o transferencia (el caso que ya existía).
-// Entre Lazos entra en la lista igual que cualquier otra (el usuario lo
-// pidió así), pero nunca pasa por "confirmar_medio": ese canal no
-// pregunta efectivo/transferencia, porque quien recibe el pago primero
-// es Entre Lazos, no C.C. directamente.
+// Sesiones devengadas: ocurrieron (o el paciente faltó sin justificar)
+// y todavía no se pagan. Desde v2.33 el medio de pago se pregunta en el
+// momento de marcar una sesión como pagada, así que esta lista ya no
+// incluye pagos "sin medio de pago": solo lo que de verdad se debe.
+// Cada una trae su monto bruto y su monto con descuento (neto).
 function obtenerPendientesPago(){
   const items = [];
   obtenerInstanciasEnRango(rangoAnalisisInicio(), hoyISO())
     .filter(inst => inst.etiqueta === 'atenciones' && ['realizada_devengada','ausencia_devengada'].includes(inst.estadoSesion))
     .forEach(inst => {
       const info = clasificarInstanciaIngreso(inst); if(!info) return;
-      items.push({ clave: 'dev:'+obtenerClaveOrigen(inst), origen:'devengada', inst, nombre: info.nombre, fecha: inst.fecha, esEntreLazos: info.esEntreLazos, montoBruto: info.montoBruto });
-    });
-  ingresos.filter(i => (i.tipo === 'particular' || i.tipo === 'fonasa_directo') && i.medioPago === null)
-    .forEach(ing => {
-      items.push({ clave: 'medio:'+ing.id, origen:'confirmar_medio', ingreso: ing, nombre: ing.descripcion || '', fecha: ing.fecha, esEntreLazos:false, montoBruto: ing.montoBruto });
+      items.push({ clave: 'dev:'+obtenerClaveOrigen(inst), origen:'devengada', inst, nombre: info.nombre, fecha: inst.fecha, esEntreLazos: info.esEntreLazos, montoBruto: info.montoBruto, montoNeto: calcularNeto(info.montoBruto, info.esEntreLazos), clavePaciente: inst.tipoInstancia === 'consulta' ? ('consulta:'+inst.consultaId) : info.nombre });
     });
   items.sort((a,b) => a.fecha.localeCompare(b.fecha));
   return items;
@@ -4988,11 +5142,7 @@ async function guardarConfirmarPago(){
   if(!pendienteEnConfirmacion) return;
   const item = pendienteEnConfirmacion;
   if(!item.esEntreLazos && !medioPagoElegidoConfirmar){ mostrarAvisoFormulario('avisoConfirmarPago', 'Falta elegir si fue en efectivo o por transferencia.', 'campoMedioPagoConfirmar'); return; }
-  if(item.origen === 'devengada'){
-    await confirmarPagoDesdeIngresos(item.inst, item.esEntreLazos ? null : medioPagoElegidoConfirmar);
-  }else{
-    await confirmarPagoParticular(item.ingreso.id, medioPagoElegidoConfirmar);
-  }
+  await confirmarPagoDesdeIngresos(item.inst, item.esEntreLazos ? null : medioPagoElegidoConfirmar);
   cerrarModalConfirmarPago();
 }
 function obtenerPendientesEntreLazos(){
@@ -5005,30 +5155,10 @@ function obtenerPendientesEntreLazos(){
   return res;
 }
 
-function idIngresoSueldo(claveMes){ return 'ING-sueldo-' + claveMes; }
-async function autoImportarSueldoDependiente(){
-  const monto = configuracion.sueldoDependienteMonto || 0; const inicio = configuracion.sueldoDependienteInicio || '';
-  if(monto <= 0 || !inicio) return;
-  const [anioInicio, mesInicio] = inicio.split('-').map(Number);
-  const ahora = new Date(); const anioActual = ahora.getFullYear(); const mesActual = ahora.getMonth()+1;
-  let anio = anioInicio, mes = mesInicio, hubo = false;
-  while(anio < anioActual || (anio === anioActual && mes <= mesActual)){
-    const claveMes = `${anio}-${String(mes).padStart(2,'0')}`;
-    const idSueldo = idIngresoSueldo(claveMes);
-    // El id es siempre el mismo para un mismo mes, así que sirve como
-    // única forma de saber si ya se importó, incluso después de
-    // recuperar el historial desde Sheets (ya no depende de que este
-    // mismo teléfono lo haya hecho antes).
-    if(!ingresos.some(i => i.id === idSueldo)){
-      const nuevoIngresoSueldo = { id: idSueldo, tipo:'trabajo_dependiente', origenClave: `sueldo:${claveMes}`, fecha: `${claveMes}-01`, montoBruto: monto, montoNeto: monto, medioPago: null, descripcion:'Trabajo dependiente', creado: Date.now() };
-      ingresos.push(nuevoIngresoSueldo);
-      await encolarAccionIngreso('crear_ingreso_manual', { id_ingreso: idSueldo, categoria_manual: 'trabajo_dependiente', descripcion: 'Trabajo dependiente', monto_bruto: monto, monto_neto: monto, forma_pago: '', fecha_evento: nuevoIngresoSueldo.fecha });
-      hubo = true;
-    }
-    mes++; if(mes > 12){ mes = 1; anio++; }
-  }
-  if(hubo) await guardarIngresosEnAlmacenamiento();
-}
+// (v2.33) Ya no hay sueldo fijo que se importe solo cada mes: el
+// ingreso de Rucalaf se registra a mano, mes a mes, con el botón +
+// de Ingresos. Los registros automáticos antiguos ("Trabajo
+// dependiente") se conservan y se muestran como Rucalaf.
 // El ingreso ya existe desde que la sesión quedó pagada (se creó en
 // guardarEventoGenerico o en el guardado de consulta única). Confirmar
 // el medio de pago ahora es solo completar ese mismo registro, tanto
@@ -5046,7 +5176,7 @@ async function generarBoletaEntreLazos(){
   const pend = obtenerPendientesEntreLazos(); if(pend.length === 0){ confirmandoBoleta = false; renderizarVistaIngresos(); return; }
   const totalBruto = pend.reduce((a,p) => a + p.info.montoBruto, 0);
   const totalNeto = calcularNeto(totalBruto, true);
-  const descripcionBoleta = `Boleta Entre Lazos (${pend.length} sesión${pend.length===1?'':'es'})`;
+  const descripcionBoleta = `Boleta Entre Lazos (${pend.length} ${pend.length===1?'sesión':'sesiones'})`;
   const nuevaBoleta = { id: generarId(), tipo:'entrelazos', origenClave: null, sesionesIncluidas: pend.map(p => p.clave), fecha: hoyISO(), montoBruto: totalBruto, montoNeto: totalNeto, medioPago:'transferencia', descripcion: descripcionBoleta, creado: Date.now() };
   ingresos.push(nuevaBoleta);
   // La memoria persistente se actualiza en el mismo momento, para que
@@ -5147,8 +5277,8 @@ function cambiarMesIngresos(delta){
   if(mesIngresosMostrado < 0){ mesIngresosMostrado = 11; anioIngresosMostrado--; }
   renderizarVistaIngresos();
 }
-const NOMBRES_FUENTE_INGRESO = { particular:'Particular', fonasa_directo:'FONASA directo', entrelazos:'Entre Lazos', trabajo_dependiente:'Trabajo dependiente', manual:'Manual' };
-const COLOR_FUENTE_INGRESO = { particular:'var(--fuente-particular)', fonasa_directo:'var(--fuente-fonasa_directo)', entrelazos:'var(--fuente-entrelazos)', trabajo_dependiente:'var(--fuente-trabajo_dependiente)', manual:'var(--fuente-manual)' };
+const NOMBRES_FUENTE_INGRESO = { particular:'Particular', fonasa_directo:'FONASA directo', entrelazos:'Entre Lazos', rucalaf:'Rucalaf', manual:'Manual' };
+const COLOR_FUENTE_INGRESO = { particular:'var(--fuente-particular)', fonasa_directo:'var(--fuente-fonasa_directo)', entrelazos:'var(--fuente-entrelazos)', rucalaf:'var(--fuente-rucalaf)', manual:'var(--fuente-manual)' };
 
 let vIngTotal = false, vIngRecibir = false, vIngLazos = false, vIngMov = false;
 function alternarVisibilidadIngTotal(){ vIngTotal = !vIngTotal; renderizarVistaIngresos(); }
@@ -5165,13 +5295,12 @@ function alternarVerTodosIngresosMes(){ mostrarTodosIngresosMes = !mostrarTodosI
 
 async function renderizarVistaIngresos(){
   document.getElementById('tituloMesIngresos').textContent = `${NOMBRES_MES[mesIngresosMostrado]} ${anioIngresosMostrado}`;
-  await autoImportarSueldoDependiente();
 
   const inicioMes = formatoISO(new Date(anioIngresosMostrado, mesIngresosMostrado, 1));
   const finMes = formatoISO(new Date(anioIngresosMostrado, mesIngresosMostrado+1, 0));
   const delMes = ingresos.filter(i => i.fecha >= inicioMes && i.fecha <= finMes).sort((a,b) => b.fecha.localeCompare(a.fecha));
 
-  const totales = { particular:0, fonasa_directo:0, entrelazos:0, trabajo_dependiente:0, manual:0 };
+  const totales = { particular:0, fonasa_directo:0, entrelazos:0, rucalaf:0, manual:0 };
   delMes.forEach(i => { totales[i.tipo] = (totales[i.tipo]||0) + i.montoNeto; });
   const totalMes = delMes.reduce((a,i) => a + i.montoNeto, 0);
 
@@ -5184,13 +5313,15 @@ async function renderizarVistaIngresos(){
       <span class="monto monto-fuente">${textoMontoOculto(totales[k]||0, vIngTotal)}</span>
     </div>`).join('');
 
-  // Pagos por confirmar: sesiones devengadas (todavía no marcadas como
-  // pagadas) + sesiones ya pagadas a las que falta el medio de pago.
-  const pendientesPago = obtenerPendientesPago();
+  // Sesiones devengadas del mes que se está mirando (las de meses
+  // anteriores aparecen al volver a ese mes con las flechas).
+  const pendientesPago = obtenerPendientesPago().filter(i => i.fecha >= inicioMes && i.fecha <= finMes);
   pintarBotonOjo('botonOjoIngRecibir', vIngRecibir);
-  const totalRecibir = pendientesPago.reduce((a,i)=>a+i.montoBruto,0);
+  const totalRecibir = pendientesPago.reduce((a,i)=>a+i.montoNeto,0);
   document.getElementById('recibirTotalMonto').textContent = textoMontoOculto(totalRecibir, vIngRecibir);
-  document.getElementById('recibirNota').textContent = pendientesPago.length === 0 ? 'No hay pagos pendientes de confirmar.' : `${pendientesPago.length} sesión${pendientesPago.length===1?'':'es'} por confirmar`;
+  document.getElementById('recibirNota').textContent = pendientesPago.length === 0
+    ? 'No hay sesiones sin pagar en este mes.'
+    : `${pendientesPago.length} ${pendientesPago.length===1?'sesión':'sesiones'} sin pagar · montos con descuento incorporado`;
   const botonPend = document.getElementById('botonDesplegarPendientesPago');
   const seccionPend = document.getElementById('seccionPendientesPago');
   if(pendientesPago.length === 0){
@@ -5203,10 +5334,10 @@ async function renderizarVistaIngresos(){
       <div class="fila-pendiente-pago">
         <div class="fila-top">
           <span class="nombre">${escaparHTML(i.nombre || '')}</span>
-          <span class="monto monto-fuente">${textoMontoOculto(i.montoBruto, vIngRecibir)}</span>
+          <span class="monto monto-fuente">${textoMontoOculto(i.montoNeto, vIngRecibir)}</span>
         </div>
         <div class="fila-bottom">
-          <span class="fecha">${i.fecha}</span>
+          <span class="fecha">${formatearFechaMovimiento(i.fecha)}</span>
           <button class="boton-medio-pago" onclick="abrirModalConfirmarPago('${i.clave}')">Confirmar pago</button>
         </div>
       </div>
@@ -5221,7 +5352,7 @@ async function renderizarVistaIngresos(){
   pintarBotonOjo('botonOjoIngLazos', vIngLazos);
   const totalBrutoEL = pendientesEL.reduce((a,p)=>a+p.info.montoBruto,0);
   document.getElementById('lazosMontoTotal').textContent = pendientesEL.length === 0 ? textoMontoOculto(0, vIngLazos) : (textoMontoOculto(totalBrutoEL, vIngLazos) + ' bruto');
-  document.getElementById('lazosNota').textContent = pendientesEL.length === 0 ? 'No hay sesiones pendientes de boleta.' : `${pendientesEL.length} sesión${pendientesEL.length===1?'':'es'} pendiente${pendientesEL.length===1?'':'s'} de boleta`;
+  document.getElementById('lazosNota').textContent = pendientesEL.length === 0 ? 'No hay sesiones pendientes de boleta.' : `${pendientesEL.length} ${pendientesEL.length===1?'sesión':'sesiones'} pendiente${pendientesEL.length===1?'':'s'} de boleta`;
   const botonBoleta = document.getElementById('botonDesplegarPendientesBoleta');
   const seccionBoleta = document.getElementById('seccionPendientesBoleta');
   if(pendientesEL.length === 0){
@@ -5284,7 +5415,28 @@ async function renderizarVistaIngresos(){
   }
 }
 
-let ingresoEnEdicionId = null; let medioPagoManualSeleccionado = null;
+let ingresoEnEdicionId = null; let medioPagoManualSeleccionado = null; let tipoIngresoManualSeleccionado = 'manual';
+// Dos tipos de ingreso a mano: "Manual" (cualquier otro ingreso, con
+// descripción obligatoria) y "Rucalaf" (el trabajo dependiente, que se
+// registra mes a mes; la descripción es opcional).
+function pintarSegmentadoTipoIngresoManual(){
+  const c = document.getElementById('segmentadoTipoIngresoManual'); c.innerHTML = '';
+  [{valor:'manual',nombre:'Manual'},{valor:'rucalaf',nombre:'Rucalaf'}].forEach(op => {
+    const b = document.createElement('button');
+    b.className = tipoIngresoManualSeleccionado === op.valor ? 'seleccionado' : '';
+    b.textContent = op.nombre;
+    b.onclick = () => { tipoIngresoManualSeleccionado = op.valor; actualizarFormularioTipoIngreso(); };
+    c.appendChild(b);
+  });
+}
+function actualizarFormularioTipoIngreso(){
+  const esRucalaf = tipoIngresoManualSeleccionado === 'rucalaf';
+  pintarSegmentadoTipoIngresoManual();
+  document.getElementById('etiquetaDescripcionIngresoManual').textContent = esRucalaf ? 'Descripción (opcional)' : 'Descripción';
+  document.getElementById('ingresoManualDescripcion').placeholder = esRucalaf ? 'Ej: sueldo de septiembre' : 'Ej: reembolso, otro ingreso';
+  // Rucalaf siempre llega por transferencia: no se pregunta.
+  document.getElementById('campoMedioPagoManual').style.display = esRucalaf ? 'none' : 'block';
+}
 function pintarSegmentadoMedioPagoManual(){
   const c = document.getElementById('segmentadoMedioPagoManual'); c.innerHTML = '';
   [{valor:'efectivo',nombre:'Efectivo'},{valor:'transferencia',nombre:'Transferencia'}].forEach(op => {
@@ -5296,8 +5448,8 @@ function pintarSegmentadoMedioPagoManual(){
   });
 }
 function abrirFichaIngresoManual(){
-  ingresoEnEdicionId = null; medioPagoManualSeleccionado = 'efectivo';
-  document.getElementById('tituloFichaIngreso').textContent = 'Nuevo ingreso manual';
+  ingresoEnEdicionId = null; medioPagoManualSeleccionado = 'efectivo'; tipoIngresoManualSeleccionado = 'manual';
+  document.getElementById('tituloFichaIngreso').textContent = 'Nuevo ingreso';
   document.getElementById('detalleIngresoSoloLectura').style.display = 'none';
   document.getElementById('detalleIngresoSoloLectura').innerHTML = '';
   document.getElementById('camposIngresoManual').style.display = 'block';
@@ -5306,12 +5458,15 @@ function abrirFichaIngresoManual(){
   document.getElementById('ingresoManualMonto').value = '';
   document.getElementById('ingresoManualFecha').value = hoyISO();
   pintarSegmentadoMedioPagoManual();
+  actualizarFormularioTipoIngreso();
   document.getElementById('zonaEliminarIngreso').style.display = 'none';
   document.getElementById('confirmacionEliminarIngreso').style.display = 'none';
   document.getElementById('fondoModalIngreso').classList.add('abierto');
 }
 async function guardarIngresoManual(){
-  const descripcion = document.getElementById('ingresoManualDescripcion').value.trim();
+  const tipoIngreso = tipoIngresoManualSeleccionado === 'rucalaf' ? 'rucalaf' : 'manual';
+  if(tipoIngreso === 'rucalaf') medioPagoManualSeleccionado = 'transferencia';
+  const descripcion = document.getElementById('ingresoManualDescripcion').value.trim() || (tipoIngreso === 'rucalaf' ? 'Rucalaf' : '');
   const monto = limpiarMontoTexto(document.getElementById('ingresoManualMonto').value);
   const fecha = document.getElementById('ingresoManualFecha').value;
   ocultarAvisoFormulario('avisoIngresoManual');
@@ -5321,10 +5476,10 @@ async function guardarIngresoManual(){
   if(!fecha){ faltanIng.push('la fecha'); camposIng.push('ingresoManualFecha'); }
   if(!medioPagoManualSeleccionado){ faltanIng.push('el medio de pago'); camposIng.push('segmentadoMedioPagoManual'); }
   if(faltanIng.length){ mostrarAvisoFormulario('avisoIngresoManual', 'Falta ' + unirFaltantes(faltanIng) + '.', camposIng); return; }
-  const nuevoIngresoManual = { id: generarId(), tipo:'manual', origenClave:null, fecha, montoBruto: monto, montoNeto: monto, medioPago: medioPagoManualSeleccionado, descripcion, creado: Date.now() };
+  const nuevoIngresoManual = { id: generarId(), tipo: tipoIngreso, origenClave:null, fecha, montoBruto: monto, montoNeto: monto, medioPago: medioPagoManualSeleccionado, descripcion, creado: Date.now() };
   ingresos.push(nuevoIngresoManual);
   cerrarFichaIngreso(); renderizarVistaIngresos(); await guardarIngresosEnAlmacenamiento();
-  await encolarAccionIngreso('crear_ingreso_manual', { id_ingreso: nuevoIngresoManual.id, categoria_manual: 'manual', descripcion, monto_bruto: monto, monto_neto: monto, forma_pago: medioPagoManualSeleccionado, fecha_evento: fecha });
+  await encolarAccionIngreso('crear_ingreso_manual', { id_ingreso: nuevoIngresoManual.id, categoria_manual: tipoIngreso, descripcion, monto_bruto: monto, monto_neto: monto, forma_pago: medioPagoManualSeleccionado, fecha_evento: fecha });
 }
 function abrirDetalleIngreso(id){
   const ing = ingresos.find(i => i.id === id); if(!ing) return;
@@ -5365,11 +5520,20 @@ async function confirmarEliminarIngreso(){
 /* ============================================================
    12. MÓDULO D — OBJETIVOS DE AHORRO
    ============================================================ */
-function obtenerSueldoFijoVigenteHoy(){
-  const monto = configuracion.sueldoDependienteMonto || 0; const inicio = configuracion.sueldoDependienteInicio || '';
-  if(monto <= 0 || !inicio) return 0;
-  return hoyISO().slice(0,7) >= inicio ? monto : 0;
+// El colchón cubre la diferencia entre el gasto fijo mensual y lo que
+// entra seguro aunque no haya pacientes: el ingreso de Rucalaf. Como
+// ahora se registra a mano y varía un poco, se usa el promedio de los
+// últimos 3 meses (hasta hoy) en que se registró algo de Rucalaf.
+function obtenerReferenciaRucalaf(){
+  const mesHoy = hoyISO().slice(0,7);
+  const porMes = {};
+  ingresos.filter(i => i.tipo === 'rucalaf' && i.fecha && i.fecha.slice(0,7) <= mesHoy)
+    .forEach(i => { const m = i.fecha.slice(0,7); porMes[m] = (porMes[m]||0) + (i.montoNeto||0); });
+  const meses = Object.keys(porMes).sort().reverse().slice(0,3);
+  if(meses.length === 0) return { monto:0, meses:0 };
+  return { monto: Math.round(meses.reduce((a,m) => a + porMes[m], 0) / meses.length), meses: meses.length };
 }
+function obtenerSueldoFijoVigenteHoy(){ return obtenerReferenciaRucalaf().monto; }
 function obtenerMetaObjetivo(obj){
   if(obj.tipo === 'colchon'){
     const sueldo = obtenerSueldoFijoVigenteHoy();
@@ -5402,10 +5566,27 @@ function construirDatosObjetivoBase(obj){
 // monto 0 o negativo y con fecha el día 1 del mes que se cerró — así,
 // la próxima vez que se calcule el tramo de ese mes, se busca el
 // cierre más reciente y se salta un año hacia adelante.
+// Cada movimiento de un objetivo es de uno de tres tipos, y el tipo va
+// escrito al comienzo de su id: APO- (aporte), RET- (retiro) y CIE-
+// (cierre de ciclo del colchón). Así no hace falta ninguna columna
+// nueva en la planilla. Los movimientos antiguos, creados antes de
+// esta regla, no tienen prefijo: ahí se usa la regla de siempre
+// (positivo = aporte; cero o negativo = cierre).
+function generarIdMovimientoObjetivo(prefijo){
+  const unico = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : generarId() + generarId();
+  return prefijo + '-' + unico.replace(/-/g,'').slice(0,8);
+}
+function tipoMovimientoObjetivo(a){
+  const id = String(a.id || '');
+  if(id.indexOf('RET-') === 0) return 'retiro';
+  if(id.indexOf('CIE-') === 0) return 'cierre';
+  if(id.indexOf('APO-') === 0) return 'aporte';
+  return (a.monto||0) > 0 ? 'aporte' : 'cierre';
+}
 function anioActivoParaMes(mes, aportesObjetivo){
   const anioActual = new Date().getFullYear();
   const cierres = (aportesObjetivo||[])
-    .filter(a => (a.monto||0) <= 0 && a.fecha)
+    .filter(a => tipoMovimientoObjetivo(a) === 'cierre' && a.fecha)
     .map(a => fechaDesdeISO(a.fecha))
     .filter(f => (f.getMonth()+1) === mes)
     .map(f => f.getFullYear());
@@ -5499,7 +5680,7 @@ function mapearObjetivoDesdeServidor(fila, todosLosAportes){
   const mesesSeleccionados = esColchon ? parsearMesesColchon(fila.meses_a_cubrir) : [];
   const aportes = todosLosAportes
     .filter(a => a.id_objetivo === fila.id_objetivo)
-    .map(a => ({ id: a.id_aporte, monto: Number(a.monto) || 0, fecha: a.fecha_evento, creado: Date.now() }));
+    .map(a => ({ id: a.id_aporte, monto: Number(a.monto) || 0, fecha: a.fecha_evento, creado: Date.parse(String(a.fecha_registro||'').replace(' ','T')) || 0 }));
   return {
     id: fila.id_objetivo,
     nombre: fila.nombre || '',
@@ -5588,7 +5769,7 @@ function renderizarVistaObjetivos(){
         <div class="info">
           <span class="fecha-label">${piePrimerTramo}</span>
         </div>
-        ${archivado ? '' : `<button class="boton-agregar-monto" style="border-color:${color}; color:${color};" onclick="event.stopPropagation(); abrirFichaObjetivo('${obj.id}');">+ Agregar monto</button>`}
+        ${archivado ? '' : `<button class="boton-agregar-monto" style="border-color:${color}; color:${color};" onclick="event.stopPropagation(); abrirFichaObjetivo('${obj.id}');">Movimientos</button>`}
       </div>
     `;
     contenedor.appendChild(tarjeta);
@@ -5620,9 +5801,10 @@ function actualizarMetaCalculadaColchon(){
   const brecha = Math.max(0, gasto - sueldo);
   const meta = meses * brecha;
   document.getElementById('textoMetaCalculada').textContent = formatearCLP(meta);
+  const refRucalaf = obtenerReferenciaRucalaf();
   document.getElementById('notaMetaCalculada').textContent = sueldo > 0
-    ? `${meses} meses × (${formatearCLP(gasto)} gasto fijo − ${formatearCLP(sueldo)} sueldo fijo vigente)`
-    : `${meses} meses × ${formatearCLP(gasto)} gasto fijo (el sueldo fijo todavía no está vigente)`;
+    ? `${meses} meses × (${formatearCLP(gasto)} gasto fijo − ${formatearCLP(sueldo)} de Rucalaf, ${refRucalaf.meses === 1 ? 'último mes registrado' : `promedio de los últimos ${refRucalaf.meses} meses registrados`})`
+    : `${meses} meses × ${formatearCLP(gasto)} gasto fijo (todavía no hay ingresos de Rucalaf registrados)`;
 }
 function actualizarTextoMesesSeleccionados(){
   const nombres = mesesColchonTemp.slice().sort((a,b) => a-b)
@@ -5661,15 +5843,139 @@ function guardarSelectorMesesColchon(){
   actualizarMetaCalculadaColchon();
   cerrarSelectorMesesColchon();
 }
+// Estado del historial de movimientos dentro de la ficha abierta.
+let idMenuMovimientoAbierto = null, idConfirmandoEliminarMovimiento = null, idEditandoMovimiento = null, mostrarTodosMovimientos = false;
+function reiniciarEstadoMovimientos(){ idMenuMovimientoAbierto = null; idConfirmandoEliminarMovimiento = null; idEditandoMovimiento = null; mostrarTodosMovimientos = false; }
+function alternarVerTodosMovimientos(evento){ evento.stopPropagation(); mostrarTodosMovimientos = !mostrarTodosMovimientos; redibujarMovimientos(); }
+function formatearFechaMovimiento(fechaISO){ if(!fechaISO) return ''; const [a,m,d] = String(fechaISO).split('-'); return `${d}/${m}/${a}`; }
 function renderizarAportesObjetivo(obj){
   const lista = document.getElementById('listaAportesObjetivo');
-  const aportes = [...(obj.aportes||[])].sort((a,b) => b.creado - a.creado);
+  const aportes = [...(obj.aportes||[])].sort((a,b) => String(b.fecha||'').localeCompare(String(a.fecha||'')) || (b.creado||0) - (a.creado||0));
   if(aportes.length === 0){ lista.innerHTML = ''; return; }
-  lista.innerHTML = aportes.map(a => {
-    const esCierre = (a.monto||0) <= 0;
-    const etiqueta = !esCierre ? formatearCLP(a.monto) : (a.monto < 0 ? `Cierre de ciclo (${formatearCLP(a.monto)})` : 'Cierre de ciclo');
-    return `<div class="fila-pendiente-pago" style="background:var(--superficie);"><div class="fila-top"><span class="nombre">${etiqueta}</span><span class="fecha">${a.fecha}</span></div></div>`;
-  }).join('');
+  const archivado = obj.estado === 'archivado';
+  // Igual que en los otros historiales: se ven los 5 más recientes y el
+  // resto se despliega. Si se está editando uno más antiguo, se muestran
+  // todos para no esconder la fila que se está editando.
+  const indiceEditando = aportes.findIndex(a => a.id === idEditandoMovimiento);
+  const verTodos = mostrarTodosMovimientos || indiceEditando >= 5;
+  const aMostrar = verTodos ? aportes : aportes.slice(0,5);
+  const botonVerTodos = aportes.length > 5
+    ? `<button class="boton-ver-todos-gasto boton-ver-todos-movimientos" onclick="alternarVerTodosMovimientos(event)">${verTodos ? 'Ver menos' : `Ver todos los movimientos (${aportes.length})`}</button>`
+    : '';
+  lista.innerHTML = '<div class="titulo-historial-aportes">Historial</div>' + aMostrar.map(a => {
+    const tipo = tipoMovimientoObjetivo(a);
+    if(idEditandoMovimiento === a.id && tipo !== 'cierre'){
+      return `
+        <div class="fila-movimiento-objetivo editando ${tipo}" onclick="event.stopPropagation()">
+          <span class="tipo-mov">Editar ${tipo === 'retiro' ? 'retiro' : 'aporte'}</span>
+          <div class="edicion-mov-campos">
+            <input type="text" id="edicionMovMonto" inputmode="numeric" value="${Math.abs(a.monto||0).toLocaleString('es-CL')}" placeholder="Monto">
+            <input type="date" id="edicionMovFecha" value="${a.fecha||''}">
+          </div>
+          <div class="aviso-formulario" id="avisoEdicionMovimiento" style="margin-top:8px;"></div>
+          <div class="edicion-mov-botones">
+            <button onclick="cancelarEdicionMovimiento(event)">Cancelar</button>
+            <button class="guardar" onclick="guardarEdicionMovimiento(event, '${a.id}')">Guardar</button>
+          </div>
+        </div>`;
+    }
+    const titulo = tipo === 'retiro' ? 'Retiro' : (tipo === 'cierre' ? 'Cierre de ciclo' : 'Aporte');
+    const monto = tipo === 'retiro' ? '−' + formatearCLP(Math.abs(a.monto))
+                : tipo === 'cierre' ? (a.monto < 0 ? '−' + formatearCLP(Math.abs(a.monto)) : '$0')
+                : '+' + formatearCLP(a.monto);
+    const menu = archivado ? '' : `
+      <button class="boton-menu-gasto" onclick="alternarMenuMovimiento(event, '${a.id}')">⋮</button>
+      <div class="menu-contextual-gasto ${idMenuMovimientoAbierto === a.id ? 'abierto' : ''}">
+        ${idConfirmandoEliminarMovimiento === a.id ? `
+          <div class="texto-confirmacion-gasto">¿Eliminar este movimiento?</div>
+          <button class="opcion-eliminar-gasto" onclick="confirmarEliminarMovimiento(event, '${a.id}')">Sí, eliminar</button>
+          <button onclick="cancelarEliminarMovimiento(event)">Cancelar</button>
+        ` : `
+          ${tipo !== 'cierre' ? `<button onclick="editarMovimiento(event, '${a.id}')">Editar</button>` : ''}
+          <button class="opcion-eliminar-gasto" onclick="solicitarEliminarMovimiento(event, '${a.id}')">Eliminar</button>
+        `}
+      </div>`;
+    return `
+      <div class="fila-movimiento-objetivo ${tipo}">
+        <span class="tipo-mov">${titulo}<span class="fecha-mov">${formatearFechaMovimiento(a.fecha)}</span></span>
+        <span class="monto-mov monto-fuente">${monto}</span>
+        ${menu}
+      </div>`;
+  }).join('') + botonVerTodos;
+}
+function objetivoAbiertoEnFicha(){ return objetivos.find(o => o.id === objetivoEnEdicionId) || null; }
+function redibujarMovimientos(){ const obj = objetivoAbiertoEnFicha(); if(obj) renderizarAportesObjetivo(obj); }
+function alternarMenuMovimiento(evento, id){
+  evento.stopPropagation();
+  idConfirmandoEliminarMovimiento = null;
+  idMenuMovimientoAbierto = (idMenuMovimientoAbierto === id) ? null : id;
+  redibujarMovimientos();
+}
+document.addEventListener('click', () => {
+  if(idMenuMovimientoAbierto !== null || idConfirmandoEliminarMovimiento !== null){
+    idMenuMovimientoAbierto = null; idConfirmandoEliminarMovimiento = null; redibujarMovimientos();
+  }
+});
+function solicitarEliminarMovimiento(evento, id){ evento.stopPropagation(); idConfirmandoEliminarMovimiento = id; redibujarMovimientos(); }
+function cancelarEliminarMovimiento(evento){ evento.stopPropagation(); idConfirmandoEliminarMovimiento = null; idMenuMovimientoAbierto = null; redibujarMovimientos(); }
+function editarMovimiento(evento, id){
+  evento.stopPropagation();
+  ocultarAvisoFormulario('avisoAporteObjetivo');
+  idMenuMovimientoAbierto = null; idConfirmandoEliminarMovimiento = null; idEditandoMovimiento = id;
+  redibujarMovimientos();
+}
+function cancelarEdicionMovimiento(evento){ evento.stopPropagation(); idEditandoMovimiento = null; redibujarMovimientos(); }
+// Después de cualquier cambio en los movimientos: refresca la ficha,
+// guarda en el aparato, redibuja la pantalla de objetivos y envía a
+// la planilla (en orden, con los reintentos de siempre).
+async function aplicarCambioMovimientos(obj){
+  document.getElementById('textoAcumuladoObjetivo').textContent = formatearCLP(obj.acumulado);
+  renderizarAportesObjetivo(obj);
+  if(obj.tipo === 'colchon') renderizarTramosColchon(obj);
+  await guardarObjetivosEnAlmacenamiento(); renderizarVistaObjetivos();
+  procesarColaObjetivo(obj);
+}
+async function guardarEdicionMovimiento(evento, id){
+  evento.stopPropagation();
+  const obj = objetivoAbiertoEnFicha(); if(!obj) return;
+  const mov = (obj.aportes||[]).find(a => a.id === id); if(!mov) return;
+  const tipo = tipoMovimientoObjetivo(mov);
+  ocultarAvisoFormulario('avisoEdicionMovimiento');
+  const montoTexto = limpiarMontoTexto(document.getElementById('edicionMovMonto').value);
+  const fecha = document.getElementById('edicionMovFecha').value;
+  const faltan = [], campos = [];
+  if(montoTexto === null || montoTexto <= 0){ faltan.push('el monto'); campos.push('edicionMovMonto'); }
+  if(!fecha){ faltan.push('la fecha'); campos.push('edicionMovFecha'); }
+  if(faltan.length){ mostrarAvisoFormulario('avisoEdicionMovimiento', 'Falta ' + faltan.join(' y ') + '.', campos); return; }
+  const nuevoMonto = tipo === 'retiro' ? -montoTexto : montoTexto;
+  const nuevoAcumulado = (obj.acumulado||0) - (mov.monto||0) + nuevoMonto;
+  if(nuevoAcumulado < 0){
+    mostrarAvisoFormulario('avisoEdicionMovimiento', `Con este cambio el acumulado quedaría bajo cero (${'−' + formatearCLP(Math.abs(nuevoAcumulado))}).`, 'edicionMovMonto');
+    return;
+  }
+  mov.monto = nuevoMonto; mov.fecha = fecha;
+  obj.acumulado = nuevoAcumulado;
+  obj.colaSync = obj.colaSync || [];
+  obj.colaSync.push({ accion:'editar_aporte_objetivo', datosBase: { id_aporte: mov.id, monto: mov.monto, fecha_evento: mov.fecha } });
+  idEditandoMovimiento = null;
+  await aplicarCambioMovimientos(obj);
+}
+async function confirmarEliminarMovimiento(evento, id){
+  evento.stopPropagation();
+  const obj = objetivoAbiertoEnFicha(); if(!obj) return;
+  const mov = (obj.aportes||[]).find(a => a.id === id); if(!mov) return;
+  idMenuMovimientoAbierto = null; idConfirmandoEliminarMovimiento = null;
+  const nuevoAcumulado = (obj.acumulado||0) - (mov.monto||0);
+  if(nuevoAcumulado < 0){
+    renderizarAportesObjetivo(obj);
+    mostrarAvisoFormulario('avisoAporteObjetivo', 'No se puede eliminar: el acumulado quedaría bajo cero. Primero elimina o ajusta el retiro que usó ese dinero.', null);
+    return;
+  }
+  obj.aportes = obj.aportes.filter(a => a.id !== id);
+  obj.acumulado = nuevoAcumulado;
+  obj.colaSync = obj.colaSync || [];
+  obj.colaSync.push({ accion:'eliminar_aporte_objetivo', datosBase: { id_aporte: mov.id } });
+  await aplicarCambioMovimientos(obj);
 }
 function renderizarTramosColchon(obj){
   const contenedor = document.getElementById('listaTramosColchon');
@@ -5707,7 +6013,7 @@ async function confirmarCierreTramo(){
   const descontar = document.getElementById('checkDescontarCierre').checked;
   const montoAporte = descontar ? -tramoEnCierre.aportado : 0;
   const fechaTramo = `${tramoEnCierre.anio}-${String(tramoEnCierre.mes).padStart(2,'0')}-01`;
-  const aporte = { id: generarId(), monto: montoAporte, fecha: fechaTramo, creado: Date.now() };
+  const aporte = { id: generarIdMovimientoObjetivo('CIE'), monto: montoAporte, fecha: fechaTramo, creado: Date.now() };
   obj.aportes = obj.aportes || []; obj.aportes.push(aporte);
   obj.acumulado = (obj.acumulado||0) + montoAporte;
   obj.colaSync = obj.colaSync || [];
@@ -5741,7 +6047,7 @@ function abrirFichaObjetivoNueva(){
   document.getElementById('zonaEliminarObjetivoCompleto').style.display = 'none';
   document.getElementById('confirmacionEliminarObjetivoCompleto').style.display = 'none';
   document.getElementById('controlesAgregarAporte').style.display = 'flex';
-  document.getElementById('etiquetaAgregarAporte').textContent = 'Agregar monto';
+  document.getElementById('etiquetaAgregarAporte').textContent = 'Agregar o retirar monto';
   document.getElementById('fondoModalObjetivo').classList.add('abierto');
 }
 function abrirFichaObjetivo(id){
@@ -5770,6 +6076,7 @@ function abrirFichaObjetivo(id){
   document.getElementById('objetivoFecha').value = obj.fechaObjetivo || '';
   document.getElementById('textoAcumuladoObjetivo').textContent = formatearCLP(obj.acumulado||0);
   document.getElementById('objetivoAporteMonto').value = '';
+  reiniciarEstadoMovimientos();
   renderizarAportesObjetivo(obj);
   const archivado = obj.estado === 'archivado';
   document.getElementById('zonaEliminarObjetivo').style.display = archivado ? 'none' : 'block';
@@ -5777,7 +6084,7 @@ function abrirFichaObjetivo(id){
   document.getElementById('zonaEliminarObjetivoCompleto').style.display = archivado ? 'block' : 'none';
   document.getElementById('confirmacionEliminarObjetivoCompleto').style.display = 'none';
   document.getElementById('controlesAgregarAporte').style.display = archivado ? 'none' : 'flex';
-  document.getElementById('etiquetaAgregarAporte').textContent = archivado ? 'Aportes (objetivo archivado)' : 'Agregar monto';
+  document.getElementById('etiquetaAgregarAporte').textContent = archivado ? 'Movimientos (objetivo archivado)' : 'Agregar o retirar monto';
   document.getElementById('fondoModalObjetivo').classList.add('abierto');
 }
 async function guardarFichaObjetivo(){
@@ -5808,7 +6115,7 @@ async function guardarFichaObjetivo(){
   if(obj.tipo !== 'colchon'){
     obj.fechaObjetivo = document.getElementById('objetivoFecha').value || null;
   }
-  // El acumulado ya no se edita acá — solo cambia con "Agregar monto",
+  // El acumulado ya no se edita acá: solo cambia con los movimientos (agregar o retirar),
   // así siempre es, por definición, la suma de sus aportes.
   if(esNuevo) objetivos.push(obj);
   obj.colaSync = obj.colaSync || [];
@@ -5838,26 +6145,29 @@ async function confirmarEliminarObjetivoCompleto(){
   // ya no existe localmente para poder "esperar su turno" después.
   if(obj.creadoEnServidor) enviarAccionAgendaConReintentos('eliminar_objetivo_completo', { id_objetivo: obj.id });
 }
-async function registrarAporteObjetivo(){
+async function registrarAporteObjetivo(tipo){
+  const esRetiro = tipo === 'retiro';
   ocultarAvisoFormulario('avisoAporteObjetivo');
-  if(objetivoEnEdicionId === null){ mostrarAvisoFormulario('avisoAporteObjetivo', 'Primero guarda el objetivo; después podrás agregarle montos.', null); return; }
-  const objRevisado = objetivos.find(o => o.id === objetivoEnEdicionId);
-  if(objRevisado && objRevisado.estado === 'archivado'){ mostrarAvisoFormulario('avisoAporteObjetivo', 'Este objetivo está archivado: no se le pueden agregar más montos.', null); return; }
-  const monto = limpiarMontoTexto(document.getElementById('objetivoAporteMonto').value);
-  if(monto === null || monto <= 0){ mostrarAvisoFormulario('avisoAporteObjetivo', 'Falta el monto a agregar.', 'objetivoAporteMonto'); return; }
+  if(objetivoEnEdicionId === null){ mostrarAvisoFormulario('avisoAporteObjetivo', 'Primero guarda el objetivo; después podrás agregarle o retirarle montos.', null); return; }
   const obj = objetivos.find(o => o.id === objetivoEnEdicionId); if(!obj) return;
-  const aporte = { id: generarId(), monto, fecha: hoyISO(), creado: Date.now() };
-  obj.aportes = obj.aportes || []; obj.aportes.push(aporte);
-  obj.acumulado = (obj.acumulado||0) + monto;
-  document.getElementById('textoAcumuladoObjetivo').textContent = formatearCLP(obj.acumulado);
+  if(obj.estado === 'archivado'){ mostrarAvisoFormulario('avisoAporteObjetivo', 'Este objetivo está archivado: no se le pueden agregar ni retirar montos.', null); return; }
+  const monto = limpiarMontoTexto(document.getElementById('objetivoAporteMonto').value);
+  if(monto === null || monto <= 0){ mostrarAvisoFormulario('avisoAporteObjetivo', esRetiro ? 'Falta el monto a retirar.' : 'Falta el monto a agregar.', 'objetivoAporteMonto'); return; }
+  if(esRetiro && monto > (obj.acumulado||0)){
+    mostrarAvisoFormulario('avisoAporteObjetivo', `No puedes retirar más de lo acumulado (${formatearCLP(obj.acumulado||0)}).`, 'objetivoAporteMonto');
+    return;
+  }
+  const montoConSigno = esRetiro ? -monto : monto;
+  const mov = { id: generarIdMovimientoObjetivo(esRetiro ? 'RET' : 'APO'), monto: montoConSigno, fecha: hoyISO(), creado: Date.now() };
+  obj.aportes = obj.aportes || []; obj.aportes.push(mov);
+  obj.acumulado = (obj.acumulado||0) + montoConSigno;
   document.getElementById('objetivoAporteMonto').value = '';
-  renderizarAportesObjetivo(obj);
+  reiniciarEstadoMovimientos();
   obj.colaSync = obj.colaSync || [];
-  obj.colaSync.push({ accion:'registrar_aporte_objetivo', datosBase: { id_aporte: aporte.id, monto: aporte.monto, fecha_evento: aporte.fecha } });
-  await guardarObjetivosEnAlmacenamiento(); renderizarVistaObjetivos();
-  procesarColaObjetivo(obj);
+  obj.colaSync.push({ accion:'registrar_aporte_objetivo', datosBase: { id_aporte: mov.id, monto: mov.monto, fecha_evento: mov.fecha } });
+  await aplicarCambioMovimientos(obj);
 }
-function cerrarFichaObjetivo(){ document.getElementById('fondoModalObjetivo').classList.remove('abierto'); objetivoEnEdicionId = null; }
+function cerrarFichaObjetivo(){ document.getElementById('fondoModalObjetivo').classList.remove('abierto'); objetivoEnEdicionId = null; reiniciarEstadoMovimientos(); }
 
 /* ============================================================
    13. MÓDULO E — DASHBOARD
@@ -5866,35 +6176,80 @@ let vDashResumen = false, vDashPendiente = false;
 function alternarVisibilidadResumen(){ vDashResumen = !vDashResumen; renderizarDashboard(); }
 function alternarVisibilidadPendiente(){ vDashPendiente = !vDashPendiente; renderizarDashboard(); }
 
+// Mes que se está mirando en el Dashboard. Siempre parte en el mes
+// actual cada vez que se entra al Dashboard; con las flechas se puede
+// ir a meses anteriores (nunca a meses futuros).
+let mesDashMostrado = new Date().getMonth(), anioDashMostrado = new Date().getFullYear();
+function reiniciarMesDashboard(){ const h = new Date(); mesDashMostrado = h.getMonth(); anioDashMostrado = h.getFullYear(); }
+// Primer mes con algún ingreso o gasto registrado: más atrás no hay nada que mirar.
+function primerMesConRegistros(){
+  const fechas = ingresos.map(i => i.fecha).concat(registrosGasto.map(r => r.fecha)).filter(Boolean).sort();
+  return fechas.length ? fechas[0].slice(0,7) : hoyISO().slice(0,7);
+}
+function claveMesDash(){ return `${anioDashMostrado}-${String(mesDashMostrado+1).padStart(2,'0')}`; }
+function cambiarMesDashboard(delta){
+  mesDashMostrado += delta;
+  if(mesDashMostrado > 11){ mesDashMostrado = 0; anioDashMostrado++; }
+  if(mesDashMostrado < 0){ mesDashMostrado = 11; anioDashMostrado--; }
+  renderizarDashboard();
+}
 async function renderizarDashboard(){
-  await autoImportarSueldoDependiente();
   const ahora = new Date();
-  const inicioMes = formatoISO(new Date(ahora.getFullYear(), ahora.getMonth(), 1));
-  const finMes = formatoISO(new Date(ahora.getFullYear(), ahora.getMonth()+1, 0));
-  const diasEnMes = new Date(ahora.getFullYear(), ahora.getMonth()+1, 0).getDate();
-  document.getElementById('dashMesActual').textContent = NOMBRES_MES[ahora.getMonth()];
-  document.getElementById('dashAnioActual').textContent = ahora.getFullYear();
-  document.getElementById('dashDiaActual').textContent = `día ${ahora.getDate()} de ${diasEnMes}`;
+  // Nunca más adelante que el mes actual ni más atrás que el primer registro
+  const claveHoy = hoyISO().slice(0,7), clavePrimera = primerMesConRegistros();
+  if(claveMesDash() > claveHoy) reiniciarMesDashboard();
+  if(claveMesDash() < clavePrimera){ const [a,m] = clavePrimera.split('-').map(Number); anioDashMostrado = a; mesDashMostrado = m-1; }
+  const esMesActual = claveMesDash() === claveHoy;
+
+  const inicioMes = formatoISO(new Date(anioDashMostrado, mesDashMostrado, 1, 12));
+  const finMes = formatoISO(new Date(anioDashMostrado, mesDashMostrado+1, 0, 12));
+  const diasEnMes = new Date(anioDashMostrado, mesDashMostrado+1, 0, 12).getDate();
+  document.getElementById('dashMesActual').textContent = NOMBRES_MES[mesDashMostrado];
+  document.getElementById('dashAnioActual').textContent = anioDashMostrado;
+  document.getElementById('dashDiaActual').textContent = esMesActual ? `día ${ahora.getDate()} de ${diasEnMes}` : 'mes cerrado';
+  document.getElementById('dashFlechaAnterior').disabled = claveMesDash() <= clavePrimera;
+  document.getElementById('dashFlechaSiguiente').disabled = esMesActual;
 
   const ingreseEsteMes = ingresos.filter(i => i.fecha >= inicioMes && i.fecha <= finMes).reduce((a,i) => a + i.montoNeto, 0);
   const gasteEsteMes = registrosGasto.filter(r => r.fecha >= inicioMes && r.fecha <= finMes).reduce((a,r) => a + r.monto, 0);
   const disponible = ingreseEsteMes - gasteEsteMes;
 
   pintarBotonOjo('dashBotonOjoResumen', vDashResumen);
+  document.getElementById('dashTituloResumen').textContent = esMesActual ? 'Resumen del mes' : 'Resumen del mes cerrado';
+  document.getElementById('dashEtiquetaDisponible').textContent = esMesActual ? 'Disponible' : 'Resultado del mes';
+  document.getElementById('dashNotaDisponible').textContent = esMesActual ? 'después de gastos e ingresos registrados' : 'ingresos percibidos menos gastos de ese mes';
   document.getElementById('dashIngrese').textContent = textoMontoOculto(ingreseEsteMes, vDashResumen);
   document.getElementById('dashGaste').textContent = textoMontoOculto(gasteEsteMes, vDashResumen);
   document.getElementById('dashDisponible').textContent = textoMontoOculto(disponible, vDashResumen);
 
-  const instanciasPendientes = obtenerInstanciasEnRango(rangoAnalisisInicio(), hoyISO()).filter(inst => inst.etiqueta === 'atenciones' && ['realizada_devengada','ausencia_devengada'].includes(inst.estadoSesion));
-  let totalPendiente = 0; const pacientesConDeuda = new Set();
-  instanciasPendientes.forEach(inst => {
-    const info = clasificarInstanciaIngreso(inst); if(!info) return;
-    totalPendiente += info.montoBruto;
-    pacientesConDeuda.add(inst.tipoInstancia === 'consulta' ? ('consulta:'+inst.consultaId) : info.nombre);
-  });
+  // "Pendiente de cobrar" solo se muestra en el mes actual, y ya incluye
+  // cualquier sesión devengada de meses anteriores que siga sin pagarse.
+  document.getElementById('dashTarjetaPendiente').style.display = esMesActual ? '' : 'none';
+  if(!esMesActual) return;
+
+  // 1) Sesiones devengadas de cualquier mes hasta hoy (lo que deben los
+  //    pacientes), con el descuento de boleta y, si es Entre Lazos, la
+  //    comisión ya restados.
+  const devengadas = obtenerPendientesPago();
+  const totalDevengadas = devengadas.reduce((a,i) => a + i.montoNeto, 0);
+  const pacientesConDeuda = new Set(devengadas.map(i => i.clavePaciente)).size;
+  // 2) Sesiones Entre Lazos ya pagadas a Entre Lazos que todavía no
+  //    entran en una boleta (el dinero aún no llega a la cuenta).
+  const pendientesEL = obtenerPendientesEntreLazos();
+  const totalEL = pendientesEL.reduce((a,p) => a + calcularNeto(p.info.montoBruto, true), 0);
+
   pintarBotonOjo('dashBotonOjoPendiente', vDashPendiente);
-  document.getElementById('dashMontoPendiente').textContent = textoMontoOculto(totalPendiente, vDashPendiente);
-  document.getElementById('dashNumeroPacientes').textContent = pacientesConDeuda.size;
+  document.getElementById('dashMontoPendiente').textContent = textoMontoOculto(totalDevengadas, vDashPendiente);
+  document.getElementById('dashDetalleDevengadas').textContent = devengadas.length === 0
+    ? 'Nadie debe sesiones'
+    : `${pacientesConDeuda} paciente${pacientesConDeuda===1?'':'s'} con deuda · ${devengadas.length} ${devengadas.length===1?'sesión':'sesiones'}`;
+  document.getElementById('dashMontoEntreLazos').textContent = textoMontoOculto(totalEL, vDashPendiente);
+  document.getElementById('dashDetalleEntreLazos').textContent = pendientesEL.length === 0
+    ? 'No hay sesiones pendientes de boleta'
+    : `${pendientesEL.length} ${pendientesEL.length===1?'sesión':'sesiones'} pendiente${pendientesEL.length===1?'':'s'} de boleta`;
+  const pct = (n) => String(n).replace('.', ',') + '%';
+  document.getElementById('dashAvisoDescuento').textContent =
+    `Montos con descuento incorporado: ${pct(configuracion.porcentajeImpuesto)} de boleta y, en Entre Lazos, además ${pct(configuracion.porcentajeComisionEL)} de comisión.`;
 }
 
 /* ============================================================
@@ -6155,10 +6510,6 @@ async function iniciar(){
   // estaba vacía), se siembran los tres por defecto — igual que antes.
   if(objetivos.length === 0) objetivos = objetivosPorDefecto();
 
-  // El sueldo dependiente se actualiza acá (no solo al abrir la
-  // pestaña Ingresos), para que el Dashboard nunca muestre un ingreso
-  // desactualizado si todavía no se visitó esa pestaña en la sesión.
-  await autoImportarSueldoDependiente();
   // Migración de una sola vez: cualquier objetivo que este teléfono
   // tenga pero que nunca se haya mandado a Sheets (por ejemplo, los
   // tres por defecto la primera vez que corre esta versión, con
@@ -6257,10 +6608,13 @@ function mostrarMasResultadosAgenda(){ filtroAgendaLimite += PASO_RESULTADOS_AGE
 
 function renderizarResultadosBusquedaAgenda(){
   const cont = document.getElementById('resultadosBusquedaAgenda'); cont.innerHTML = '';
-  // Rango: un año hacia adelante (próximos, desde hoy) o hacia atrás (anteriores, hasta ayer).
+  // Rango: igual al tope de vida de las repeticiones (5 años, el de
+  // las anuales), para que aparezcan todas las repeticiones de un
+  // evento y no solo la primera. Próximos parte hoy; anteriores
+  // termina ayer. La lista se muestra de a 40, así que no se hace pesada.
   const hoy = hoyISO();
   const desplazar = (dias) => { const f = fechaDesdeISO(hoy); f.setDate(f.getDate() + dias); return formatoISO(f); };
-  const [inicio, fin] = filtroAgendaPeriodo === 'proximos' ? [hoy, desplazar(365)] : [desplazar(-365), desplazar(-1)];
+  const [inicio, fin] = filtroAgendaPeriodo === 'proximos' ? [hoy, desplazar(HORIZONTE_RECURRENCIA_ANUAL_DIAS)] : [desplazar(-HORIZONTE_RECURRENCIA_ANUAL_DIAS), desplazar(-1)];
   const texto = normalizarTextoBusqueda(filtroAgendaTexto);
 
   let lista = obtenerInstanciasEnRango(inicio, fin)
