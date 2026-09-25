@@ -327,6 +327,7 @@ input{ font-family:inherit; }
   touch-action:manipulation;
 }
 .menu-mas button:active{ background:var(--bg-app); }
+.menu-mas .boton-config-menu{ justify-content:center; font-size:21px; color:var(--texto-secundario); padding:9px 14px; }
 
 /* ============================================================
    9. MODALES (hoja deslizante desde abajo)
@@ -496,7 +497,7 @@ input{ font-family:inherit; }
 .chip-evento-mes{
   font-size:9px; line-height:1.3; padding:1.5px 3px; border-radius:3px;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  font-weight:650; flex:none;
+  font-weight:650; flex:none; height:var(--agenda-alto-chip-mes); box-sizing:border-box;
 }
 .chip-mes-atenciones{ background:color-mix(in srgb, var(--et-atenciones) 15%, white); color:#33473B; }
 .chip-mes-nel{ background:color-mix(in srgb, var(--et-nel) 15%, white); color:#5C1F2C; }
@@ -518,8 +519,26 @@ input{ font-family:inherit; }
   --agenda-linea-hora:#E2D6C3;        /* color de las líneas horizontales de cada hora */
   --agenda-ancho-columna-horas:24px;  /* ancho de la columna de horas a la izquierda */
   --agenda-opacidad-realizado:0.42;   /* qué tan tenue se ve un evento realizado (1 = normal) */
+  --agenda-alto-chip-mes:15px;        /* alto de cada evento en la vista de mes (define cuántos caben por día) */
+  --agenda-margen-lateral:6px;        /* margen a los lados de la Agenda (el resto de la app usa 16px) */
   --agenda-color-seleccion:#4F6B5C;   /* color que marca el día seleccionado */
   --agenda-fondo-seleccion:color-mix(in srgb, var(--agenda-color-seleccion) 16%, #FBF7EF); /* fondo del día seleccionado en la semana */
+}
+
+/* La Agenda usa casi todo el ancho y alto de la pantalla. */
+#pantallaAgenda{ padding-left:var(--agenda-margen-lateral); padding-right:var(--agenda-margen-lateral); gap:4px; }
+
+/* Lupa del encabezado de la Agenda */
+.icono-lupa{ width:18px; height:18px; fill:none; stroke:var(--texto-secundario); stroke-width:2.4; stroke-linecap:round; }
+
+/* Pestaña con el nombre del mes que empieza, montada sobre la línea divisoria */
+.etiqueta-mes-linea{
+  position:absolute; top:0; z-index:4; transform:translateY(-50%);
+  padding:1px 6px 1.5px; border-radius:6px;
+  background:var(--agenda-linea-mes); color:#FFF6E8;
+  font-size:8px; font-weight:700; line-height:1.2; letter-spacing:0.2px;
+  font-family:'Quicksand',sans-serif; white-space:nowrap;
+  pointer-events:none;
 }
 
 /* --- 10.2 Celdas de la vista de mes --- */
@@ -560,7 +579,7 @@ input{ font-family:inherit; }
 
 .grilla-semana{ flex:1; display:flex; flex-direction:column; padding:0 5px; min-height:0; touch-action:pan-y; }
 .semana-fila{
-  display:grid; grid-template-columns:var(--agenda-ancho-columna-horas) repeat(7, minmax(0,1fr)); column-gap:0;
+  position:relative; display:grid; grid-template-columns:var(--agenda-ancho-columna-horas) repeat(7, minmax(0,1fr)); column-gap:0;
 }
 /* Eventos de varios días: primera franja dentro de las columnas, con el
    mismo fondo de columna (otro mes, seleccionado, línea de mes). */
@@ -579,7 +598,7 @@ input{ font-family:inherit; }
 .columna-semana.seleccionada{ background-color:var(--agenda-fondo-seleccion); }
 .columna-semana.borde-mes-izquierda,
 .columna-semana-cabecera.borde-mes-izquierda{ box-shadow:inset var(--agenda-grosor-linea-mes) 0 0 var(--agenda-linea-mes); }
-.columna-semana-cabecera{ display:flex; flex-direction:column; align-items:center; gap:1px; padding:3px 0; border-radius:7px 7px 0 0; touch-action:manipulation; }
+.columna-semana-cabecera{ display:flex; flex-direction:column; align-items:center; gap:1px; padding:8px 0 3px; /* arriba deja espacio a la pestaña del mes */ border-radius:7px 7px 0 0; touch-action:manipulation; }
 .columna-semana-cabecera.seleccionada{ background:var(--agenda-fondo-seleccion); }
 .columna-semana-cabecera.seleccionada .columna-semana-num{ background:var(--agenda-color-seleccion); color:#FFF6E8; }
 .columna-semana-cabecera.hoy .columna-semana-num{ background:var(--acento); color:#fff; }
@@ -627,6 +646,33 @@ input{ font-family:inherit; }
 }
 .sin-eventos-columna{ text-align:center; font-size:8px; font-weight:700; color:var(--texto-terciario); padding-top:6px; }
 
+/* --- Panel propio de la Agenda: buscar y filtrar --- */
+.fila-titulo-filtro-agenda{ display:flex; align-items:center; justify-content:space-between; }
+.boton-ver-todos-agenda{
+  display:none; background:none; border:none; padding:0 2px 6px; font-size:11.5px; font-weight:700;
+  color:var(--tab-agenda, #4F6B5C); font-family:'Quicksand',sans-serif;
+}
+.fecha-resultado-agenda::first-letter{ text-transform:uppercase; }
+#segmentadoPeriodoAgenda{ --chip-color:var(--tab-agenda); }
+.contador-resultados-agenda{ font-size:11px; font-weight:650; color:var(--texto-terciario); margin:10px 2px 0; }
+.fecha-resultado-agenda{
+  font-size:11px; font-weight:700; color:var(--texto-terciario);
+  margin:14px 2px 6px; font-family:'Quicksand',sans-serif;
+}
+.fila-resultado-agenda{
+  width:100%; display:flex; align-items:center; gap:10px; padding:10px 12px; margin-bottom:6px;
+  border-radius:11px; border:1.5px solid var(--borde); background:var(--superficie);
+  text-align:left; touch-action:manipulation;
+}
+.fila-resultado-agenda .hora{ flex:none; min-width:42px; font-size:11px; font-weight:700; color:var(--texto-secundario); font-family:'Quicksand',sans-serif; }
+.fila-resultado-agenda .nombre{
+  flex:1; min-width:0; font-size:13px; font-weight:700; color:var(--color-etiqueta);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.fila-resultado-agenda .tipo{ flex:none; font-size:10px; font-weight:650; color:var(--texto-terciario); }
+.fila-resultado-agenda.realizado{ opacity:var(--agenda-opacidad-realizado); }
+.vacio-resultados-agenda{ padding:18px 4px; text-align:center; font-size:12.5px; color:var(--texto-terciario); }
+
 /* --- Avisos propios de la app (reemplazan los recuadros grises del navegador) --- */
 /* Aviso flotante: aparece arriba de la pantalla unos segundos (fallas de guardado). */
 .aviso-flotante{
@@ -649,13 +695,13 @@ input{ font-family:inherit; }
 
 .grid-etiquetas{ display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
 .chip-etiqueta{
-  padding:9px 4px; border-radius:12px; background:var(--superficie);
+  padding:10px 5px; border-radius:11px; background:var(--superficie);
   border:1.5px solid var(--borde); text-align:center;
-  display:flex; flex-direction:column; align-items:center; gap:4px;
+  display:flex; align-items:center; justify-content:center;
   touch-action:manipulation;
 }
-.chip-etiqueta .punto-etiqueta{ width:9px; height:9px; border-radius:50%; }
-.chip-etiqueta .nombre-etiqueta{ font-size:9.5px; color:var(--texto-secundario); line-height:1.2; font-family:'Quicksand',sans-serif; font-weight:650; }
+/* Igual que las categorías de Gastos: sin punto, el texto lleva el color de la etiqueta. */
+.chip-etiqueta .nombre-etiqueta{ font-size:11px; color:var(--chip-color); line-height:1.2; font-family:'Quicksand',sans-serif; font-weight:700; }
 .chip-etiqueta.seleccionada{
   border-color: var(--chip-color, var(--acento));
   background: color-mix(in srgb, var(--chip-color, var(--acento)) 10%, white);
@@ -967,7 +1013,9 @@ input{ font-family:inherit; }
     </div>
     <div class="agenda-botones-encabezado">
       <button class="boton-hoy-agenda" onclick="irAHoyAgenda()">Hoy</button>
-      <button class="boton-icono" onclick="abrirConfiguracion()">⚙</button>
+      <button class="boton-icono" onclick="abrirPanelAgenda()" aria-label="Buscar en la agenda">
+        <svg class="icono-lupa" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.4" y1="15.4" x2="20.5" y2="20.5"/></svg>
+      </button>
     </div>
   </div>
 
@@ -1223,6 +1271,7 @@ input{ font-family:inherit; }
     <button onclick="irAPantalla('pacientes')">Pacientes</button>
     <button onclick="irAPantalla('objetivos')">Objetivos</button>
     <button onclick="irAPantalla('dashboard')">Dashboard</button>
+    <button class="boton-config-menu" onclick="cerrarMenuMas(); abrirConfiguracion()" aria-label="Configuración">⚙&#xFE0E;</button>
   </div>
 </div>
 
@@ -1750,6 +1799,31 @@ input{ font-family:inherit; }
   </div>
 </div>
 
+<div class="fondo-modal" id="fondoModalPanelAgenda" onclick="cerrarModalSiFondo(event, 'fondoModalPanelAgenda', cerrarPanelAgenda)">
+  <div class="hoja-modal">
+    <div class="encabezado-modal">
+      <h2>Agenda</h2>
+      <button class="cerrar-modal" onclick="cerrarPanelAgenda()">✕</button>
+    </div>
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Buscar por nombre</span>
+      <input type="text" id="buscadorAgenda" placeholder="Paciente o evento…" oninput="manejarBusquedaAgenda()">
+    </div>
+    <div class="campo-modal">
+      <div class="fila-titulo-filtro-agenda">
+        <span class="etiqueta-campo">Tipo de evento</span>
+        <button class="boton-ver-todos-agenda" id="botonVerTodosTiposAgenda" onclick="verTodosTiposAgenda()">Ver todos</button>
+      </div>
+      <div class="grid-etiquetas" id="gridFiltroEtiquetasAgenda"></div>
+    </div>
+    <div class="campo-modal">
+      <div class="segmentado" id="segmentadoPeriodoAgenda"></div>
+      <div class="contador-resultados-agenda" id="contadorResultadosAgenda"></div>
+      <div id="resultadosBusquedaAgenda"></div>
+    </div>
+  </div>
+</div>
+
 <div class="aviso-flotante" id="avisoFlotante" onclick="this.classList.remove('visible')"></div>
 
 <script>
@@ -1855,9 +1929,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.31';
+const VERSION_APP = '2.32';
 const VERSION_FECHA = '24 sep 2026';
-const VERSION_DESCRIPCION = 'Rediseño de la Agenda (semana por horas, realizado, línea de mes, ficha de evento) y avisos propios en toda la app';
+const VERSION_DESCRIPCION = 'Agenda: mes a pantalla completa, búsqueda y filtros, nombre del mes en la línea divisoria; corrección del horario de verano; sincroniza al volver a la app';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -2138,7 +2212,12 @@ function hoyISO(){
   const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 function formatoISO(f){ return `${f.getFullYear()}-${String(f.getMonth()+1).padStart(2,'0')}-${String(f.getDate()).padStart(2,'0')}`; }
-function fechaDesdeISO(s){ const [a,m,d] = s.split('-').map(Number); return new Date(a, m-1, d); }
+// Las fechas "de calendario" se crean a mediodía y no a medianoche: el
+// día que empieza el horario de verano en Chile, la medianoche no existe
+// y el navegador la corre a la 01:00. Eso hacía que al comparar fechas se
+// perdiera el último día de un rango (por ejemplo, el domingo 4 de
+// octubre desaparecía de la vista de septiembre).
+function fechaDesdeISO(s){ const [a,m,d] = s.split('-').map(Number); return new Date(a, m-1, d, 12); }
 const NOMBRES_MES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const NOMBRES_DIA = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
 
@@ -2219,7 +2298,7 @@ const COLOR_TEXTO_NAV_ACTIVO = '#FFF8EC';
 
 function irAPantalla(nombre){
   PANTALLAS.forEach(p => {
-    document.getElementById('pantalla' + p.charAt(0).toUpperCase() + p.slice(1)).style.display = (p === nombre) ? 'block' : 'none';
+    document.getElementById('pantalla' + p.charAt(0).toUpperCase() + p.slice(1)).style.display = (p === nombre) ? (p === 'agenda' ? 'flex' : 'block') : 'none';
     const nav = document.getElementById('nav' + p.charAt(0).toUpperCase() + p.slice(1));
     if(nav) nav.classList.toggle('activo', p === nombre);
   });
@@ -2739,7 +2818,7 @@ function generarOcurrencias(evento, inicioRangoISO, finRangoISO){
     let anio = inicioRango.getFullYear(), mes = inicioRango.getMonth();
     if(inicioRango < fechaBase){ anio = fechaBase.getFullYear(); mes = fechaBase.getMonth(); }
     while(true){
-      const candidato = new Date(anio, mes, diaMes);
+      const candidato = new Date(anio, mes, diaMes, 12);
       if(candidato > finRango) break;
       if(candidato.getMonth() === mes && candidato >= fechaBase && candidato >= inicioRango){
         const fechaStr = formatoISO(candidato);
@@ -2755,7 +2834,7 @@ function generarOcurrencias(evento, inicioRangoISO, finRangoISO){
     const diaMes = fechaBase.getDate(), mesBase = fechaBase.getMonth();
     let anio = Math.max(inicioRango.getFullYear(), fechaBase.getFullYear());
     while(true){
-      const candidato = new Date(anio, mesBase, diaMes);
+      const candidato = new Date(anio, mesBase, diaMes, 12);
       if(candidato > finRango) break;
       if(candidato >= fechaBase && candidato >= inicioRango){
         const fechaStr = formatoISO(candidato);
@@ -2775,9 +2854,9 @@ function generarOcurrencias(evento, inicioRangoISO, finRangoISO){
     let guard = 0;
     while(guard < 600){
       guard++;
-      const primerDia = new Date(anio, mes, 1);
+      const primerDia = new Date(anio, mes, 1, 12);
       const offset = (diaSemana - primerDia.getDay() + 7) % 7;
-      const fechaOcurrencia = new Date(anio, mes, 1 + offset + (semanaN-1)*7);
+      const fechaOcurrencia = new Date(anio, mes, 1 + offset + (semanaN-1)*7, 12);
       if(fechaOcurrencia.getMonth() === mes){
         if(fechaOcurrencia > finRango) break;
         if(fechaOcurrencia >= fechaBase && fechaOcurrencia >= inicioRango){
@@ -2786,7 +2865,7 @@ function generarOcurrencias(evento, inicioRangoISO, finRangoISO){
         }
       }
       mes++; if(mes > 11){ mes = 0; anio++; }
-      if(new Date(anio, mes, 1) > finRango) break;
+      if(new Date(anio, mes, 1, 12) > finRango) break;
     }
     return resultado;
   }
@@ -3115,8 +3194,8 @@ function renderizarVistaMensual(){
   document.getElementById('tituloMes').textContent = NOMBRES_MES[mesMostrado];
   document.getElementById('agendaAnio').textContent = anioMostrado;
 
-  const primerDiaMes = new Date(anioMostrado, mesMostrado, 1);
-  const ultimoDiaMes = new Date(anioMostrado, mesMostrado+1, 0);
+  const primerDiaMes = new Date(anioMostrado, mesMostrado, 1, 12);
+  const ultimoDiaMes = new Date(anioMostrado, mesMostrado+1, 0, 12);
   const inicioGrilla = obtenerLunesDeSemana(primerDiaMes);
   const finGrilla = new Date(ultimoDiaMes);
   const diaSemanaFin = finGrilla.getDay();
@@ -3133,7 +3212,7 @@ function renderizarVistaMensual(){
   }
 
   // Calcular inicio de la semana seleccionada
-  const selFecha = fechaColumnaSeleccionada ? fechaDesdeISO(fechaColumnaSeleccionada) : new Date(anioMostrado, mesMostrado, 1);
+  const selFecha = fechaColumnaSeleccionada ? fechaDesdeISO(fechaColumnaSeleccionada) : new Date(anioMostrado, mesMostrado, 1, 12);
   const inicioSemSel = obtenerLunesDeSemana(selFecha);
 
   // Separar días en arriba, abajo según semana seleccionada
@@ -3170,6 +3249,18 @@ function renderizarVistaMensual(){
 
   const ALTO_BARRA = 17; // px por barra multi-día en la banda de la semana
 
+  // Cuántos eventos caben por día en la vista de mes: depende del alto
+  // que tenga cada fila al repartir la pantalla entre las semanas del mes.
+  let eventosQueCabenPorDia = 3;
+  if(!semanaAbierta){
+    const zona = document.getElementById('gridDiasArriba').parentElement;
+    const numFilas = Math.ceil(todosDias.length / 7);
+    const altoFila = zona.clientHeight / numFilas;
+    const raiz = getComputedStyle(document.documentElement);
+    const altoChip = (parseFloat(raiz.getPropertyValue('--agenda-alto-chip-mes')) || 15) + 2;
+    if(altoFila > 0) eventosQueCabenPorDia = Math.max(1, Math.floor((altoFila - 26) / altoChip));
+  }
+
   // Función para crear celda. numBarrasSemana reserva espacio vertical
   // para la banda de barras absolutas de esa fila de semana.
   const semanaAbiertaMezclaMeses = semanaAbierta && (() => { const f = new Date(inicioSemSel); f.setDate(f.getDate()+6); return f.getMonth() !== inicioSemSel.getMonth(); })();
@@ -3194,7 +3285,7 @@ function renderizarVistaMensual(){
       .filter(i => i.fecha === fechaStr)
       .filter(i => !(i.tipoInstancia === 'evento' && idsMultidia.has(i.eventoId)))
       .sort((a,b) => a.hora.localeCompare(b.hora));
-    const limite = semanaAbierta ? 2 : 3;
+    const limite = semanaAbierta ? 2 : eventosQueCabenPorDia;
 
     const esHoy = fechaStr === hoy;
     const esSeleccionado = fechaStr === fechaColumnaSeleccionada;
@@ -3208,7 +3299,10 @@ function renderizarVistaMensual(){
     }
 
     // Chips normales, usando los espacios restantes
-    const restantes = Math.max(0, limite - numBarrasSemana);
+    let restantes = Math.max(0, limite - numBarrasSemana);
+    // En la vista de mes, si no caben todos, se deja el último espacio
+    // para el "+N más", así nunca queda cortado.
+    if(!semanaAbierta && delDia.length > restantes && restantes > 0) restantes -= 1;
     let chipsHTML = '';
     delDia.slice(0, restantes).forEach(inst => {
       chipsHTML += `<div class="chip-evento-mes chip-mes-${inst.etiqueta}${instanciaEstaRealizada(inst) ? ' realizado' : ''}">${escaparHTML(inst.nombre)}</div>`;
@@ -3256,6 +3350,16 @@ function renderizarVistaMensual(){
     // Celdas
     const celdasFila = diasSemana.map(fecha => crearCelda(fecha, barras.length));
     celdasFila.forEach(c => fila.appendChild(c));
+
+    // Nombre del mes que empieza, sobre la línea divisoria del día 1
+    diasSemana.forEach((fecha, i) => {
+      if(fecha.getDate() !== 1) return;
+      const etiqueta = document.createElement('div');
+      etiqueta.className = 'etiqueta-mes-linea';
+      etiqueta.textContent = mayusculaInicial(NOMBRES_MES[fecha.getMonth()]);
+      etiqueta.style.left = `calc(${i} * 100% / 7 + 4px)`;
+      fila.appendChild(etiqueta);
+    });
 
     // Barras absolutas continuas (sobre el padding de las celdas)
     barras.forEach((b, idx) => {
@@ -3397,6 +3501,16 @@ function renderizarPanelSemana(){
     cab.onclick = seleccionar(d);
     filaCab.appendChild(cab);
   });
+  if(semanaMezclaMeses){
+    const i = dias.findIndex(d => d.fecha.getDate() === 1);
+    if(i >= 0){
+      const etiqueta = document.createElement('div');
+      etiqueta.className = 'etiqueta-mes-linea';
+      etiqueta.textContent = mayusculaInicial(NOMBRES_MES[dias[i].fecha.getMonth()]);
+      etiqueta.style.left = `calc(var(--agenda-ancho-columna-horas) + (100% - var(--agenda-ancho-columna-horas)) * ${i} / 7 + 4px)`;
+      filaCab.appendChild(etiqueta);
+    }
+  }
   grid.appendChild(filaCab);
 
   // Fila 2 (solo si hay): eventos de varios días, arriba de las horas
@@ -3536,6 +3650,7 @@ function repartirEventosEnCarriles(eventos){
 }
 
 // Línea de cambio de mes (ver estilos 10.2).
+function mayusculaInicial(t){ return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; }
 function empiezaSemanaDeMesNuevo(fecha){
   const antes = new Date(fecha); antes.setDate(antes.getDate() - 7);
   return antes.getMonth() !== fecha.getMonth();
@@ -3592,6 +3707,10 @@ async function alternarRealizadoEvento(){
   procesarColaEntidadAgenda(ev, guardarEventosEnAlmacenamiento);
 }
 
+window.addEventListener('resize', () => {
+  const pantalla = document.getElementById('pantallaAgenda');
+  if(pantalla && pantalla.style.display !== 'none' && !semanaAbierta) renderizarVistaMensual();
+});
 function rerenderizarVistaAgendaActual(){
   renderizarVistaMensual();
   if(semanaAbierta) renderizarPanelSemana();
@@ -3766,7 +3885,7 @@ function pintarGridEtiquetasEvento(){
     const chip = document.createElement('button');
     chip.className = 'chip-etiqueta' + (etiquetaEventoSeleccionada === et.valor ? ' seleccionada' : '');
     chip.style.setProperty('--chip-color', et.color);
-    chip.innerHTML = `<span class="punto-etiqueta" style="background:${et.color}"></span><span class="nombre-etiqueta">${et.nombre}</span>`;
+    chip.innerHTML = `<span class="nombre-etiqueta">${et.nombre}</span>`;
     chip.onclick = () => {
       const cambio = etiquetaEventoSeleccionada !== et.valor;
       etiquetaEventoSeleccionada = et.valor;
@@ -6076,6 +6195,161 @@ async function iniciar(){
   iniciarModuloGastos();
   activarSwipeAgenda();
 }
+
+// ============================================================
+// PANEL PROPIO DE LA AGENDA (botón ⚙ de la Agenda)
+// Buscar por nombre, filtrar por tipo de evento y ver la lista
+// ordenada por fecha. Tocar un resultado lleva a ese día en la Agenda.
+// ============================================================
+let filtroAgendaTexto = '';
+let filtroAgendaEtiquetas = [];      // vacío = todos los tipos
+let filtroAgendaPeriodo = 'proximos'; // 'proximos' o 'anteriores'
+let filtroAgendaLimite = 40;
+const PASO_RESULTADOS_AGENDA = 40;
+
+function abrirPanelAgenda(){
+  filtroAgendaLimite = PASO_RESULTADOS_AGENDA;
+  document.getElementById('buscadorAgenda').value = filtroAgendaTexto;
+  pintarFiltroEtiquetasAgenda();
+  pintarSegmentadoPeriodoAgenda();
+  renderizarResultadosBusquedaAgenda();
+  document.getElementById('fondoModalPanelAgenda').classList.add('abierto');
+}
+function cerrarPanelAgenda(){ document.getElementById('fondoModalPanelAgenda').classList.remove('abierto'); }
+
+function normalizarTextoBusqueda(t){ return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim(); }
+
+function manejarBusquedaAgenda(){
+  filtroAgendaTexto = document.getElementById('buscadorAgenda').value;
+  filtroAgendaLimite = PASO_RESULTADOS_AGENDA;
+  renderizarResultadosBusquedaAgenda();
+}
+function pintarFiltroEtiquetasAgenda(){
+  const grid = document.getElementById('gridFiltroEtiquetasAgenda'); grid.innerHTML = '';
+  ETIQUETAS.forEach(et => {
+    const chip = document.createElement('button');
+    chip.className = 'chip-etiqueta' + (filtroAgendaEtiquetas.includes(et.valor) ? ' seleccionada' : '');
+    chip.style.setProperty('--chip-color', et.color);
+    chip.innerHTML = `<span class="nombre-etiqueta">${et.nombre}</span>`;
+    chip.onclick = () => {
+      filtroAgendaEtiquetas = filtroAgendaEtiquetas.includes(et.valor)
+        ? filtroAgendaEtiquetas.filter(v => v !== et.valor)
+        : filtroAgendaEtiquetas.concat(et.valor);
+      filtroAgendaLimite = PASO_RESULTADOS_AGENDA;
+      pintarFiltroEtiquetasAgenda(); renderizarResultadosBusquedaAgenda();
+    };
+    grid.appendChild(chip);
+  });
+  document.getElementById('botonVerTodosTiposAgenda').style.display = filtroAgendaEtiquetas.length ? 'inline-block' : 'none';
+}
+function verTodosTiposAgenda(){ filtroAgendaEtiquetas = []; pintarFiltroEtiquetasAgenda(); renderizarResultadosBusquedaAgenda(); }
+function pintarSegmentadoPeriodoAgenda(){
+  const c = document.getElementById('segmentadoPeriodoAgenda'); c.innerHTML = '';
+  [['proximos','Próximos'],['anteriores','Anteriores']].forEach(([valor, nombre]) => {
+    const b = document.createElement('button');
+    b.className = filtroAgendaPeriodo === valor ? 'seleccionado' : '';
+    b.textContent = nombre;
+    b.onclick = () => { filtroAgendaPeriodo = valor; filtroAgendaLimite = PASO_RESULTADOS_AGENDA; pintarSegmentadoPeriodoAgenda(); renderizarResultadosBusquedaAgenda(); };
+    c.appendChild(b);
+  });
+}
+function mostrarMasResultadosAgenda(){ filtroAgendaLimite += PASO_RESULTADOS_AGENDA; renderizarResultadosBusquedaAgenda(); }
+
+function renderizarResultadosBusquedaAgenda(){
+  const cont = document.getElementById('resultadosBusquedaAgenda'); cont.innerHTML = '';
+  // Rango: un año hacia adelante (próximos, desde hoy) o hacia atrás (anteriores, hasta ayer).
+  const hoy = hoyISO();
+  const desplazar = (dias) => { const f = fechaDesdeISO(hoy); f.setDate(f.getDate() + dias); return formatoISO(f); };
+  const [inicio, fin] = filtroAgendaPeriodo === 'proximos' ? [hoy, desplazar(365)] : [desplazar(-365), desplazar(-1)];
+  const texto = normalizarTextoBusqueda(filtroAgendaTexto);
+
+  let lista = obtenerInstanciasEnRango(inicio, fin)
+    .filter(inst => filtroAgendaEtiquetas.length === 0 || filtroAgendaEtiquetas.includes(inst.etiqueta))
+    .filter(inst => !texto || normalizarTextoBusqueda(inst.nombre).includes(texto));
+  const clave = (i) => i.fecha + ' ' + (i.sinHora ? '00:00' : i.hora);
+  lista.sort((a,b) => clave(a).localeCompare(clave(b)));
+  if(filtroAgendaPeriodo === 'anteriores') lista.reverse();
+
+  document.getElementById('contadorResultadosAgenda').textContent =
+    lista.length === 1 ? '1 evento' : `${lista.length} eventos`;
+
+  if(lista.length === 0){
+    cont.innerHTML = `<div class="vacio-resultados-agenda">No hay eventos que coincidan.</div>`;
+    return;
+  }
+  let fechaActual = null;
+  lista.slice(0, filtroAgendaLimite).forEach(inst => {
+    if(inst.fecha !== fechaActual){
+      fechaActual = inst.fecha;
+      const f = fechaDesdeISO(inst.fecha);
+      const titulo = document.createElement('div');
+      titulo.className = 'fecha-resultado-agenda';
+      titulo.textContent = `${NOMBRES_DIA[f.getDay()]} ${f.getDate()} de ${NOMBRES_MES[f.getMonth()]}` + (f.getFullYear() !== new Date().getFullYear() ? ` de ${f.getFullYear()}` : '');
+      cont.appendChild(titulo);
+    }
+    const info = obtenerEtiquetaInfo(inst.etiqueta);
+    const fila = document.createElement('button');
+    fila.className = 'fila-resultado-agenda' + (instanciaEstaRealizada(inst) ? ' realizado' : '');
+    fila.style.setProperty('--color-etiqueta', info.color);
+    fila.innerHTML = `<span class="hora">${inst.sinHora ? 'sin hora' : inst.hora}</span>`
+      + `<span class="nombre">${escaparHTML(inst.nombre || '(sin nombre)')}</span>`
+      + `<span class="tipo">${info.nombre}</span>`;
+    fila.onclick = () => irAEventoDesdeBusqueda(inst);
+    cont.appendChild(fila);
+  });
+  if(lista.length > filtroAgendaLimite){
+    const mas = document.createElement('button');
+    mas.className = 'boton-secundario';
+    mas.textContent = `Mostrar más (${lista.length - filtroAgendaLimite} restantes)`;
+    mas.onclick = mostrarMasResultadosAgenda;
+    cont.appendChild(mas);
+  }
+}
+
+// Lleva la Agenda al día del evento, con la semana abierta y el evento
+// ya marcado (un toque más sobre él abre su ficha).
+function irAEventoDesdeBusqueda(inst){
+  cerrarPanelAgenda();
+  const f = fechaDesdeISO(inst.fecha);
+  mesMostrado = f.getMonth(); anioMostrado = f.getFullYear();
+  fechaColumnaSeleccionada = inst.fecha;
+  inicioSemanaMostrada = obtenerLunesDeSemana(f);
+  semanaAbierta = true;
+  eventoElegidoSemana = (inst.eventoId || inst.consultaId) + '|' + inst.fecha;
+  ranuraElegidaSemana = null;
+  renderizarVistaMensual(); renderizarPanelSemana();
+  const chip = document.querySelector('#gridSemana .elegido');
+  (chip || document.getElementById('panelSemana')).scrollIntoView({ block:'center', behavior:'smooth' });
+}
+
+// ============================================================
+// SINCRONIZAR AL VOLVER A LA APP
+// En el iPhone, la app de la pantalla de inicio muchas veces no se
+// vuelve a cargar al abrirla: sigue abierta en segundo plano. Por eso,
+// además de al cargar, se sincroniza (y se revisa si hay versión nueva)
+// cada vez que la app vuelve a quedar a la vista, si pasó más de un
+// minuto desde la última vez. No se hace con una ventana abierta, para
+// no mover datos mientras se está editando algo.
+// ============================================================
+let sincronizandoAlVolver = false;
+document.addEventListener('visibilitychange', async () => {
+  if(document.visibilityState !== 'visible' || sincronizandoAlVolver) return;
+  if(ultimaSincronizacionCompleta && Date.now() - ultimaSincronizacionCompleta < 60000) return;
+  if(document.querySelector('.fondo-modal.abierto')) return;
+  sincronizandoAlVolver = true;
+  try{
+    revisarVersionMasReciente();
+    const ok = await sincronizarTodo();
+    if(ok && !document.querySelector('.fondo-modal.abierto')){
+      renderizarListaPacientes(); renderizarListaGastos();
+      renderizarVistaMensual(); if(semanaAbierta) renderizarPanelSemana();
+      if(document.getElementById('pantallaIngresos').style.display !== 'none') renderizarVistaIngresos();
+      if(document.getElementById('pantallaObjetivos').style.display !== 'none') renderizarVistaObjetivos();
+      if(document.getElementById('pantallaDashboard').style.display !== 'none' && typeof renderizarDashboard === 'function') renderizarDashboard();
+    }
+  }finally{ sincronizandoAlVolver = false; }
+});
+
 mostrarVersionApp();
 revisarVersionMasReciente();
 iniciar();
