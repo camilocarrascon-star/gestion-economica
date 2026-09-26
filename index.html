@@ -51,6 +51,19 @@
   --et-lecturas:#8C7A63;
   --et-seminarios:#5C6B7A;
 
+  /* Paleta para los tipos de evento propios (Configuración > Tipos de
+     evento). Cambiar un color acá recolorea todos los eventos que lo usan. */
+  --paleta-evento-1:#3F6E8C;
+  --paleta-evento-2:#8A4F7D;
+  --paleta-evento-3:#2F7A6B;
+  --paleta-evento-4:#B0563E;
+  --paleta-evento-5:#6B5B95;
+  --paleta-evento-6:#7F7F24;
+  --paleta-evento-7:#C27C0E;
+  --paleta-evento-8:#4A5D23;
+  --paleta-evento-9:#9E3D5A;
+  --paleta-evento-10:#5E3A2E;
+
   --cat-CF:#7C2F3E;
   --cat-FO:#A9741B;
   --cat-OC:#B4653A;
@@ -364,6 +377,55 @@ input{ font-family:inherit; }
   font-size:12.5px; font-weight:650; font-family:'Quicksand',sans-serif; line-height:1.25; touch-action:manipulation;
 }
 .separador-edicion-evento{ height:1px; background:var(--borde); margin:16px 0 14px; }
+
+/* Configuración: tarjeta de versión arriba */
+.tarjeta-version-config{
+  background:var(--superficie); border:1px solid var(--borde-suave); border-radius:12px;
+  padding:10px 13px; margin-bottom:16px; text-align:center;
+}
+.tarjeta-version-config .numero{ font-size:12.5px; font-weight:750; color:var(--texto-principal); font-family:'Quicksand',sans-serif; }
+.tarjeta-version-config .detalle{ font-size:10.5px; font-weight:600; color:var(--texto-terciario); margin-top:2px; line-height:1.4; }
+
+/* Configuración: apartados desplegables */
+.seccion-config{ margin-top:4px; }
+.separador-seccion-config{ height:1px; background:var(--borde); margin:18px 0; }
+.encabezado-seccion-config{
+  width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px;
+  padding:2px 0; touch-action:manipulation;
+}
+.encabezado-seccion-config span:first-child{ font-size:15px; font-weight:750; color:var(--texto-principal); font-family:'Quicksand',sans-serif; text-align:left; }
+.chevron-seccion-config{ flex:none; font-size:13px; color:var(--texto-secundario); transition:transform 0.18s ease; }
+.encabezado-seccion-config.abierto .chevron-seccion-config{ transform:rotate(180deg); }
+.contenido-seccion-config{ margin-top:14px; }
+
+/* Botones de confirmación destacados (Guardar valores, Agregar tipo de
+   evento): mismo peso visual que boton-primario, para que las tres
+   acciones definitivas de Configuración se vean igual de importantes. */
+.boton-primario.peligro{ background:#9B4A4A; }
+
+/* Configuración > Tipos de evento */
+.titulo-seccion-config{ font-size:15px; font-weight:750; color:var(--texto-principal); font-family:'Quicksand',sans-serif; margin:22px 0 4px; }
+.fila-tipo-evento{
+  display:flex; align-items:center; gap:10px; padding:9px 10px 9px 12px; margin-top:6px;
+  background:var(--superficie); border:1px solid var(--borde-suave); border-radius:11px;
+}
+.fila-tipo-evento.quitado{ opacity:0.6; }
+.punto-tipo-evento{ width:12px; height:12px; border-radius:50%; flex:none; }
+.nombre-tipo-evento{ flex:1; min-width:0; font-size:13.5px; font-weight:650; color:var(--texto-principal); font-family:'Quicksand',sans-serif; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.nota-tipo-evento{ font-size:10.5px; font-weight:600; color:var(--texto-terciario); flex:none; }
+.boton-tipo-evento{
+  flex:none; padding:6px 11px; border-radius:9px; border:1px solid var(--borde); background:var(--bg-app);
+  font-size:12px; font-weight:700; font-family:'Quicksand',sans-serif; color:var(--texto-secundario); touch-action:manipulation;
+}
+.boton-tipo-evento.quitar{ color:#9B4A4A; }
+.boton-tipo-evento.confirmar{ background:#9B4A4A; border-color:#9B4A4A; color:#FFF6E8; }
+.paleta-tipo-evento{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+.muestra-color-evento{
+  width:27px; height:27px; border-radius:50%; border:3px solid transparent; touch-action:manipulation;
+  box-shadow:0 0 0 1px var(--borde);
+}
+.muestra-color-evento.seleccionada{ border-color:var(--superficie); box-shadow:0 0 0 2px var(--texto-principal); }
+.subtitulo-tipos-quitados{ font-size:10.5px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; color:var(--texto-terciario); font-family:'Quicksand',sans-serif; margin-top:14px; }
 
 /* Pregunta "¿Efectivo o transferencia?" al guardar una sesión pagada */
 .botones-medio-pago-sesion{ display:flex; gap:10px; margin-bottom:6px; }
@@ -1458,63 +1520,123 @@ input{ font-family:inherit; }
 
     <div id="bannerSyncConfig" style="display:none; margin-bottom:12px; padding:10px 12px; border-radius:12px; background:#FBF3E2; border:1px solid #EBDCBC; font-size:12px; color:#8B6516; align-items:center; gap:8px;"></div>
 
-    <div class="campo-modal">
-      <span class="etiqueta-campo">Monto FONASA directo (CLP)</span>
-      <input type="text" id="configMontoFonasa" inputmode="numeric">
-      <div class="nota-campo">Se usa para pacientes con canal Particular directo y tipo de pago FONASA.</div>
-    </div>
+    <div class="tarjeta-version-config" id="tarjetaVersionConfig"></div>
 
-    <div class="campo-modal">
-      <span class="etiqueta-campo">Monto FONASA Entre Lazos (CLP)</span>
-      <input type="text" id="configMontoFonasaEL" inputmode="numeric">
-      <div class="nota-campo">Se usa para pacientes con canal Entre Lazos y tipo de pago FONASA.</div>
-    </div>
+    <!-- ================= 1. Valores y Comisiones de Pacientes ================= -->
+    <div class="seccion-config">
+      <button class="encabezado-seccion-config" id="encabezadoSeccionValores" onclick="alternarSeccionConfig('valores')">
+        <span>Valores y Comisiones de Pacientes</span>
+        <span class="chevron-seccion-config" id="chevronSeccionValores">⌄</span>
+      </button>
+      <div class="contenido-seccion-config" id="contenidoSeccionValores" style="display:none;">
+        <div class="campo-modal">
+          <span class="etiqueta-campo">Monto FONASA directo (CLP)</span>
+          <input type="text" id="configMontoFonasa" inputmode="numeric">
+          <div class="nota-campo">Se usa para pacientes con canal Particular directo y tipo de pago FONASA.</div>
+        </div>
+        <div class="campo-modal">
+          <span class="etiqueta-campo">Monto FONASA Entre Lazos (CLP)</span>
+          <input type="text" id="configMontoFonasaEL" inputmode="numeric">
+          <div class="nota-campo">Se usa para pacientes con canal Entre Lazos y tipo de pago FONASA.</div>
+        </div>
+        <div class="campo-modal">
+          <span class="etiqueta-campo">% impuesto por boleta</span>
+          <input type="text" id="configImpuesto" inputmode="decimal">
+          <div class="nota-campo">Aplica a todos los pacientes. Por defecto 15,25%.</div>
+        </div>
+        <div class="campo-modal">
+          <span class="etiqueta-campo">% comisión Entre Lazos</span>
+          <input type="text" id="configComisionEL" inputmode="decimal">
+          <div class="nota-campo">Aplica solo a pacientes con canal Entre Lazos. Por defecto 10%.</div>
+        </div>
+        <div class="nota-campo" style="margin-bottom:12px;">Cambiar estos valores no afecta registros ya guardados — solo aplica hacia adelante.</div>
 
-    <div class="campo-modal">
-      <span class="etiqueta-campo">% impuesto por boleta</span>
-      <input type="text" id="configImpuesto" inputmode="decimal">
-      <div class="nota-campo">Aplica a todos los pacientes. Por defecto 15,25%.</div>
-    </div>
-
-    <div class="campo-modal">
-      <span class="etiqueta-campo">% comisión Entre Lazos</span>
-      <input type="text" id="configComisionEL" inputmode="decimal">
-      <div class="nota-campo">Aplica solo a pacientes con canal Entre Lazos. Por defecto 10%.</div>
-    </div>
-
-    <div class="nota-campo" style="margin-bottom:12px;">Cambiar estos valores no afecta registros ya guardados — solo aplica hacia adelante.</div>
-
-<div class="aviso-formulario" id="avisoConfiguracion"></div>
-    <button class="boton-primario" onclick="guardarConfiguracion()">Guardar</button>
-    <button class="boton-secundario" onclick="cerrarConfiguracion()">Cancelar</button>
-
-    <div class="nota-campo" style="margin-top:18px;">Si la agenda del teléfono se perdió o quedó distinta a la planilla, esto la vuelve a descargar completa desde Google Sheets. Reemplaza solo la agenda local (eventos y consultas únicas); no toca pacientes, gastos, ingresos ni objetivos.</div>
-    <button class="boton-secundario" id="botonRecuperarAgenda" onclick="recuperarAgendaManualmente()">Recuperar agenda desde Sheets</button>
-    <div class="nota-campo" id="notaRecuperarAgenda" style="margin-top:6px;"></div>
-
-    <div class="nota-campo" style="margin-top:18px;">Si los gastos del teléfono se perdieron o quedaron distintos a la planilla, esto los vuelve a descargar completos desde Google Sheets. Reemplaza solo los gastos locales; no toca pacientes, agenda, ingresos ni objetivos.</div>
-    <button class="boton-secundario" id="botonRecuperarGastos" onclick="recuperarGastosManualmente()">Recuperar gastos desde Sheets</button>
-    <div class="nota-campo" id="notaRecuperarGastos" style="margin-top:6px;"></div>
-
-    <div class="nota-campo" style="margin-top:18px;">Si quieres que ESTE aparato se olvide de todo lo que tiene guardado y vuelva a traer todo de cero directo desde Google Sheets (que pasa a ser la única fuente real), usa esto. Hazlo por separado en cada aparato: el teléfono y el computador no se enteran el uno del otro. No se borra nada de la planilla.</div>
-    <div class="zona-archivar">
-      <button class="boton-archivar" onclick="solicitarBorrarDatosLocales()">Borrar datos guardados en este aparato</button>
-      <div class="confirmacion-archivar" id="confirmacionBorrarDatosLocales" style="display:none;">
-        <p>Este aparato va a olvidar todo lo que tiene guardado (pacientes, agenda, gastos, ingresos, objetivos y configuración) y va a volver a traerlo todo desde Google Sheets. No se borra nada de la planilla.</p>
-        <div class="fila-confirmacion">
-          <button class="boton-confirmar-no" onclick="cancelarBorrarDatosLocales()">Cancelar</button>
-          <button class="boton-confirmar-si" onclick="confirmarBorrarDatosLocales()">Sí, borrar y volver a traer todo</button>
+        <div class="aviso-formulario" id="avisoConfiguracion"></div>
+        <button class="boton-primario" id="botonGuardarValores" onclick="solicitarGuardarValores()">Guardar</button>
+        <button class="boton-secundario" onclick="cerrarConfiguracion()">Cancelar</button>
+        <div class="confirmacion-archivar" id="confirmacionGuardarValores" style="display:none;">
+          <p>¿Confirmas estos cambios? Se aplican desde hoy hacia adelante; los registros ya guardados no se tocan.</p>
+          <div class="fila-confirmacion">
+            <button class="boton-confirmar-no" onclick="cancelarGuardarValores()">Revisar de nuevo</button>
+            <button class="boton-confirmar-si" onclick="confirmarGuardarValores()">Sí, guardar</button>
+          </div>
         </div>
       </div>
-      <div class="nota-campo" id="notaBorrarDatosLocales" style="margin-top:6px;"></div>
     </div>
+    <div class="separador-seccion-config"></div>
 
+    <!-- ================= 2. Agregar o quitar eventos ================= -->
+    <div class="seccion-config">
+      <button class="encabezado-seccion-config" id="encabezadoSeccionEventos" onclick="alternarSeccionConfig('eventos')">
+        <span>Agregar o quitar eventos</span>
+        <span class="chevron-seccion-config" id="chevronSeccionEventos">⌄</span>
+      </button>
+      <div class="contenido-seccion-config" id="contenidoSeccionEventos" style="display:none;">
+        <div class="nota-campo" style="margin-bottom:10px;">Atenciones no se puede quitar. Quitar un tipo solo lo saca de la lista al crear eventos nuevos; los eventos que ya lo usan se siguen viendo con su color.</div>
+        <div class="segmentado" id="segmentadoModoTiposEvento"></div>
 
-    <div style="text-align:center; font-size:10px; color:var(--texto-terciario); margin-top:18px;" id="textoVersionApp"></div>
+        <div id="vistaQuitarTiposEvento" style="margin-top:12px;">
+          <div id="listaTiposEvento"></div>
+        </div>
+
+        <div id="vistaAgregarTiposEvento" style="display:none; margin-top:12px;">
+          <div class="campo-modal">
+            <span class="etiqueta-campo">Nombre del tipo nuevo</span>
+            <input type="text" id="nuevoTipoEventoNombre" placeholder="Ej: Docencia" maxlength="30">
+          </div>
+          <div class="campo-modal">
+            <span class="etiqueta-campo">Color</span>
+            <div class="paleta-tipo-evento" id="paletaNuevoTipoEvento"></div>
+          </div>
+          <div class="aviso-formulario" id="avisoTiposEvento"></div>
+          <button class="boton-primario" id="botonAgregarTipoEvento" onclick="solicitarAgregarTipoEvento()">Agregar tipo de evento</button>
+          <div class="confirmacion-archivar" id="confirmacionAgregarTipoEvento" style="display:none;">
+            <p id="textoConfirmacionAgregarTipoEvento"></p>
+            <div class="fila-confirmacion">
+              <button class="boton-confirmar-no" onclick="cancelarAgregarTipoEvento()">Revisar de nuevo</button>
+              <button class="boton-confirmar-si" onclick="confirmarAgregarTipoEvento()">Sí, agregar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="separador-seccion-config"></div>
+
+    <!-- ================= 3. Memoria y Borrado de Datos ================= -->
+    <div class="seccion-config">
+      <button class="encabezado-seccion-config" id="encabezadoSeccionMemoria" onclick="alternarSeccionConfig('memoria')">
+        <span>Memoria y Borrado de Datos</span>
+        <span class="chevron-seccion-config" id="chevronSeccionMemoria">⌄</span>
+      </button>
+      <div class="contenido-seccion-config" id="contenidoSeccionMemoria" style="display:none;">
+        <div class="nota-campo">Si la agenda del teléfono se perdió o quedó distinta a la planilla, esto la vuelve a descargar completa desde Google Sheets. Reemplaza solo la agenda local (eventos y consultas únicas); no toca pacientes, gastos, ingresos ni objetivos.</div>
+        <button class="boton-secundario" id="botonRecuperarAgenda" onclick="recuperarAgendaManualmente()">Recuperar agenda desde Sheets</button>
+        <div class="nota-campo" id="notaRecuperarAgenda" style="margin-top:6px;"></div>
+
+        <div class="nota-campo" style="margin-top:18px;">Si los gastos del teléfono se perdieron o quedaron distintos a la planilla, esto los vuelve a descargar completos desde Google Sheets. Reemplaza solo los gastos locales; no toca pacientes, agenda, ingresos ni objetivos.</div>
+        <button class="boton-secundario" id="botonRecuperarGastos" onclick="recuperarGastosManualmente()">Recuperar gastos desde Sheets</button>
+        <div class="nota-campo" id="notaRecuperarGastos" style="margin-top:6px;"></div>
+
+        <div class="nota-campo" style="margin-top:18px;">Si quieres que ESTE aparato se olvide de todo lo que tiene guardado y vuelva a traer todo de cero directo desde Google Sheets (que pasa a ser la única fuente real), usa esto. Hazlo por separado en cada aparato: el teléfono y el computador no se enteran el uno del otro. No se borra nada de la planilla.</div>
+        <div class="zona-archivar" style="margin-top:10px; padding-top:0; border-top:none;">
+          <button class="boton-primario peligro" onclick="solicitarBorrarDatosLocales()">Borrar datos guardados en este aparato</button>
+          <div class="confirmacion-archivar" id="confirmacionBorrarDatosLocales" style="display:none;">
+            <p>Este aparato va a olvidar todo lo que tiene guardado (pacientes, agenda, gastos, ingresos, objetivos y configuración) y va a volver a traerlo todo desde Google Sheets. No se borra nada de la planilla.</p>
+            <div class="fila-confirmacion">
+              <button class="boton-confirmar-no" onclick="cancelarBorrarDatosLocales()">Cancelar</button>
+              <button class="boton-confirmar-si" onclick="confirmarBorrarDatosLocales()">Sí, borrar y volver a traer todo</button>
+            </div>
+          </div>
+          <div class="nota-campo" id="notaBorrarDatosLocales" style="margin-top:6px;"></div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
 <!-- ============================================================
+     MODAL: FICHA DE EVENTO (Agenda) — crear / editar
+     <!-- ============================================================
      MODAL: FICHA DE EVENTO (Agenda) — crear / editar
      ============================================================ -->
 <div class="fondo-modal" id="fondoModalEvento" onclick="cerrarModalSiFondo(event, 'fondoModalEvento', cerrarFichaEvento)">
@@ -2087,9 +2209,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.34';
-const VERSION_FECHA = '25 sep 2026';
-const VERSION_DESCRIPCION = 'Ficha de edición con acciones rápidas arriba y casilla de realizado; vista de mes muestra todos los eventos que caben y colores más intensos; búsqueda con Anteriores, Todos y Próximos; Ingresos sin descuento, Dashboard con descuento; nuevo engranaje';
+const VERSION_APP = '2.36';
+const VERSION_FECHA = '26 sep 2026';
+const VERSION_DESCRIPCION = 'Configuración reorganizada en apartados desplegables, con confirmación para Guardar, Agregar tipo de evento y Borrar datos';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -2123,7 +2245,9 @@ const TIPOS_PAGO_CONSULTA = [
   { valor:'fonasa_el',      nombre:'FONASA Entre Lazos', color:'var(--stripe-entrelazos)' },
 ];
 
-const ETIQUETAS = [
+// Tipos de evento de fábrica. Los propios (creados en Configuración)
+// se suman a estos; algunos se pueden "quitar" (ver etiquetasActivas).
+const ETIQUETAS_BASE = [
   { valor:'atenciones',  nombre:'Atenciones',              color:'var(--et-atenciones)' },
   { valor:'nel',         nombre:'NEL',                     color:'var(--et-nel)' },
   { valor:'oficina',     nombre:'Oficina',                 color:'var(--et-oficina)' },
@@ -2134,6 +2258,27 @@ const ETIQUETAS = [
   { valor:'lecturas',    nombre:'Lecturas',                color:'var(--et-lecturas)' },
   { valor:'seminarios',  nombre:'Seminarios y Congresos',  color:'var(--et-seminarios)' },
 ];
+const NUMERO_COLORES_PALETA_EVENTO = 10;
+// Todos los tipos que existen (de fábrica y propios, incluidos los
+// quitados): sirve para dibujar eventos antiguos con su color y nombre.
+function etiquetasTodas(){
+  const propias = ((configuracion.tiposEvento || {}).propias || []).map(t => ({ valor:t.valor, nombre:t.nombre, color:`var(--${t.paleta})`, propia:true }));
+  return ETIQUETAS_BASE.concat(propias);
+}
+// Los que se ofrecen al crear un evento y en los filtros.
+function etiquetasActivas(){
+  const quitadas = (configuracion.tiposEvento || {}).quitadas || [];
+  return etiquetasTodas().filter(e => e.valor === 'atenciones' || !quitadas.includes(e.valor));
+}
+// Los tipos propios no tienen reglas fijas en la hoja de estilos: se
+// generan acá con el mismo aspecto que los de fábrica.
+function aplicarEstilosEtiquetasPropias(){
+  let estilo = document.getElementById('estilosEtiquetasPropias');
+  if(!estilo){ estilo = document.createElement('style'); estilo.id = 'estilosEtiquetasPropias'; document.head.appendChild(estilo); }
+  estilo.textContent = ((configuracion.tiposEvento || {}).propias || []).map(t =>
+    `.chip-mes-${t.valor}{ background:color-mix(in srgb, var(--${t.paleta}) var(--agenda-intensidad-chip-mes), white); color:color-mix(in srgb, var(--${t.paleta}) 70%, black); }`
+  ).join('\n');
+}
 
 const RECURRENCIAS = [
   { valor:'ninguna',               nombre:'Ninguna' },
@@ -2184,7 +2329,7 @@ let eventosAgenda = [];
 let ingresos = [];
 let objetivos = [];
 let registrosGasto = [];
-let configuracion = { montoFonasa: 0, montoFonasaEL: 0, porcentajeImpuesto: 15.25, porcentajeComisionEL: 10, sueldoDependienteMonto: 0, sueldoDependienteInicio: '', pendienteSync: false, colaSync: [] };
+let configuracion = { montoFonasa: 0, montoFonasaEL: 0, porcentajeImpuesto: 15.25, porcentajeComisionEL: 10, sueldoDependienteMonto: 0, sueldoDependienteInicio: '', tiposEvento: { propias: [], quitadas: [] }, pendienteSync: false, colaSync: [] };
 
 let filtroEstado = 'activo';
 let canalSeleccionado = null;
@@ -2336,6 +2481,24 @@ async function guardarObjetivosEnAlmacenamiento(){
 async function cargarConfiguracion(){
   try{ const r = await window.storage.get(CLAVE_CONFIG, false); if(r && r.value) configuracion = JSON.parse(r.value); }catch(e){ /* valores por defecto */ }
   configuracion._procesando = false; // el bloqueo de sincronización es solo en memoria, nunca debe empezar "trabado"
+  configuracion.tiposEvento = normalizarTiposEvento(configuracion.tiposEvento);
+  aplicarEstilosEtiquetasPropias();
+}
+function normalizarTiposEvento(t){
+  t = (t && typeof t === 'object') ? t : {};
+  return {
+    propias: Array.isArray(t.propias) ? t.propias.filter(x => x && x.valor && x.nombre && x.paleta) : [],
+    quitadas: Array.isArray(t.quitadas) ? t.quitadas.filter(v => typeof v === 'string' && v !== 'atenciones') : []
+  };
+}
+// Lee los tipos de evento que vienen de la planilla (se guardan como
+// un solo valor de configuración, "tipos_evento", en HistorialTarifas).
+function aplicarTiposEventoDesdeServidor(vigentes){
+  if(!vigentes || !vigentes.tipos_evento) return;
+  try{
+    configuracion.tiposEvento = normalizarTiposEvento(JSON.parse(vigentes.tipos_evento.monto_o_porcentaje));
+    aplicarEstilosEtiquetasPropias();
+  }catch(e){ console.error('Tipos de evento con formato inválido en la planilla:', e); }
 }
 async function guardarConfiguracionEnAlmacenamiento(){
   try{ const r = await window.storage.set(CLAVE_CONFIG, JSON.stringify(configuracion), false); if(!r) mostrarAvisoFlotante('No se pudo guardar la configuración en este aparato.'); }catch(e){ mostrarAvisoFlotante('No se pudo guardar la configuración en este aparato.'); }
@@ -2815,20 +2978,166 @@ async function recuperarPacientesDesdeSheets(){
 /* ============================================================
    5. CONFIGURACIÓN GLOBAL
    ============================================================ */
+// Las tres secciones parten siempre cerradas al abrir Configuración.
+let seccionesConfigAbiertas = { valores:false, eventos:false, memoria:false };
+function alternarSeccionConfig(nombre){
+  seccionesConfigAbiertas[nombre] = !seccionesConfigAbiertas[nombre];
+  const abierta = seccionesConfigAbiertas[nombre];
+  const mapa = { valores:'Valores', eventos:'Eventos', memoria:'Memoria' };
+  document.getElementById('contenidoSeccion' + mapa[nombre]).style.display = abierta ? 'block' : 'none';
+  document.getElementById('encabezadoSeccion' + mapa[nombre]).classList.toggle('abierto', abierta);
+}
+function pintarTarjetaVersionConfig(){
+  document.getElementById('tarjetaVersionConfig').innerHTML =
+    `<div class="numero">Versión ${VERSION_APP} · ${VERSION_FECHA}</div><div class="detalle">${VERSION_DESCRIPCION}</div>`;
+}
 function abrirConfiguracion(){
   document.getElementById('configMontoFonasa').value = configuracion.montoFonasa ? configuracion.montoFonasa.toLocaleString('es-CL') : '';
   document.getElementById('configMontoFonasaEL').value = configuracion.montoFonasaEL ? configuracion.montoFonasaEL.toLocaleString('es-CL') : '';
   document.getElementById('configImpuesto').value = configuracion.porcentajeImpuesto;
   document.getElementById('configComisionEL').value = configuracion.porcentajeComisionEL;
   actualizarBannerSyncConfig();
+  pintarTarjetaVersionConfig();
+  seccionesConfigAbiertas = { valores:false, eventos:false, memoria:false };
+  ['Valores','Eventos','Memoria'].forEach(n => {
+    document.getElementById('contenidoSeccion' + n).style.display = 'none';
+    document.getElementById('encabezadoSeccion' + n).classList.remove('abierto');
+  });
+  document.getElementById('confirmacionGuardarValores').style.display = 'none';
+  document.getElementById('botonGuardarValores').style.display = 'block';
+  document.getElementById('confirmacionAgregarTipoEvento').style.display = 'none';
+  document.getElementById('botonAgregarTipoEvento').style.display = 'block';
+  tipoEventoPorQuitar = null; paletaNuevoTipoElegida = null; modoTiposEvento = 'quitar';
+  document.getElementById('nuevoTipoEventoNombre').value = '';
+  ocultarAvisoFormulario('avisoTiposEvento');
+  pintarSegmentadoModoTiposEvento();
+  renderizarTiposEvento();
   document.getElementById('fondoModalConfig').classList.add('abierto');
 }
-function cerrarConfiguracion(){ document.getElementById('fondoModalConfig').classList.remove('abierto'); }
+function cerrarConfiguracion(){ document.getElementById('fondoModalConfig').classList.remove('abierto'); tipoEventoPorQuitar = null; }
+
+// ------------------------------------------------------------
+// Tipos de evento (Configuración). Los tipos propios funcionan igual
+// que cualquier evento que no sea Atenciones: nombre, hora opcional,
+// duración, recurrencia y casilla de realizado.
+// ------------------------------------------------------------
+let tipoEventoPorQuitar = null, paletaNuevoTipoElegida = null, modoTiposEvento = 'quitar';
+function pintarSegmentadoModoTiposEvento(){
+  const c = document.getElementById('segmentadoModoTiposEvento'); c.innerHTML = '';
+  [['quitar','Quitar'],['agregar','Agregar']].forEach(([valor, nombre]) => {
+    const b = document.createElement('button');
+    b.className = modoTiposEvento === valor ? 'seleccionado' : '';
+    b.textContent = nombre;
+    b.onclick = () => {
+      modoTiposEvento = valor;
+      document.getElementById('vistaQuitarTiposEvento').style.display = valor === 'quitar' ? 'block' : 'none';
+      document.getElementById('vistaAgregarTiposEvento').style.display = valor === 'agregar' ? 'block' : 'none';
+      pintarSegmentadoModoTiposEvento();
+    };
+    c.appendChild(b);
+  });
+}
+function renderizarTiposEvento(){
+  const quitadas = configuracion.tiposEvento.quitadas;
+  const usados = new Set(eventosAgenda.map(e => e.etiqueta));
+  const fila = (et, quitado) => {
+    const esAtenciones = et.valor === 'atenciones';
+    let accion = '';
+    if(quitado) accion = `<button class="boton-tipo-evento" onclick="volverAgregarTipoEvento('${et.valor}')">Volver a agregar</button>`;
+    else if(esAtenciones) accion = `<span class="nota-tipo-evento">fijo</span>`;
+    else if(tipoEventoPorQuitar === et.valor) accion = `<button class="boton-tipo-evento" onclick="cancelarQuitarTipoEvento()">No</button><button class="boton-tipo-evento confirmar" onclick="confirmarQuitarTipoEvento('${et.valor}')">Sí, quitar</button>`;
+    else accion = `<button class="boton-tipo-evento quitar" onclick="solicitarQuitarTipoEvento('${et.valor}')">Quitar</button>`;
+    return `<div class="fila-tipo-evento${quitado ? ' quitado' : ''}">
+      <span class="punto-tipo-evento" style="background:${et.color};"></span>
+      <span class="nombre-tipo-evento">${escaparHTML(et.nombre)}</span>
+      ${accion}
+    </div>`;
+  };
+  const activas = etiquetasActivas();
+  const quitadasInfo = etiquetasTodas().filter(e => quitadas.includes(e.valor));
+  document.getElementById('listaTiposEvento').innerHTML = activas.map(e => fila(e, false)).join('')
+    + (quitadasInfo.length ? '<div class="subtitulo-tipos-quitados">Quitados</div>' + quitadasInfo.map(e => fila(e, true)).join('') : '');
+  // Paleta de colores para el tipo nuevo
+  const paleta = document.getElementById('paletaNuevoTipoEvento'); paleta.innerHTML = '';
+  for(let i = 1; i <= NUMERO_COLORES_PALETA_EVENTO; i++){
+    const clave = 'paleta-evento-' + i;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'muestra-color-evento' + (paletaNuevoTipoElegida === clave ? ' seleccionada' : '');
+    b.style.background = `var(--${clave})`;
+    b.setAttribute('aria-label', 'Color ' + i);
+    b.onclick = () => { paletaNuevoTipoElegida = clave; ocultarAvisoFormulario('avisoTiposEvento'); renderizarTiposEvento(); };
+    paleta.appendChild(b);
+  }
+}
+// Guarda en el aparato, avisa a la planilla (un solo valor
+// "tipos_evento" en HistorialTarifas, sin tocar el Apps Script) y
+// redibuja todo lo que muestra tipos de evento.
+async function guardarTiposEvento(){
+  configuracion.colaSync = configuracion.colaSync || [];
+  configuracion.colaSync.push({ accion:'nueva_config_global', datosBase: { tipo:'tipos_evento', monto_o_porcentaje: JSON.stringify(configuracion.tiposEvento), vigente_desde: hoyISO() } });
+  aplicarEstilosEtiquetasPropias();
+  renderizarTiposEvento();
+  await guardarConfiguracionEnAlmacenamiento();
+  procesarColaConfiguracion();
+  const pantallaAgenda = document.getElementById('pantallaAgenda');
+  if(pantallaAgenda && pantallaAgenda.style.display !== 'none') rerenderizarVistaAgendaActual();
+}
+function solicitarQuitarTipoEvento(valor){ tipoEventoPorQuitar = valor; renderizarTiposEvento(); }
+function cancelarQuitarTipoEvento(){ tipoEventoPorQuitar = null; renderizarTiposEvento(); }
+async function confirmarQuitarTipoEvento(valor){
+  if(valor === 'atenciones') return;
+  tipoEventoPorQuitar = null;
+  if(!configuracion.tiposEvento.quitadas.includes(valor)) configuracion.tiposEvento.quitadas.push(valor);
+  await guardarTiposEvento();
+}
+async function volverAgregarTipoEvento(valor){
+  configuracion.tiposEvento.quitadas = configuracion.tiposEvento.quitadas.filter(v => v !== valor);
+  await guardarTiposEvento();
+}
+let tipoEventoPendienteConfirmar = null;
+function solicitarAgregarTipoEvento(){
+  ocultarAvisoFormulario('avisoTiposEvento');
+  const nombre = document.getElementById('nuevoTipoEventoNombre').value.trim();
+  const faltan = [];
+  if(!nombre) faltan.push('el nombre');
+  if(!paletaNuevoTipoElegida) faltan.push('el color');
+  if(faltan.length){ mostrarAvisoFormulario('avisoTiposEvento', 'Falta ' + faltan.join(' y ') + '.', nombre ? null : 'nuevoTipoEventoNombre'); return; }
+  const repetido = etiquetasTodas().find(e => e.nombre.toLowerCase() === nombre.toLowerCase());
+  if(repetido){
+    const estaQuitado = configuracion.tiposEvento.quitadas.includes(repetido.valor);
+    mostrarAvisoFormulario('avisoTiposEvento', estaQuitado ? `Ya existe un tipo "${repetido.nombre}" en Quitados: usa "Volver a agregar".` : `Ya existe un tipo llamado "${repetido.nombre}".`, 'nuevoTipoEventoNombre');
+    return;
+  }
+  tipoEventoPendienteConfirmar = { nombre, paleta: paletaNuevoTipoElegida };
+  document.getElementById('textoConfirmacionAgregarTipoEvento').textContent = `¿Agregar el tipo de evento "${nombre}"?`;
+  document.getElementById('botonAgregarTipoEvento').style.display = 'none';
+  document.getElementById('confirmacionAgregarTipoEvento').style.display = 'block';
+}
+function cancelarAgregarTipoEvento(){
+  tipoEventoPendienteConfirmar = null;
+  document.getElementById('botonAgregarTipoEvento').style.display = 'block';
+  document.getElementById('confirmacionAgregarTipoEvento').style.display = 'none';
+}
+async function confirmarAgregarTipoEvento(){
+  if(!tipoEventoPendienteConfirmar) return;
+  const { nombre, paleta } = tipoEventoPendienteConfirmar;
+  const unico = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID().replace(/-/g,'').slice(0,8) : Date.now().toString(36);
+  configuracion.tiposEvento.propias.push({ valor: 'propio' + unico, nombre, paleta });
+  document.getElementById('nuevoTipoEventoNombre').value = '';
+  paletaNuevoTipoElegida = null; tipoEventoPendienteConfirmar = null;
+  document.getElementById('confirmacionAgregarTipoEvento').style.display = 'none';
+  document.getElementById('botonAgregarTipoEvento').style.display = 'block';
+  await guardarTiposEvento();
+}
 
 // Compara cada valor nuevo contra el que ya estaba guardado y solo
 // encola nueva_config_global para los que realmente cambiaron. Así
 // abrir Configuración y tocar Guardar sin cambiar nada no manda nada.
-async function guardarConfiguracion(){
+// Primero se valida y se pide confirmación; el guardado real ocurre
+// recién al tocar "Sí, guardar".
+let cambiosValoresPendientesConfirmar = null;
+function solicitarGuardarValores(){
   const montoFonasa = limpiarMontoTexto(document.getElementById('configMontoFonasa').value);
   const montoFonasaEL = limpiarMontoTexto(document.getElementById('configMontoFonasaEL').value);
   const impuesto = parseFloat(document.getElementById('configImpuesto').value.replace(',','.'));
@@ -2840,6 +3149,18 @@ async function guardarConfiguracion(){
   if(isNaN(impuesto) || impuesto < 0 || impuesto > 100){ mostrarAvisoFormulario('avisoConfiguracion', 'El porcentaje de impuesto debe ser un número entre 0 y 100.', 'configImpuesto'); return; }
   if(isNaN(comisionEL) || comisionEL < 0 || comisionEL > 100){ mostrarAvisoFormulario('avisoConfiguracion', 'La comisión de Entre Lazos debe ser un número entre 0 y 100.', 'configComisionEL'); return; }
 
+  cambiosValoresPendientesConfirmar = { montoFonasa, montoFonasaEL, impuesto, comisionEL };
+  document.getElementById('botonGuardarValores').style.display = 'none';
+  document.getElementById('confirmacionGuardarValores').style.display = 'block';
+}
+function cancelarGuardarValores(){
+  cambiosValoresPendientesConfirmar = null;
+  document.getElementById('botonGuardarValores').style.display = 'block';
+  document.getElementById('confirmacionGuardarValores').style.display = 'none';
+}
+async function confirmarGuardarValores(){
+  if(!cambiosValoresPendientesConfirmar) return;
+  const { montoFonasa, montoFonasaEL, impuesto, comisionEL } = cambiosValoresPendientesConfirmar;
   const hoy = hoyISO();
   const cambios = [];
   if(montoFonasa !== configuracion.montoFonasa) cambios.push({ tipo:'fonasa_directo', monto_o_porcentaje: montoFonasa, vigente_desde: hoy });
@@ -2852,10 +3173,14 @@ async function guardarConfiguracion(){
   configuracion.colaSync = configuracion.colaSync || [];
   cambios.forEach(c => configuracion.colaSync.push({ accion:'nueva_config_global', datosBase: c }));
 
+  cambiosValoresPendientesConfirmar = null;
+  document.getElementById('confirmacionGuardarValores').style.display = 'none';
+  document.getElementById('botonGuardarValores').style.display = 'block';
   cerrarConfiguracion(); await guardarConfiguracionEnAlmacenamiento();
   if(cambios.length > 0) procesarColaConfiguracion();
 }
 
+// Misma mecánica de cola con reintentos que Pacientes/Agenda/Gastos,
 // Misma mecánica de cola con reintentos que Pacientes/Agenda/Gastos,
 // pero para el único objeto "configuracion" en vez de una lista.
 async function procesarColaConfiguracion(){
@@ -2919,6 +3244,7 @@ async function recuperarConfigGlobalDesdeSheets(){
       configuracion.sueldoDependienteMonto = Number(vigentes.sueldo_dependiente.monto_o_porcentaje) || 0;
       configuracion.sueldoDependienteInicio = (vigentes.sueldo_dependiente.vigente_desde || '').slice(0,7);
     }
+    aplicarTiposEventoDesdeServidor(vigentes);
     await guardarConfiguracionEnAlmacenamiento();
   }catch(err){
     console.error('No se pudo recuperar la configuración global desde Sheets:', err);
@@ -3027,7 +3353,7 @@ function obtenerNombreEvento(evento){
   }
   return evento.nombre || '(sin nombre)';
 }
-function obtenerEtiquetaInfo(valor){ return ETIQUETAS.find(e => e.valor === valor) || ETIQUETAS[0]; }
+function obtenerEtiquetaInfo(valor){ const todas = etiquetasTodas(); return todas.find(e => e.valor === valor) || { valor, nombre:'(tipo eliminado)', color:'var(--texto-terciario)' }; }
 
 // ============================================================
 // SINCRONIZACIÓN CON GOOGLE SHEETS (Módulo A+F — Agenda)
@@ -4072,11 +4398,13 @@ function cerrarFichaEvento(){
 
 function pintarGridEtiquetasEvento(){
   const grid = document.getElementById('gridEtiquetasEvento'); grid.innerHTML = '';
-  ETIQUETAS.forEach(et => {
+  const lista = etiquetasActivas();
+  if(etiquetaEventoSeleccionada && !lista.some(e => e.valor === etiquetaEventoSeleccionada)) lista.push(obtenerEtiquetaInfo(etiquetaEventoSeleccionada));
+  lista.forEach(et => {
     const chip = document.createElement('button');
     chip.className = 'chip-etiqueta' + (etiquetaEventoSeleccionada === et.valor ? ' seleccionada' : '');
     chip.style.setProperty('--chip-color', et.color);
-    chip.innerHTML = `<span class="nombre-etiqueta">${et.nombre}</span>`;
+    chip.innerHTML = `<span class="nombre-etiqueta">${escaparHTML(et.nombre)}</span>`;
     chip.onclick = () => {
       const cambio = etiquetaEventoSeleccionada !== et.valor;
       etiquetaEventoSeleccionada = et.valor;
@@ -6487,6 +6815,7 @@ async function aplicarSincronizacionCompleta(paquete){
       configuracion.sueldoDependienteMonto = Number(vigentes.sueldo_dependiente.monto_o_porcentaje) || 0;
       configuracion.sueldoDependienteInicio = (vigentes.sueldo_dependiente.vigente_desde || '').slice(0,7);
     }
+    aplicarTiposEventoDesdeServidor(vigentes);
     await guardarConfiguracionEnAlmacenamiento();
   }
 }
@@ -6564,10 +6893,9 @@ async function confirmarBorrarDatosLocales(){
    misma interrumpe lo que estuviera haciendo; si no hay que
    recargar, no vale la pena demorar cada apertura por esta revisión.
    ============================================================ */
-function mostrarVersionApp(){
-  const el = document.getElementById('textoVersionApp');
-  if(el) el.textContent = `v${VERSION_APP} (${VERSION_FECHA}) · ${VERSION_DESCRIPCION}`;
-}
+// La versión ahora se muestra dentro de Configuración (pintarTarjetaVersionConfig,
+// llamada cada vez que se abre); no hay un texto fijo en pantalla que mantener.
+function mostrarVersionApp(){}
 
 async function revisarVersionMasReciente(){
   try{
@@ -6681,11 +7009,11 @@ function manejarBusquedaAgenda(){
 }
 function pintarFiltroEtiquetasAgenda(){
   const grid = document.getElementById('gridFiltroEtiquetasAgenda'); grid.innerHTML = '';
-  ETIQUETAS.forEach(et => {
+  etiquetasActivas().forEach(et => {
     const chip = document.createElement('button');
     chip.className = 'chip-etiqueta' + (filtroAgendaEtiquetas.includes(et.valor) ? ' seleccionada' : '');
     chip.style.setProperty('--chip-color', et.color);
-    chip.innerHTML = `<span class="nombre-etiqueta">${et.nombre}</span>`;
+    chip.innerHTML = `<span class="nombre-etiqueta">${escaparHTML(et.nombre)}</span>`;
     chip.onclick = () => {
       filtroAgendaEtiquetas = filtroAgendaEtiquetas.includes(et.valor)
         ? filtroAgendaEtiquetas.filter(v => v !== et.valor)
