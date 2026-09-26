@@ -372,6 +372,8 @@ input{ font-family:inherit; }
 .texto-realizado{ font-size:14px; font-weight:650; color:var(--texto-principal); font-family:'Quicksand',sans-serif; }
 .fila-acciones-serie-evento{ display:flex; gap:8px; margin-top:8px; }
 .fila-acciones-serie-evento:empty{ display:none; }
+.segmentado button:disabled{ opacity:0.45; pointer-events:none; }
+.campo-modal input:disabled{ opacity:0.55; }
 .boton-accion-serie{
   flex:1; padding:11px 8px; border-radius:12px; background:var(--borde-suave); color:var(--texto-principal);
   font-size:12.5px; font-weight:650; font-family:'Quicksand',sans-serif; line-height:1.25; touch-action:manipulation;
@@ -2209,9 +2211,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.36';
+const VERSION_APP = '2.37';
 const VERSION_FECHA = '26 sep 2026';
-const VERSION_DESCRIPCION = 'Configuración reorganizada en apartados desplegables, con confirmación para Guardar, Agregar tipo de evento y Borrar datos';
+const VERSION_DESCRIPCION = 'Corrige el error \'la fecha de término no puede ser anterior a la de inicio\' al editar repeticiones posteriores de un evento con duración';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -3600,6 +3602,19 @@ function encolarEliminarIngresoDeSesion(entidad, idIngreso){
 // evento por cada repetición que cubre ese día, con la fecha en que
 // empieza esa repetición (fechaOcurrenciaMultidia) y su estado propio.
 function diasEntreFechas(desdeISO, hastaISO){ return Math.round((fechaDesdeISO(hastaISO) - fechaDesdeISO(desdeISO)) / 86400000); }
+// Cuántos días dura cada repetición de un evento (0 si es del mismo día),
+// y la fecha de término que le corresponde a UNA ocurrencia puntual —
+// nunca la fecha de término guardada en el ancla de la serie, que solo
+// tiene sentido para su propia fecha de inicio.
+function duracionEnDiasDeSerie(evento){
+  return (evento.hasDuration && evento.endDate && evento.endDate !== evento.fecha) ? diasEntreFechas(evento.fecha, evento.endDate) : 0;
+}
+function fechaTerminoParaOcurrencia(evento, fechaOcurrencia){
+  const dias = duracionEnDiasDeSerie(evento);
+  if(dias === 0) return fechaOcurrencia;
+  const f = fechaDesdeISO(fechaOcurrencia); f.setDate(f.getDate() + dias);
+  return formatoISO(f);
+}
 function obtenerEventosMultidiaEnFecha(fechaStr){
   const resultado = [];
   eventosAgenda.forEach(ev => {
@@ -4199,9 +4214,10 @@ function colocarControlesFichaEvento(modoEdicion){
 function textosMoverSegunEtiqueta(etiqueta){
   const esSesion = etiqueta === 'atenciones';
   document.getElementById('botonMoverSesionEvento').textContent = esSesion ? 'Mover esta sesión a otro día' : 'Mover este evento para otro día';
-  document.getElementById('notaFechaEventoBloqueada').textContent = esSesion
+  const mencionDuracion = (!esSesion && hasDurationEventoSeleccionado) ? ' Lo mismo pasa con la duración: cuántos días dura cada repetición se define una sola vez para toda la serie.' : '';
+  document.getElementById('notaFechaEventoBloqueada').textContent = (esSesion
     ? 'Esta sesión pertenece a una serie que se repite. Para cambiar el día de esta sesión en particular, usa "Mover esta sesión a otro día", arriba. La fecha de inicio de toda la serie no se edita desde acá.'
-    : 'Este evento pertenece a una serie que se repite. Para cambiar solo este día, usa "Mover este evento para otro día", arriba. La fecha de inicio de toda la serie no se edita desde acá.';
+    : 'Este evento pertenece a una serie que se repite. Para cambiar solo este día, usa "Mover este evento para otro día", arriba. La fecha de inicio de toda la serie no se edita desde acá.') + mencionDuracion;
 }
 
 window.addEventListener('resize', () => {
@@ -4271,6 +4287,11 @@ let estadoSesionEventoSeleccionado = null;
 let eventoEnEdicionId = null;
 let consultaEnEdicionId = null;
 let fechaOcurrenciaEnEdicion = null;
+// true cuando se está editando UNA fecha puntual de una serie que ya
+// existía como recurrente: ahí "Fecha de término" y el interruptor
+// Duración se bloquean, igual que "Fecha" — son propiedades de toda la
+// serie, no de un día suelto (ver fechaTerminoParaOcurrencia).
+let duracionFijaPorSerie = false;
 
 function abrirFichaEventoNueva(){
   eventoEnEdicionId = null; consultaEnEdicionId = null; fechaOcurrenciaEnEdicion = null;
@@ -4288,11 +4309,13 @@ function abrirFichaEventoNueva(){
   document.getElementById('eventoConsultaNombre').value = '';
   document.getElementById('eventoConsultaMonto').value = '';
   document.getElementById('campoBusquedaPaciente').value = '';
+  duracionFijaPorSerie = false;
   document.getElementById('eventoFecha').value = fechaColumnaSeleccionada || hoyISO();
   document.getElementById('eventoFecha').disabled = false;
   document.getElementById('notaFechaEventoBloqueada').style.display = 'none';
   document.getElementById('eventoHora').value = '';
   document.getElementById('eventoFechaTermino').value = '';
+  document.getElementById('eventoFechaTermino').disabled = false;
   document.getElementById('eventoHoraTermino').value = '';
   document.getElementById('camposDuracionDetalle').style.display = 'none';
   document.getElementById('resumenDuracionEvento').textContent = '';
@@ -4317,6 +4340,7 @@ function abrirFichaEventoEdicion(instancia){
   grupoEstadoEventoElegido = null; avisoEstadoIncompleto = false;
   listaPacientesAbierta = false; ocultarAvisoFormulario('avisoFichaEvento');
 
+  duracionFijaPorSerie = false;
   if(instancia.tipoInstancia === 'consulta'){
     consultaEnEdicionId = instancia.consultaId; eventoEnEdicionId = null;
     const c = consultasUnicas.find(x => x.id === instancia.consultaId); if(!c) return;
@@ -4357,7 +4381,14 @@ function abrirFichaEventoEdicion(instancia){
     document.getElementById('eventoFecha').disabled = esRecurrente;
     document.getElementById('notaFechaEventoBloqueada').style.display = esRecurrente ? 'block' : 'none';
     document.getElementById('eventoHora').value = evento.hora || '';
-    document.getElementById('eventoFechaTermino').value = evento.endDate || evento.fecha;
+    // Fecha de término de ESTA ocurrencia puntual (instancia.fecha + la
+    // duración de la serie), nunca la fecha de término del ancla — ese
+    // fue el origen del error "la fecha de término no puede ser
+    // anterior a la de inicio" al marcar como realizada una repetición
+    // posterior a la primera de una serie con duración.
+    duracionFijaPorSerie = esRecurrente && hasDurationEventoSeleccionado;
+    document.getElementById('eventoFechaTermino').value = esRecurrente ? fechaTerminoParaOcurrencia(evento, instancia.fecha) : (evento.endDate || evento.fecha);
+    document.getElementById('eventoFechaTermino').disabled = esRecurrente;
     document.getElementById('eventoHoraTermino').value = evento.endTime || '';
     document.getElementById('camposDuracionDetalle').style.display = hasDurationEventoSeleccionado ? 'block' : 'none';
     document.getElementById('zonaEliminarEvento').style.display = 'block';
@@ -4551,7 +4582,9 @@ function pintarSegmentadoDuracion(){
     const b = document.createElement('button');
     b.className = hasDurationEventoSeleccionado === op.valor ? 'seleccionado' : '';
     b.textContent = op.nombre;
+    b.disabled = duracionFijaPorSerie;
     b.onclick = () => {
+      if(duracionFijaPorSerie) return;
       hasDurationEventoSeleccionado = op.valor;
       pintarSegmentadoDuracion();
       const detalle = document.getElementById('camposDuracionDetalle');
@@ -4878,6 +4911,11 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
       const eraRecurrente = evento.recurrencia !== 'ninguna';
       if(!eraRecurrente) evento.fecha = fecha;
       evento.hora = hora; evento.recurrencia = recurrenciaEventoSeleccionada;
+      // "Cuántos días dura" es, igual que la fecha de inicio, una
+      // propiedad de TODA la serie: si ya era recurrente, no se toca
+      // desde la ficha de una fecha puntual (queda bloqueada en
+      // pantalla). endTime (la hora de término) sí es de la serie
+      // completa y se sigue actualizando siempre, como evento.hora.
       if(recurrenciaEventoSeleccionada === 'mensual_personalizada'){ evento.diaSemana = diaSemana; evento.semanaDelMes = semanaDelMesEventoSeleccionada; }
       if(evento.recurrencia === 'ninguna'){
         estadoAnteriorEvento = evento.estadoSesion || null;
@@ -4890,7 +4928,8 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
         else delete evento.estadosPorFecha[fechaOcurrenciaEnEdicion];
         fechaOcurrenciaAfectada = fechaOcurrenciaEnEdicion;
       }
-      evento.hasDuration = hasDuration; evento.endDate = endDate; evento.endTime = endTime;
+      if(!eraRecurrente){ evento.hasDuration = hasDuration; evento.endDate = endDate; }
+      evento.endTime = endTime;
       evento.colaSync = evento.colaSync || [];
       evento.colaSync.push({ accion:'editar_evento', datosBase: construirDatosEventoBase(evento) });
     }
