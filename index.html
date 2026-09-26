@@ -1662,15 +1662,7 @@ input{ font-family:inherit; }
         <span class="chevron-seccion-config" id="chevronSeccionMemoria">⌄</span>
       </button>
       <div class="contenido-seccion-config" id="contenidoSeccionMemoria" style="display:none;">
-        <div class="nota-campo">Si la agenda del teléfono se perdió o quedó distinta a la planilla, esto la vuelve a descargar completa desde Google Sheets. Reemplaza solo la agenda local (eventos y consultas únicas); no toca pacientes, gastos, ingresos ni objetivos.</div>
-        <button class="boton-secundario" id="botonRecuperarAgenda" onclick="recuperarAgendaManualmente()">Recuperar agenda desde Sheets</button>
-        <div class="nota-campo" id="notaRecuperarAgenda" style="margin-top:6px;"></div>
-
-        <div class="nota-campo" style="margin-top:18px;">Si los gastos del teléfono se perdieron o quedaron distintos a la planilla, esto los vuelve a descargar completos desde Google Sheets. Reemplaza solo los gastos locales; no toca pacientes, agenda, ingresos ni objetivos.</div>
-        <button class="boton-secundario" id="botonRecuperarGastos" onclick="recuperarGastosManualmente()">Recuperar gastos desde Sheets</button>
-        <div class="nota-campo" id="notaRecuperarGastos" style="margin-top:6px;"></div>
-
-        <div class="nota-campo" style="margin-top:18px;">Si quieres que ESTE aparato se olvide de todo lo que tiene guardado y vuelva a traer todo de cero directo desde Google Sheets (que pasa a ser la única fuente real), usa esto. Hazlo por separado en cada aparato: el teléfono y el computador no se enteran el uno del otro. No se borra nada de la planilla.</div>
+        <div class="nota-campo">Si quieres que ESTE aparato se olvide de todo lo que tiene guardado y vuelva a traer todo de cero directo desde Google Sheets (que pasa a ser la única fuente real), usa esto. Hazlo por separado en cada aparato: el teléfono y el computador no se enteran el uno del otro. No se borra nada de la planilla.</div>
         <div class="zona-archivar" style="margin-top:10px; padding-top:0; border-top:none;">
           <button class="boton-primario peligro" onclick="solicitarBorrarDatosLocales()">Borrar datos guardados en este aparato</button>
           <div class="confirmacion-archivar" id="confirmacionBorrarDatosLocales" style="display:none;">
@@ -2273,9 +2265,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.40';
+const VERSION_APP = '2.41';
 const VERSION_FECHA = '26 sep 2026';
-const VERSION_DESCRIPCION = 'Pacientes: marcar niño/a o adolescente y sus adultos responsables; Agenda: registrar con qué adulto fue cada sesión (el título la muestra)';
+const VERSION_DESCRIPCION = 'Corrige que al sincronizar se perdiera si un paciente es niño/a y sus adultos responsables; quita botones de Configuración que ya no funcionaban';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -3056,12 +3048,18 @@ function mapearPacienteDesdeServidor(fila){
   const montoHabitual = tipoPago === 'fonasa'
     ? obtenerMontoFonasaSegunCanal(canal)
     : (fila.monto_particular || 0);
+  const esMenor = fila.es_menor === 'si';
+  const adultosResponsables = fila.adultos_responsables
+    ? String(fila.adultos_responsables).split('|').map(n => n.trim()).filter(Boolean)
+    : [];
   return {
     id: fila.id_paciente,
     nombreCompleto,
     canal,
     tipoPago,
     montoHabitual,
+    esMenor,
+    adultosResponsables,
     estado: fila.estado === 'archivado' ? 'archivado' : 'activo',
     creado: Date.now(),
     pendienteSync: false,
@@ -3634,6 +3632,7 @@ function mapearEventoDesdeServidor(fila){
     fechasExcluidas: String(fila.fechas_omitidas || '').split(',').map(f => f.trim()).filter(Boolean),
     estadoSesion: fila.estado_sesion || null,
     estadosPorFecha: {},
+    adultosPorFecha: {},
     hasDuration: !!fila.fecha_fin,
     endDate: fila.fecha_fin || '',
     endTime: fila.hora_fin || '',
@@ -7009,11 +7008,20 @@ async function aplicarSincronizacionCompleta(paquete){
       else nuevosEventos.push(mapearEventoDesdeServidor(fila));
     });
     sesiones.forEach(ses => {
-      if(!ses || !ses.id_evento || !ses.estado_sesion) return;
+      if(!ses || !ses.id_evento) return;
+      const adultos = ses.adultos_presentes ? String(ses.adultos_presentes).split('|').map(n => n.trim()).filter(Boolean) : [];
       const consulta = nuevasConsultas.find(c => c.id === ses.id_evento);
-      if(consulta){ consulta.estadoSesion = ses.estado_sesion; return; }
+      if(consulta){ if(ses.estado_sesion) consulta.estadoSesion = ses.estado_sesion; return; }
       const evento = nuevosEventos.find(e => e.id === ses.id_evento);
       if(!evento) return;
+      // Con qué adulto fue esa sesión puntual: siempre por fecha, sea o
+      // no un evento recurrente (a diferencia de estadoSesion, que en
+      // los eventos sueltos se guarda directo en el evento).
+      if(ses.fecha_evento && adultos.length){
+        evento.adultosPorFecha = evento.adultosPorFecha || {};
+        evento.adultosPorFecha[ses.fecha_evento] = adultos;
+      }
+      if(!ses.estado_sesion) return;
       if(evento.recurrencia === 'ninguna'){ evento.estadoSesion = ses.estado_sesion; return; }
       if(!ses.fecha_evento) return;
       evento.estadosPorFecha = evento.estadosPorFecha || {};
