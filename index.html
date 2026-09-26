@@ -1138,6 +1138,46 @@ input{ font-family:inherit; }
 .pendiente-dash-monto{ font-size:18px; font-weight:700; letter-spacing:-0.4px; font-variant-numeric:tabular-nums; flex:none; color:var(--recibir-texto); }
 /* Aviso de que los montos ya tienen el descuento aplicado */
 .pendiente-dash-aviso{ margin-top:10px; font-size:10.5px; font-weight:600; line-height:1.35; color:var(--recibir-texto2); font-family:'Quicksand',sans-serif; }
+
+/* Casilla simple reutilizable (paciente niño/a o adolescente; sesión
+   con adulto responsable). Mismo aspecto que la casilla de "Marcar
+   como realizado", con nombre neutro para poder usarla en más lugares. */
+.fila-check-simple{
+  display:flex; align-items:center; gap:11px; padding:12px 13px; margin-top:6px;
+  border:1px solid var(--borde); border-radius:12px; background:var(--superficie); touch-action:manipulation;
+}
+.fila-check-simple input{ position:absolute; opacity:0; pointer-events:none; }
+.casilla-check-simple{
+  width:22px; height:22px; border-radius:6px; border:2px solid var(--texto-terciario); flex:none;
+  display:flex; align-items:center; justify-content:center; background:var(--superficie);
+}
+.fila-check-simple input:checked + .casilla-check-simple{ background:var(--agenda-color-seleccion); border-color:var(--agenda-color-seleccion); }
+.fila-check-simple input:checked + .casilla-check-simple::after{ content:'✓'; color:#FFF6E8; font-size:14px; font-weight:800; line-height:1; }
+.fila-check-simple .texto-check-simple{ font-size:14px; font-weight:650; color:var(--texto-principal); font-family:'Quicksand',sans-serif; }
+
+/* Adultos responsables: un input por nombre, con su botón para quitarlo */
+.fila-adulto-responsable{ display:flex; gap:8px; align-items:center; margin-top:8px; }
+.fila-adulto-responsable input{ flex:1; min-width:0; padding:11px 12px; border-radius:11px; border:1px solid var(--borde); font-size:14px; background:var(--superficie); color:var(--texto-principal); }
+.boton-quitar-adulto{
+  flex:none; width:34px; height:34px; border-radius:10px; border:1px solid var(--borde); background:var(--superficie);
+  color:var(--texto-terciario); font-size:16px; line-height:1; touch-action:manipulation;
+}
+.boton-agregar-adulto{
+  margin-top:9px; padding:8px 13px; border-radius:10px; border:1px dashed var(--borde);
+  background:transparent; color:var(--texto-secundario); font-size:12.5px; font-weight:650; font-family:'Quicksand',sans-serif; touch-action:manipulation;
+}
+
+/* Lista de adultos responsables para marcar quiénes asistieron a la sesión */
+.lista-adultos-sesion{ margin-top:8px; display:flex; flex-direction:column; gap:6px; }
+.fila-adulto-sesion-check{
+  display:flex; align-items:center; gap:10px; padding:10px 12px;
+  border:1px solid var(--borde-suave); border-radius:11px; background:var(--superficie); touch-action:manipulation;
+}
+.fila-adulto-sesion-check input{ position:absolute; opacity:0; pointer-events:none; }
+.fila-adulto-sesion-check .casilla-check-simple{ width:20px; height:20px; }
+.fila-adulto-sesion-check input:checked + .casilla-check-simple{ background:var(--agenda-color-seleccion); border-color:var(--agenda-color-seleccion); }
+.fila-adulto-sesion-check input:checked + .casilla-check-simple::after{ content:'✓'; color:#FFF6E8; font-size:12px; font-weight:800; line-height:1; }
+.fila-adulto-sesion-check .nombre-adulto-sesion{ font-size:13.5px; font-weight:600; color:var(--texto-principal); font-family:'Quicksand',sans-serif; }
 .pendiente-dash-derecha{ text-align:right; display:flex; flex-direction:column; gap:1px; flex:none; }
 .pendiente-dash-numero{ font-size:16px; font-weight:700; color:#7E560F; font-variant-numeric:tabular-nums; }
 .pendiente-dash-etiqueta{ font-size:10.5px; font-weight:600; line-height:1.2; color:var(--recibir-texto2); font-family:'Quicksand',sans-serif; }
@@ -1477,6 +1517,17 @@ input{ font-family:inherit; }
       <input type="text" id="campoNombre" placeholder="Nombre y apellido">
     </div>
 
+    <label class="fila-check-simple">
+      <input type="checkbox" id="checkPacienteEsMenor" onchange="alternarPacienteEsMenor()">
+      <span class="casilla-check-simple" aria-hidden="true"></span>
+      <span class="texto-check-simple">Paciente niño/a o adolescente</span>
+    </label>
+    <div class="campo-modal" id="campoAdultosResponsables" style="display:none;">
+      <span class="etiqueta-campo">Adulto/a responsable</span>
+      <div id="listaAdultosResponsablesFicha"></div>
+      <button type="button" class="boton-agregar-adulto" onclick="agregarCampoAdultoResponsable()">+ Agregar otro adulto</button>
+    </div>
+
     <div class="campo-modal">
       <span class="etiqueta-campo">Canal de atención</span>
       <div class="segmentado" id="segmentadoCanal"></div>
@@ -1691,6 +1742,17 @@ input{ font-family:inherit; }
       </div>
       <div id="pacienteSeleccionadoConfirmacion"></div>
       <div class="lista-busqueda-paciente" id="listaBusquedaPaciente"></div>
+
+      <!-- Solo aparece cuando el paciente elegido está marcado como
+           niño/a o adolescente en su ficha (Pacientes). -->
+      <div id="campoAdultoResponsableSesion" style="display:none;">
+        <label class="fila-check-simple">
+          <input type="checkbox" id="checkAdultoResponsableSesion" onchange="alternarAdultoResponsableSesion()">
+          <span class="casilla-check-simple" aria-hidden="true"></span>
+          <span class="texto-check-simple">Sesión con adulto/a responsable</span>
+        </label>
+        <div class="lista-adultos-sesion" id="listaAdultosSesion" style="display:none;"></div>
+      </div>
     </div>
 
     <div id="camposConsultaUnica" style="display:none;">
@@ -2211,9 +2273,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.37';
+const VERSION_APP = '2.40';
 const VERSION_FECHA = '26 sep 2026';
-const VERSION_DESCRIPCION = 'Corrige el error \'la fecha de término no puede ser anterior a la de inicio\' al editar repeticiones posteriores de un evento con duración';
+const VERSION_DESCRIPCION = 'Pacientes: marcar niño/a o adolescente y sus adultos responsables; Agenda: registrar con qué adulto fue cada sesión (el título la muestra)';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -2737,6 +2799,37 @@ function pintarSegmentadoTipoPago(){
   });
 }
 function obtenerMontoFonasaSegunCanal(canal){ return (canal === 'entrelazos') ? (configuracion.montoFonasaEL || 0) : (configuracion.montoFonasa || 0); }
+// Adultos responsables: un array de nombres en memoria mientras se
+// edita la ficha; cada input de la lista corresponde a una posición.
+let esMenorSeleccionado = false;
+let adultosResponsablesEnFicha = [];
+function renderizarAdultosResponsablesFicha(enfocarUltimo){
+  const cont = document.getElementById('listaAdultosResponsablesFicha');
+  cont.innerHTML = adultosResponsablesEnFicha.map((nombre, i) => `
+    <div class="fila-adulto-responsable">
+      <input type="text" placeholder="Nombre del adulto responsable" value="${escaparHTML(nombre)}" oninput="actualizarAdultoResponsable(${i}, this.value)">
+      <button type="button" class="boton-quitar-adulto" onclick="quitarCampoAdultoResponsable(${i})" aria-label="Quitar">✕</button>
+    </div>
+  `).join('');
+  if(enfocarUltimo){
+    const inputs = cont.querySelectorAll('input');
+    if(inputs.length) inputs[inputs.length - 1].focus();
+  }
+}
+function actualizarAdultoResponsable(indice, valor){ adultosResponsablesEnFicha[indice] = valor; }
+function agregarCampoAdultoResponsable(){ adultosResponsablesEnFicha.push(''); renderizarAdultosResponsablesFicha(true); }
+function quitarCampoAdultoResponsable(indice){
+  adultosResponsablesEnFicha.splice(indice, 1);
+  if(adultosResponsablesEnFicha.length === 0) adultosResponsablesEnFicha.push('');
+  renderizarAdultosResponsablesFicha(false);
+}
+function alternarPacienteEsMenor(){
+  esMenorSeleccionado = document.getElementById('checkPacienteEsMenor').checked;
+  document.getElementById('campoAdultosResponsables').style.display = esMenorSeleccionado ? 'block' : 'none';
+  if(esMenorSeleccionado && adultosResponsablesEnFicha.length === 0) adultosResponsablesEnFicha = [''];
+  renderizarAdultosResponsablesFicha(false);
+}
+
 function actualizarCampoMonto(){
   const campo = document.getElementById('campoMonto'); const nota = document.getElementById('notaMonto');
   if(tipoPagoSeleccionado === 'fonasa'){
@@ -2754,6 +2847,10 @@ function abrirFichaNueva(){
   idEnEdicion = null; canalSeleccionado = 'directo'; tipoPagoSeleccionado = 'particular';
   document.getElementById('tituloFicha').textContent = 'Nuevo paciente';
   document.getElementById('campoNombre').value = '';
+  esMenorSeleccionado = false; adultosResponsablesEnFicha = [];
+  document.getElementById('checkPacienteEsMenor').checked = false;
+  document.getElementById('campoAdultosResponsables').style.display = 'none';
+  renderizarAdultosResponsablesFicha(false);
   document.getElementById('zonaArchivar').style.display = 'none';
   document.getElementById('confirmacionArchivar').style.display = 'none';
   document.getElementById('botonArchivarPaciente').style.display = 'block';
@@ -2765,6 +2862,11 @@ function abrirFichaEdicion(id){
   idEnEdicion = id; canalSeleccionado = p.canal; tipoPagoSeleccionado = p.tipoPago;
   document.getElementById('tituloFicha').textContent = 'Editar paciente';
   document.getElementById('campoNombre').value = p.nombreCompleto;
+  esMenorSeleccionado = !!p.esMenor;
+  adultosResponsablesEnFicha = (p.adultosResponsables && p.adultosResponsables.length) ? [...p.adultosResponsables] : (esMenorSeleccionado ? [''] : []);
+  document.getElementById('checkPacienteEsMenor').checked = esMenorSeleccionado;
+  document.getElementById('campoAdultosResponsables').style.display = esMenorSeleccionado ? 'block' : 'none';
+  renderizarAdultosResponsablesFicha(false);
   document.getElementById('zonaArchivar').style.display = 'block';
   document.getElementById('confirmacionArchivar').style.display = 'none';
   document.getElementById('botonArchivarPaciente').style.display = 'block';
@@ -2789,11 +2891,13 @@ async function guardarFicha(){
     if(monto === null || monto <= 0){ mostrarAvisoFormulario('avisoFichaPaciente', 'Falta el monto habitual de la sesión.', 'campoMonto'); return; }
   }
 
+  const adultosResponsablesLimpios = esMenorSeleccionado ? adultosResponsablesEnFicha.map(n => n.trim()).filter(Boolean) : [];
+
   let pacienteGuardado;
   if(idEnEdicion === null){
     pacienteGuardado = {
       id: generarIdPaciente(), nombreCompleto: nombre, canal: canalSeleccionado, tipoPago: tipoPagoSeleccionado,
-      montoHabitual: monto, estado:'activo', creado: Date.now(),
+      montoHabitual: monto, esMenor: esMenorSeleccionado, adultosResponsables: adultosResponsablesLimpios, estado:'activo', creado: Date.now(),
       pendienteSync: false, colaSync: []
     };
     pacienteGuardado.colaSync.push({ accion:'crear_paciente', datosBase: construirDatosPacienteBase(pacienteGuardado) });
@@ -2803,6 +2907,7 @@ async function guardarFicha(){
     if(p){
       const montoAnterior = p.montoHabitual;
       p.nombreCompleto = nombre; p.canal = canalSeleccionado; p.tipoPago = tipoPagoSeleccionado; p.montoHabitual = monto;
+      p.esMenor = esMenorSeleccionado; p.adultosResponsables = adultosResponsablesLimpios;
       p.colaSync = p.colaSync || [];
       p.colaSync.push({ accion:'editar_paciente', datosBase: construirDatosPacienteBase(p) });
       // Cambio de tarifa particular: se registra como historial nuevo,
@@ -2867,6 +2972,8 @@ function dividirNombreApellido(nombreCompleto){
 function construirDatosPacienteBase(paciente){
   const { nombre, apellido } = dividirNombreApellido(paciente.nombreCompleto);
   const datos = { nombre, apellido, canal_atencion: paciente.canal, tipo_pago: paciente.tipoPago };
+  datos.es_menor = paciente.esMenor ? 'si' : 'no';
+  datos.adultos_responsables = (paciente.adultosResponsables || []).join(' | ');
   // Se manda SIEMPRE, incluso vacío. Si no, al pasar un paciente de
   // particular a FONASA, la planilla conservaba el monto particular viejo.
   datos.monto_particular = paciente.tipoPago === 'particular' ? paciente.montoHabitual : '';
@@ -3348,10 +3455,16 @@ function generarOcurrencias(evento, inicioRangoISO, finRangoISO){
 /* ============================================================
    7. AGENDA — CONSTRUCCIÓN DE INSTANCIAS VISIBLES EN UN RANGO
    ============================================================ */
-function obtenerNombreEvento(evento){
+function obtenerNombreEvento(evento, fechaOcurrencia){
   if(evento.etiqueta === 'atenciones' && evento.pacienteId){
     const p = pacientes.find(x => x.id === evento.pacienteId);
-    return p ? p.nombreCompleto : '(paciente archivado o eliminado)';
+    const nombrePaciente = p ? p.nombreCompleto : '(paciente archivado o eliminado)';
+    // Si para ESTA fecha puntual se marcó con qué adulto responsable fue
+    // la sesión, el título pasa a "Adulto; Paciente" — así se distingue
+    // de un vistazo en la Agenda quién acompañó esa sesión en particular.
+    const adultos = fechaOcurrencia && evento.adultosPorFecha ? evento.adultosPorFecha[fechaOcurrencia] : null;
+    if(adultos && adultos.length) return `${adultos.join(', ')}; ${nombrePaciente}`;
+    return nombrePaciente;
   }
   return evento.nombre || '(sin nombre)';
 }
@@ -3563,13 +3676,17 @@ function calcularMontoBrutoParaPaciente(pacienteId){
 // abajo): siempre el mismo para la misma sesión, así que si esta orden
 // se repite (una corrección, un reintento), el servidor actualiza la
 // misma fila en vez de crear una nueva.
-function encolarActualizarEstadoSesion(entidad, fechaOcurrencia, estado, montoInfo, idIngreso){
+function encolarActualizarEstadoSesion(entidad, fechaOcurrencia, estado, montoInfo, idIngreso, adultosPresentes){
   // Un estado nulo o vacío ya no se descarta: significa que el usuario
   // quitó la marca de la sesión, y eso también hay que mandarlo, porque
   // si no la planilla sigue mostrando el estado viejo (y, cuando ese
   // estado generaba ingreso, ese ingreso queda huérfano).
   const fechaEvento = fechaOcurrencia || entidad.fecha;
   const datosBase = { id_evento: entidad.id, fecha_evento: fechaEvento, estado_sesion: estado || '' };
+  // Se manda SIEMPRE (incluso vacío) cuando se llama a esta función
+  // desde una Atención: si no, al sacar al único adulto marcado, la
+  // planilla se quedaría con el nombre viejo.
+  if(adultosPresentes !== undefined) datosBase.adultos_presentes = (adultosPresentes || []).join(' | ');
   let generaIngreso = false;
   if(montoInfo && !montoInfo.esEntreLazos && ESTADOS_QUE_GENERAN_INGRESO.includes(estado)){
     const montoNeto = calcularNeto(montoInfo.montoBruto, false);
@@ -3643,7 +3760,7 @@ function obtenerInstanciasEnRango(inicioRangoISO, finRangoISO){
     generarOcurrencias(evento, inicioRangoISO, finRangoISO).forEach(fechaOcurrencia => {
       instancias.push({
         tipoInstancia:'evento', eventoId: evento.id, etiqueta: evento.etiqueta,
-        nombre: obtenerNombreEvento(evento), fecha: fechaOcurrencia, hora: evento.hora || '00:00', sinHora: !evento.hora,
+        nombre: obtenerNombreEvento(evento, fechaOcurrencia), fecha: fechaOcurrencia, hora: evento.hora || '00:00', sinHora: !evento.hora,
         estadoSesion: obtenerEstadoResuelto(evento, fechaOcurrencia), esRecurrente: evento.recurrencia !== 'ninguna'
       });
     });
@@ -4279,6 +4396,49 @@ function activarSwipeAgenda(){
 let etiquetaEventoSeleccionada = null;
 let subtipoAtencionSeleccionado = null;
 let pacienteEventoSeleccionadoId = null;
+// Adultos responsables presentes en ESTA sesión puntual (solo aplica a
+// pacientes marcados como niño/a o adolescente).
+let sesionConAdultoSeleccionado = false;
+let adultosPresentesSeleccionados = [];
+// Se llama cada vez que cambia el paciente elegido en la ficha de una
+// Atención: muestra la casilla "Sesión con adulto/a responsable" solo
+// si ese paciente está marcado como niño/a o adolescente, y limpia la
+// selección si el paciente elegido cambió.
+function actualizarCampoAdultoResponsableSesion(mantenerSeleccion){
+  const contenedor = document.getElementById('campoAdultoResponsableSesion');
+  const paciente = pacienteEventoSeleccionadoId ? pacientes.find(x => x.id === pacienteEventoSeleccionadoId) : null;
+  const esMenor = !!(paciente && paciente.esMenor);
+  if(!mantenerSeleccion){ sesionConAdultoSeleccionado = false; adultosPresentesSeleccionados = []; }
+  contenedor.style.display = esMenor ? 'block' : 'none';
+  document.getElementById('checkAdultoResponsableSesion').checked = sesionConAdultoSeleccionado;
+  renderizarListaAdultosSesion(paciente);
+}
+function alternarAdultoResponsableSesion(){
+  sesionConAdultoSeleccionado = document.getElementById('checkAdultoResponsableSesion').checked;
+  const paciente = pacienteEventoSeleccionadoId ? pacientes.find(x => x.id === pacienteEventoSeleccionadoId) : null;
+  renderizarListaAdultosSesion(paciente);
+}
+function alternarAdultoPresente(nombre){
+  const i = adultosPresentesSeleccionados.indexOf(nombre);
+  if(i === -1) adultosPresentesSeleccionados.push(nombre); else adultosPresentesSeleccionados.splice(i, 1);
+}
+function renderizarListaAdultosSesion(paciente){
+  const lista = document.getElementById('listaAdultosSesion');
+  if(!sesionConAdultoSeleccionado){ lista.style.display = 'none'; lista.innerHTML = ''; return; }
+  const adultos = (paciente && paciente.adultosResponsables) || [];
+  lista.style.display = 'block';
+  if(adultos.length === 0){
+    lista.innerHTML = '<div class="nota-campo">Este paciente no tiene adultos responsables registrados. Agrégalos desde su ficha en Pacientes.</div>';
+    return;
+  }
+  lista.innerHTML = adultos.map(nombre => `
+    <label class="fila-adulto-sesion-check">
+      <input type="checkbox" ${adultosPresentesSeleccionados.includes(nombre) ? 'checked' : ''} onchange="alternarAdultoPresente('${nombre.replace(/'/g, "\\'")}')">
+      <span class="casilla-check-simple" aria-hidden="true"></span>
+      <span class="nombre-adulto-sesion">${escaparHTML(nombre)}</span>
+    </label>
+  `).join('');
+}
 let tipoPagoEventoConsultaSeleccionado = null;
 let recurrenciaEventoSeleccionada = 'ninguna';
 let semanaDelMesEventoSeleccionada = 1;
@@ -4309,6 +4469,8 @@ function abrirFichaEventoNueva(){
   document.getElementById('eventoConsultaNombre').value = '';
   document.getElementById('eventoConsultaMonto').value = '';
   document.getElementById('campoBusquedaPaciente').value = '';
+  sesionConAdultoSeleccionado = false; adultosPresentesSeleccionados = [];
+  actualizarCampoAdultoResponsableSesion(false);
   duracionFijaPorSerie = false;
   document.getElementById('eventoFecha').value = fechaColumnaSeleccionada || hoyISO();
   document.getElementById('eventoFecha').disabled = false;
@@ -4416,6 +4578,10 @@ function abrirFichaEventoEdicion(instancia){
   if(subtipoAtencionSeleccionado === 'existente' && pacienteEventoSeleccionadoId){
     const p = pacientes.find(x => x.id === pacienteEventoSeleccionadoId);
     document.getElementById('campoBusquedaPaciente').value = p ? p.nombreCompleto : '';
+    const eventoPadre = instancia.eventoId ? eventosAgenda.find(x => x.id === instancia.eventoId) : null;
+    adultosPresentesSeleccionados = (eventoPadre && eventoPadre.adultosPorFecha && eventoPadre.adultosPorFecha[instancia.fecha]) ? [...eventoPadre.adultosPorFecha[instancia.fecha]] : [];
+    sesionConAdultoSeleccionado = adultosPresentesSeleccionados.length > 0;
+    actualizarCampoAdultoResponsableSesion(true);
   }
 
   document.getElementById('fondoModalEvento').classList.add('abierto');
@@ -4652,12 +4818,26 @@ function alternarListaPacientes(){
   if(pacienteEventoSeleccionadoId){ pacienteEventoSeleccionadoId = null; document.getElementById('campoBusquedaPaciente').value = ''; listaPacientesAbierta = true; }
   else listaPacientesAbierta = !listaPacientesAbierta;
   renderizarBusquedaPaciente();
+  actualizarCampoAdultoResponsableSesion(false);
 }
-function manejarEscrituraBusquedaPaciente(){ pacienteEventoSeleccionadoId = null; listaPacientesAbierta = true; renderizarBusquedaPaciente(); }
+// Si lo que hay escrito coincide exactamente (sin mayúsculas/minúsculas
+// ni espacios de más) con el nombre completo de un paciente activo, se
+// selecciona solo, sin necesidad de tocarlo en la lista.
+function manejarEscrituraBusquedaPaciente(){
+  const texto = (document.getElementById('campoBusquedaPaciente').value || '').toLowerCase().trim();
+  const coincidenciaExacta = texto ? pacientes.find(p => p.estado === 'activo' && p.nombreCompleto.toLowerCase().trim() === texto) : null;
+  const cambioPaciente = pacienteEventoSeleccionadoId !== (coincidenciaExacta ? coincidenciaExacta.id : null);
+  if(coincidenciaExacta){ pacienteEventoSeleccionadoId = coincidenciaExacta.id; listaPacientesAbierta = false; }
+  else{ pacienteEventoSeleccionadoId = null; listaPacientesAbierta = true; }
+  renderizarBusquedaPaciente();
+  actualizarCampoAdultoResponsableSesion(!cambioPaciente);
+}
 function seleccionarPacienteBusqueda(id, nombre){
+  const cambioPaciente = pacienteEventoSeleccionadoId !== id;
   pacienteEventoSeleccionadoId = id; listaPacientesAbierta = false;
   document.getElementById('campoBusquedaPaciente').value = nombre;
   renderizarBusquedaPaciente();
+  actualizarCampoAdultoResponsableSesion(!cambioPaciente);
 }
 function renderizarBusquedaPaciente(){
   const texto = (document.getElementById('campoBusquedaPaciente').value || '').toLowerCase().trim();
@@ -4886,6 +5066,7 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
   let evento;
   let fechaOcurrenciaAfectada = null;
   let estadoAnteriorEvento = null;
+  let adultosAnterioresParaComparar = null;
   if(eventoEnEdicionId === null){
     evento = {
       id: generarIdEvento(), etiqueta: etiquetaEventoSeleccionada, nombre, pacienteId, fecha, hora,
@@ -4893,7 +5074,7 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
       diaSemana: recurrenciaEventoSeleccionada === 'mensual_personalizada' ? diaSemana : undefined,
       semanaDelMes: recurrenciaEventoSeleccionada === 'mensual_personalizada' ? semanaDelMesEventoSeleccionada : undefined,
       fechasExcluidas: [], estadoSesion: recurrenciaEventoSeleccionada === 'ninguna' ? estadoSesionEventoSeleccionado : null,
-      estadosPorFecha: {}, hasDuration, endDate, endTime, creado: Date.now(),
+      estadosPorFecha: {}, adultosPorFecha: {}, hasDuration, endDate, endTime, creado: Date.now(),
       pendienteSync:false, colaSync:[]
     };
     evento.colaSync.push({ accion:'crear_evento', datosBase: construirDatosEventoBase(evento) });
@@ -4935,17 +5116,38 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
     }
   }
 
+  // Adultos responsables presentes en ESTA sesión puntual (solo aplica
+  // a Atenciones con paciente existente marcado como niño/a o
+  // adolescente). Se guarda por fecha, igual que estadosPorFecha.
+  let claveAdultosAfectada = null;
+  if(evento && etiquetaEventoSeleccionada === 'atenciones' && subtipoAtencionSeleccionado === 'existente'){
+    claveAdultosAfectada = evento.recurrencia === 'ninguna' ? evento.fecha : fechaOcurrenciaAfectada;
+    if(claveAdultosAfectada){
+      evento.adultosPorFecha = evento.adultosPorFecha || {};
+      adultosAnterioresParaComparar = evento.adultosPorFecha[claveAdultosAfectada] || [];
+      const seleccion = (sesionConAdultoSeleccionado && adultosPresentesSeleccionados.length) ? [...adultosPresentesSeleccionados] : [];
+      if(seleccion.length) evento.adultosPorFecha[claveAdultosAfectada] = seleccion;
+      else delete evento.adultosPorFecha[claveAdultosAfectada];
+    }
+  }
+
   if(evento && etiquetaEventoSeleccionada === 'atenciones' && pacienteId && estadoSesionEventoSeleccionado){
     const montoInfo = calcularMontoBrutoParaPaciente(pacienteId);
     const fechaClaveOrigen = evento.recurrencia === 'ninguna' ? evento.fecha : fechaOcurrenciaAfectada;
     const idIngreso = idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaClaveOrigen }));
     const siguePagada = ESTADOS_QUE_GENERAN_INGRESO.includes(estadoSesionEventoSeleccionado);
     if(montoInfo) montoInfo.formaPago = medioElegidoEvento || (ingresos.find(i => i.id === idIngreso) || {}).medioPago || '';
+    // Los adultos presentes de esta sesión: si cambiaron, aunque el
+    // estado de la sesión no haya cambiado, igual hay que avisar a la
+    // planilla (si no, quedaría con el dato de adultos desactualizado).
+    const seleccionAdultosActual = (evento.adultosPorFecha && claveAdultosAfectada) ? (evento.adultosPorFecha[claveAdultosAfectada] || []) : [];
+    const cambioAdultos = adultosAnterioresParaComparar !== null && adultosAnterioresParaComparar.join('|') !== seleccionAdultosActual.join('|');
     // Solo se avisa a Ingresos si el estado de esa fecha realmente
-    // cambió (o si recién se eligió el medio de pago). Corregir otro
-    // dato de la ficha no vuelve a generar un ingreso para esa sesión.
-    if(estadoAnteriorEvento !== estadoSesionEventoSeleccionado || (medioElegidoEvento && siguePagada)){
-      encolarActualizarEstadoSesion(evento, evento.recurrencia === 'ninguna' ? null : fechaOcurrenciaAfectada, estadoSesionEventoSeleccionado, montoInfo, idIngreso);
+    // cambió (o si recién se eligió el medio de pago, o si cambiaron
+    // los adultos presentes). Corregir otro dato de la ficha que no
+    // sea ninguno de estos no vuelve a generar un ingreso.
+    if(estadoAnteriorEvento !== estadoSesionEventoSeleccionado || (medioElegidoEvento && siguePagada) || cambioAdultos){
+      encolarActualizarEstadoSesion(evento, evento.recurrencia === 'ninguna' ? null : fechaOcurrenciaAfectada, estadoSesionEventoSeleccionado, montoInfo, idIngreso, seleccionAdultosActual);
       // Si esa fecha dejó de estar pagada (y no era Entre Lazos), el
       // ingreso que ya existía en la planilla queda huérfano si no se
       // borra.
@@ -4971,6 +5173,18 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
   if(evento && etiquetaEventoSeleccionada !== 'atenciones' && eventoEnEdicionId !== null && fechaOcurrenciaAfectada
      && (estadoAnteriorEvento || null) !== (estadoSesionEventoSeleccionado || null)){
     encolarActualizarEstadoSesion(evento, evento.recurrencia === 'ninguna' ? null : fechaOcurrenciaAfectada, estadoSesionEventoSeleccionado || null, null, null);
+  }
+
+  // Atenciones sin ningún estado marcado (o eventoEnEdicionId nuevo sin
+  // estado): si de todas formas cambiaron los adultos presentes, igual
+  // se avisa a la planilla — el bloque de arriba no corre porque exige
+  // estadoSesionEventoSeleccionado.
+  if(evento && etiquetaEventoSeleccionada === 'atenciones' && !estadoSesionEventoSeleccionado
+     && claveAdultosAfectada && adultosAnterioresParaComparar !== null){
+    const seleccionAdultosActual = (evento.adultosPorFecha && evento.adultosPorFecha[claveAdultosAfectada]) || [];
+    if(adultosAnterioresParaComparar.join('|') !== seleccionAdultosActual.join('|')){
+      encolarActualizarEstadoSesion(evento, evento.recurrencia === 'ninguna' ? null : fechaOcurrenciaAfectada, null, null, null, seleccionAdultosActual);
+    }
   }
 
   cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarEventosEnAlmacenamiento();
@@ -5036,7 +5250,7 @@ function abrirModalMoverSesion(){
   document.getElementById('notaModalMoverSesion').textContent = esSesion
     ? 'Esta fecha se quitará de la serie recurrente (igual que "Omitir esta fecha") y se creará como una atención suelta en el nuevo día. Las demás repeticiones de la serie no se ven afectadas.'
     : 'Este día se quitará de la serie (igual que "Omitir esta fecha") y el evento se creará suelto en el nuevo día. Las demás repeticiones no se ven afectadas.';
-  document.getElementById('textoInfoMoverSesion').textContent = `${obtenerNombreEvento(evento)} · actualmente el ${fechaOcurrenciaEnEdicion}`;
+  document.getElementById('textoInfoMoverSesion').textContent = `${obtenerNombreEvento(evento, fechaOcurrenciaEnEdicion)} · actualmente el ${fechaOcurrenciaEnEdicion}`;
   document.getElementById('moverSesionFecha').value = '';
   document.getElementById('moverSesionHora').value = evento.hora || '';
   ocultarAvisoFormulario('avisoMoverSesion');
