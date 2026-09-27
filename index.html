@@ -634,6 +634,7 @@ input{ font-family:inherit; }
   --agenda-linea-mes:#A58E70;         /* color de la línea que separa un mes del otro */
   --agenda-grosor-linea-mes:2px;      /* grosor de esa línea */
   --agenda-alto-hora:34px;            /* alto de cada hora en la semana abierta */
+  --agenda-color-aviso-atenciones:#B23B3B; /* marco de dos Atenciones que empiezan con 30 min o menos de diferencia */
   --agenda-linea-hora:#E2D6C3;        /* color de las líneas horizontales de cada hora */
   --agenda-ancho-columna-horas:24px;  /* ancho de la columna de horas a la izquierda */
   --agenda-opacidad-realizado:0.42;   /* qué tan tenue se ve un evento realizado (1 = normal) */
@@ -731,6 +732,10 @@ input{ font-family:inherit; }
   position:absolute; border-radius:4px; padding:2px 3px; overflow:hidden; touch-action:manipulation;
   box-shadow:0 0 0 1px #FBF7EF; /* fino borde claro para separar eventos pegados */
 }
+/* Solo Atenciones: dos sesiones que empiezan con 30 minutos o menos de
+   diferencia quedan con este marco rojo, encima del borde claro de
+   siempre (no lo reemplaza). */
+.chip-evento-semana.aviso-atenciones-juntas{ box-shadow:0 0 0 1px #FBF7EF, inset 0 0 0 2px var(--agenda-color-aviso-atenciones); }
 /* Escalera del cambio de mes dentro de la semana abierta: línea arriba de
    los días del mes nuevo, línea abajo de los días del mes anterior, y la
    vertical del día 1. Así se une con la vista de mes de arriba y de abajo. */
@@ -977,6 +982,7 @@ input{ font-family:inherit; }
 .tarjeta-ing-encabezado{ display:flex; align-items:center; gap:8px; }
 .tarjeta-ing-titulo{ font-size:10.5px; font-weight:700; letter-spacing:0.6px; color:var(--texto-secundario); font-family:'Quicksand',sans-serif; flex:1; text-transform:uppercase; }
 .tarjeta-ing-total{ font-size:26px; font-weight:800; letter-spacing:-1px; font-variant-numeric:tabular-nums; margin-top:3px; color:var(--texto-principal); }
+.tarjeta-ing-nota{ font-size:10.5px; font-weight:600; color:var(--texto-terciario); margin-top:3px; font-family:'Quicksand',sans-serif; }
 .fuentes-lista{ display:flex; flex-direction:column; gap:7px; margin-top:13px; padding-top:12px; border-top:1px solid var(--borde); }
 .fila-fuente{ display:flex; align-items:center; gap:8px; }
 .fila-fuente .punto{ width:7px; height:7px; border-radius:50%; flex:none; }
@@ -994,6 +1000,16 @@ input{ font-family:inherit; }
 .fila-pendiente-pago .monto{ font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--recibir-texto); }
 .fila-pendiente-pago .fila-bottom{ display:flex; align-items:center; gap:6px; margin-top:8px; }
 .fila-pendiente-pago .fecha{ font-size:10.5px; font-weight:600; color:var(--texto-secundario); flex:1; font-family:'Quicksand',sans-serif; }
+.fila-pendiente-pago .fechas-lazos{ display:flex; flex-direction:column; gap:1px; flex:1; }
+.fila-pendiente-pago .fechas-lazos .fecha{ margin:0; }
+.fila-pendiente-pago .check-lazos{ position:absolute; opacity:0; pointer-events:none; }
+.fila-pendiente-pago .casilla-lazos{
+  width:20px; height:20px; border-radius:6px; border:2px solid var(--lazos-texto2); flex:none;
+  display:flex; align-items:center; justify-content:center; background:var(--superficie); touch-action:manipulation;
+}
+.fila-pendiente-pago .check-lazos:checked + .casilla-lazos{ background:var(--lazos-texto); border-color:var(--lazos-texto); }
+.fila-pendiente-pago .check-lazos:checked + .casilla-lazos::after{ content:'✓'; color:#FFF6E8; font-size:12px; font-weight:800; line-height:1; }
+.fila-pendiente-pago .fila-top-lazos{ display:flex; align-items:center; gap:9px; }
 .boton-medio-pago{
   border:1px solid #E3D4B4; background:var(--superficie); border-radius:8px; padding:5px 11px;
   font-size:11px; font-weight:650; color:var(--recibir-texto); font-family:'Quicksand',sans-serif; touch-action:manipulation;
@@ -1010,10 +1026,27 @@ input{ font-family:inherit; }
 .tarjeta-lazos-nota{ font-size:10.5px; font-weight:600; color:var(--lazos-texto2); margin-top:3px; font-family:'Quicksand',sans-serif; }
 .boton-generar-boleta{ width:100%; margin-top:11px; border-radius:11px; background:var(--acento); color:#FFF6E8; font-size:13px; font-weight:700; padding:11px; font-family:'Quicksand',sans-serif; touch-action:manipulation; }
 
-.movimientos-encabezado{ display:flex; align-items:center; gap:8px; padding:2px; }
-.movimientos-titulo{ font-size:10.5px; font-weight:700; letter-spacing:0.6px; color:var(--texto-secundario); font-family:'Quicksand',sans-serif; flex:1; text-transform:uppercase; }
+.tarjeta-movimientos{ background:var(--superficie); border:1px solid var(--borde); border-radius:16px; padding:13px 14px; }
+.movimientos-encabezado{ display:flex; align-items:center; gap:8px; }
+.movimientos-titulo{ font-size:11px; font-weight:700; letter-spacing:0.3px; color:var(--texto-secundario); font-family:'Quicksand',sans-serif; flex:1; text-transform:uppercase; }
+.movimientos-monto-encabezado{ font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--texto-principal); }
+.movimientos-nota{ font-size:10.5px; font-weight:600; color:var(--texto-terciario); margin-top:2px; font-family:'Quicksand',sans-serif; }
 .movimientos-conteo{ font-size:10.5px; font-weight:600; color:var(--texto-terciario); font-family:'Quicksand',sans-serif; }
 .movimientos-lista{ display:flex; flex-direction:column; gap:6px; margin-top:8px; }
+.boton-filtro-mov{
+  flex:none; width:30px; height:30px; border-radius:9px; border:1px solid var(--borde); background:var(--superficie);
+  color:var(--texto-secundario); font-size:14px; display:flex; align-items:center; justify-content:center; touch-action:manipulation; position:relative;
+}
+.boton-filtro-mov.activo{ background:var(--texto-principal); color:var(--superficie); border-color:var(--texto-principal); }
+.boton-filtro-mov .puntito-activo{ position:absolute; top:-2px; right:-2px; width:9px; height:9px; border-radius:50%; background:#B23B3B; border:2px solid var(--bg-app); }
+.fila-dos-fechas{ display:flex; gap:8px; }
+.fila-dos-fechas .campo-modal{ flex:1; }
+.chips-filtro{ display:flex; flex-wrap:wrap; gap:7px; margin-top:8px; }
+.chip-filtro-origen{
+  padding:7px 12px; border-radius:20px; border:1px solid var(--borde); background:var(--superficie);
+  font-size:12px; font-weight:650; font-family:'Quicksand',sans-serif; color:var(--texto-secundario); touch-action:manipulation;
+}
+.chip-filtro-origen.seleccionado{ background:var(--texto-principal); color:var(--superficie); border-color:var(--texto-principal); }
 .fila-ingreso{
   background:var(--superficie); border:1px solid var(--borde); border-radius:12px; padding:10px 12px;
   display:flex; align-items:center; gap:10px; touch-action:manipulation;
@@ -1023,6 +1056,7 @@ input{ font-family:inherit; }
 .fila-ingreso .fila-meta{ display:flex; align-items:center; gap:7px; }
 .fila-ingreso .badge-fuente{ font-size:9.5px; font-weight:700; letter-spacing:0.2px; padding:2px 7px; border-radius:5px; font-family:'Quicksand',sans-serif; }
 .fila-ingreso .fecha{ font-size:10.5px; font-weight:600; color:var(--texto-terciario); font-family:'Quicksand',sans-serif; }
+.fila-ingreso .fecha-pago{ font-size:10.5px; font-weight:600; color:var(--texto-terciario); font-family:'Quicksand',sans-serif; }
 .fila-ingreso .derecha{ text-align:right; display:flex; flex-direction:column; gap:2px; flex:none; }
 .fila-ingreso .monto{ font-size:13.5px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--texto-principal); }
 .fila-ingreso .nota-neto{ font-size:9.5px; font-weight:600; color:var(--texto-terciario); font-family:'Quicksand',sans-serif; }
@@ -1350,10 +1384,11 @@ input{ font-family:inherit; }
       <button class="boton-ojo" id="botonOjoIngTotal" onclick="alternarVisibilidadIngTotal()"></button>
     </div>
     <div class="tarjeta-ing-total monto-fuente" id="totalMesIngresos">$0</div>
+    <div class="tarjeta-ing-nota">Montos con el descuento de boleta ya aplicado.</div>
     <div class="fuentes-lista" id="resumenPorFuente"></div>
   </div>
 
-  <div class="tarjeta-recibir">
+  <div class="tarjeta-recibir" id="tarjetaRecibir">
     <div class="tarjeta-recibir-encabezado">
       <span class="tarjeta-recibir-titulo">Sesiones devengadas</span>
       <span class="tarjeta-recibir-monto monto-fuente" id="recibirTotalMonto"></span>
@@ -1375,14 +1410,55 @@ input{ font-family:inherit; }
     <div id="seccionPendientesBoleta" style="display:none;"></div>
   </div>
 
-  <div>
+  <div class="tarjeta-movimientos">
     <div class="movimientos-encabezado">
       <span class="movimientos-titulo">Movimientos del mes</span>
-      <span class="movimientos-conteo" id="conteoMovimientos"></span>
+      <span class="movimientos-monto-encabezado monto-fuente" id="movimientosMontoTotal"></span>
+      <button class="boton-filtro-mov" id="botonFiltroMov" onclick="abrirFiltroMovimientos()" aria-label="Filtrar">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 4 20 4 14 12.5 14 19 10 21 10 12.5 4 4"/></svg>
+        <span class="puntito-activo" id="puntitoFiltroMov" style="display:none;"></span>
+      </button>
       <button class="boton-ojo" id="botonOjoIngMov" onclick="alternarVisibilidadIngMov()"></button>
     </div>
-    <div class="movimientos-lista" id="listaIngresosMes"></div>
-    <button class="boton-ver-todos-gasto" id="botonVerTodosIngresosMes" style="margin-top:6px; width:100%; display:none;" onclick="alternarVerTodosIngresosMes()"></button>
+    <div class="movimientos-nota" id="movimientosNota"></div>
+    <button class="boton-ver-todos-gasto" id="botonVerTodosIngresosMes" style="margin-top:8px; width:100%; display:none;" onclick="alternarVerTodosIngresosMes()"></button>
+    <div class="movimientos-lista" id="listaIngresosMes" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: FILTRAR MOVIMIENTOS DEL MES (Ingresos)
+     ============================================================ -->
+<div class="fondo-modal" id="fondoModalFiltroMov" onclick="cerrarModalSiFondo(event, 'fondoModalFiltroMov', cerrarFiltroMovimientos)">
+  <div class="hoja-modal">
+    <div class="encabezado-modal">
+      <h2>Filtrar movimientos</h2>
+      <button class="cerrar-modal" onclick="cerrarFiltroMovimientos()">✕</button>
+    </div>
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Rango de fechas</span>
+      <div class="fila-dos-fechas">
+        <div class="campo-modal" style="margin:0;">
+          <span class="etiqueta-campo">Desde</span>
+          <input type="date" id="filtroMovDesde">
+        </div>
+        <div class="campo-modal" style="margin:0;">
+          <span class="etiqueta-campo">Hasta</span>
+          <input type="date" id="filtroMovHasta">
+        </div>
+      </div>
+      <div class="nota-campo">Vacío en ambas = todo el mes que estás mirando.</div>
+    </div>
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Origen del monto</span>
+      <div class="chips-filtro" id="chipsFiltroOrigen"></div>
+    </div>
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Medio de pago</span>
+      <div class="segmentado" id="segmentadoFiltroMedioPago"></div>
+    </div>
+    <button class="boton-primario" onclick="aplicarFiltroMovimientos()">Aplicar filtros</button>
+    <button class="boton-secundario" onclick="limpiarFiltroMovimientos()">Quitar todos los filtros</button>
   </div>
 </div>
 
@@ -1706,6 +1782,10 @@ input{ font-family:inherit; }
         <button class="boton-accion-serie" id="botonMoverSesionEvento" onclick="abrirModalMoverSesion()" style="display:none;">Mover esta sesión a otro día</button>
         <button class="boton-accion-serie" id="botonOmitirFechaEvento" onclick="solicitarOmitirFecha()" style="display:none;">Omitir esta fecha</button>
       </div>
+      <div class="fila-acciones-serie-evento">
+        <button class="boton-accion-serie" id="botonCambiarSerieDesdeAqui" onclick="abrirModalMoverSesion(true)" style="display:none;">Cambiar día de la serie desde aquí</button>
+        <button class="boton-accion-serie" id="botonCambiarDuracionSerieDesdeAqui" onclick="abrirModalCambiarDuracionSerie()" style="display:none;">Cambiar duración de la serie desde aquí</button>
+      </div>
       <div class="confirmacion-archivar" id="confirmacionOmitirFecha" style="display:none;">
         <p>Esta fecha puntual se omitirá. Las demás repeticiones de este evento se mantienen sin cambios.</p>
         <div class="fila-confirmacion">
@@ -1797,6 +1877,7 @@ input{ font-family:inherit; }
       <div class="campo-modal">
         <span class="etiqueta-campo">Hora de término (opcional)</span>
         <input type="text" class="campo-hora-texto" id="eventoHoraTermino" inputmode="numeric" placeholder="HH:MM" maxlength="5" oninput="formatearEntradaHora(this); actualizarResumenDuracion();">
+        <div class="nota-campo" id="notaHoraTerminoOcurrencia" style="display:none;">Esto cambia la hora de término solo de esta sesión — el resto de la serie sigue igual.</div>
       </div>
       <div class="nota-campo" id="resumenDuracionEvento" style="margin-bottom:12px;"></div>
     </div>
@@ -1862,10 +1943,48 @@ input{ font-family:inherit; }
       <input type="text" class="campo-hora-texto" id="moverSesionHora" inputmode="numeric" placeholder="HH:MM" maxlength="5" oninput="formatearEntradaHora(this)">
       <div class="nota-campo">Formato 24 horas, por ejemplo 09:30 o 19:00.</div>
     </div>
+    <div class="nota-campo" id="notaCambioGlobalSerie" style="display:none; margin-bottom:10px;"></div>
     <div class="nota-campo" id="notaModalMoverSesion" style="margin-bottom:10px;"></div>
     <div class="aviso-formulario" id="avisoMoverSesion"></div>
     <button class="boton-primario" id="botonConfirmarMoverSesion" onclick="guardarMoverSesion()">Mover sesión</button>
     <button class="boton-secundario" onclick="cerrarModalMoverSesion()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: CAMBIAR DURACIÓN DE LA SERIE DESDE AQUÍ
+     Mismo mecanismo de "cortar la serie" que Cambiar día de la
+     serie (ver confirmarCambiarDuracionSerie), pero sin tocar fecha
+     ni hora: solo cambia si el evento dura más de un día y su hora
+     de término, desde esta fecha en adelante.
+     ============================================================ -->
+<div class="fondo-modal" id="fondoModalCambiarDuracionSerie" onclick="cerrarModalSiFondo(event, 'fondoModalCambiarDuracionSerie', cerrarModalCambiarDuracionSerie)">
+  <div class="hoja-modal">
+    <div class="encabezado-modal">
+      <h2>Cambiar duración de la serie</h2>
+      <button class="cerrar-modal" onclick="cerrarModalCambiarDuracionSerie()">✕</button>
+    </div>
+    <div class="campo-modal">
+      <p class="nota-campo" id="textoInfoCambiarDuracionSerie" style="margin:0;"></p>
+    </div>
+    <div class="nota-campo" style="margin-bottom:10px;">Desde esta fecha en adelante, toda la serie pasa a tener esta duración. Las repeticiones anteriores no cambian.</div>
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Duración</span>
+      <div class="segmentado" id="segmentadoDuracionSerieNueva"></div>
+    </div>
+    <div id="camposDuracionSerieNuevaDetalle" style="display:none;">
+      <div class="campo-modal">
+        <span class="etiqueta-campo">Fecha de término</span>
+        <input type="date" id="duracionSerieNuevaFechaTermino">
+      </div>
+      <div class="campo-modal">
+        <span class="etiqueta-campo">Hora de término (opcional)</span>
+        <input type="text" class="campo-hora-texto" id="duracionSerieNuevaHoraTermino" inputmode="numeric" placeholder="HH:MM" maxlength="5" oninput="formatearEntradaHora(this)">
+      </div>
+    </div>
+    <div class="aviso-formulario" id="avisoCambiarDuracionSerie"></div>
+    <button class="boton-primario" onclick="confirmarCambiarDuracionSerie()">Cambiar desde aquí</button>
+    <button class="boton-secundario" onclick="cerrarModalCambiarDuracionSerie()">Cancelar</button>
   </div>
 </div>
 
@@ -2265,9 +2384,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.41';
-const VERSION_FECHA = '26 sep 2026';
-const VERSION_DESCRIPCION = 'Corrige que al sincronizar se perdiera si un paciente es niño/a y sus adultos responsables; quita botones de Configuración que ya no funcionaban';
+const VERSION_APP = '2.44';
+const VERSION_FECHA = '27 sep 2026';
+const VERSION_DESCRIPCION = 'Agenda: hora de término editable para una sola sesión de una serie con duración, y botón para cambiar la duración de toda la serie desde una fecha en adelante';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -3047,7 +3166,7 @@ function mapearPacienteDesdeServidor(fila){
   const tipoPago = fila.tipo_pago || 'particular';
   const montoHabitual = tipoPago === 'fonasa'
     ? obtenerMontoFonasaSegunCanal(canal)
-    : (fila.monto_particular || 0);
+    : (Number(fila.monto_particular) || 0);
   const esMenor = fila.es_menor === 'si';
   const adultosResponsables = fila.adultos_responsables
     ? String(fila.adultos_responsables).split('|').map(n => n.trim()).filter(Boolean)
@@ -3633,7 +3752,19 @@ function mapearEventoDesdeServidor(fila){
     estadoSesion: fila.estado_sesion || null,
     estadosPorFecha: {},
     adultosPorFecha: {},
-    hasDuration: !!fila.fecha_fin,
+    // Todavía no tiene una columna propia en la planilla (ver aviso en
+    // el chat): por ahora vive solo en este aparato y una sincronización
+    // completa la deja en blanco otra vez, igual que pasaría con
+    // estadosPorFecha si no vinieran sesiones que la repueblen.
+    endTimePorFecha: {},
+    // "hasDuration" tenía un error: para una duración del MISMO día
+    // (por ejemplo 10:00-19:00), fecha_fin se manda vacío a propósito
+    // (para no ensuciar la planilla con una fecha igual a la de
+    // inicio) — pero acá solo se miraba fecha_fin para decidir si el
+    // evento "tenía duración", así que al recargar, cualquier evento
+    // con duración del mismo día volvía a aparecer como si no tuviera
+    // ninguna. Ahora también cuenta con que haya una hora de término.
+    hasDuration: !!(fila.fecha_fin || fila.hora_fin),
     endDate: fila.fecha_fin || '',
     endTime: fila.hora_fin || '',
     creado: Date.now(),
@@ -3697,6 +3828,17 @@ function encolarActualizarEstadoSesion(entidad, fechaOcurrencia, estado, montoIn
   }
   entidad.colaSync = entidad.colaSync || [];
   entidad.colaSync.push({ accion:'actualizar_estado_sesion', datosBase, fechaOcurrencia: fechaOcurrencia || null, generaIngreso });
+}
+
+// Guarda en la pestaña Sesiones la hora de término propia de ESTA
+// ocurrencia puntual (columna "hora_fin", igual nombre que en
+// Eventos, para que el Apps Script la formatee como hora sin
+// cambios extra). Se manda siempre, incluso vacía: así, si se
+// vuelve a la hora de la serie, la planilla también se limpia y no
+// se queda con un valor viejo.
+function encolarActualizarHoraFinSesion(entidad, fechaOcurrencia, horaFin){
+  entidad.colaSync = entidad.colaSync || [];
+  entidad.colaSync.push({ accion:'actualizar_hora_fin_sesion', datosBase: { id_evento: entidad.id, fecha_evento: fechaOcurrencia, hora_fin: horaFin || '' } });
 }
 
 // Si una sesión deja de estar en un estado que genera ingreso (por
@@ -4072,6 +4214,7 @@ function renderizarPanelSemana(){
       .map(inst => { const r = rangoMinutosInstancia(inst); return Object.assign({}, inst, { inicioMin: r.inicio, finMin: r.fin }); });
     const sinHora = delDia.filter(x => x.sinHora);
     const conHora = delDia.filter(x => !x.sinHora);
+    ajustarAtencionesConsecutivas(conHora);
     dias.push({ fecha: new Date(cursor), fechaStr, multidiaHoy, sinHora, delDia: repartirEventosEnCarriles(conHora) });
     cursor.setDate(cursor.getDate()+1);
   }
@@ -4217,7 +4360,7 @@ function renderizarPanelSemana(){
     d.delDia.forEach(inst => {
       const info = obtenerEtiquetaInfo(inst.etiqueta);
       const chip = document.createElement('div');
-      chip.className = 'chip-evento-semana' + (instanciaEstaRealizada(inst) ? ' realizado' : '');
+      chip.className = 'chip-evento-semana' + (instanciaEstaRealizada(inst) ? ' realizado' : '') + (inst.inicioMuyJunto ? ' aviso-atenciones-juntas' : '');
       chip.style.background = info.color;
       chip.style.top = ((inst.inicioMin - horaInicio*60) / 60 * altoHora) + 'px';
       chip.style.height = Math.max(14, (inst.finMin - inst.inicioMin) / 60 * altoHora - 1) + 'px';
@@ -4246,11 +4389,34 @@ function rangoMinutosInstancia(inst){
   let fin = inicio + 60;
   if(inst.tipoInstancia === 'evento'){
     const ev = eventosAgenda.find(e => e.id === inst.eventoId);
-    if(ev && ev.hasDuration && ev.endTime && (!ev.endDate || ev.endDate === ev.fecha)){
-      const f = aMin(ev.endTime); if(f > inicio) fin = f;
+    if(ev && ev.hasDuration && (!ev.endDate || ev.endDate === ev.fecha)){
+      // Esta ocurrencia puede tener su propia hora de término, distinta
+      // de la de la serie (ver guardarEventoGenerico / endTimePorFecha).
+      const horaFinOcurrencia = (ev.endTimePorFecha && Object.prototype.hasOwnProperty.call(ev.endTimePorFecha, inst.fecha))
+        ? ev.endTimePorFecha[inst.fecha] : ev.endTime;
+      if(horaFinOcurrencia){ const f = aMin(horaFinOcurrencia); if(f > inicio) fin = f; }
     }
   }
   return { inicio, fin: Math.min(fin, 24*60) };
+}
+
+// Solo Atenciones: como nunca tienen hora de término propia (se asume
+// 1 hora fija), si la siguiente Atención del mismo día empieza antes
+// de que termine esa hora asumida, el bloque de la primera se acorta
+// (solo para dibujarse, no cambia ningún dato guardado) hasta la hora
+// en que empieza la siguiente. Así, cuando "repartirEventosEnCarriles"
+// corra después de esto, ya no las va a ver superpuestas y las va a
+// dejar una arriba de la otra en vez de una al lado de la otra.
+// De paso, marca con marco rojo cuando dos Atenciones empiezan con 30
+// minutos o menos de diferencia entre sí (posible error al agendar).
+function ajustarAtencionesConsecutivas(lista){
+  const atenciones = lista.filter(e => e.etiqueta === 'atenciones').sort((a,b) => a.inicioMin - b.inicioMin);
+  atenciones.forEach(e => { e.inicioMuyJunto = false; });
+  for(let i = 0; i < atenciones.length - 1; i++){
+    const actual = atenciones[i], siguiente = atenciones[i+1];
+    if(siguiente.inicioMin < actual.finMin) actual.finMin = siguiente.inicioMin;
+    if(siguiente.inicioMin - actual.inicioMin <= 30){ actual.inicioMuyJunto = true; siguiente.inicioMuyJunto = true; }
+  }
 }
 
 // Cuando dos eventos se superponen en la misma hora, se ponen lado a
@@ -4332,8 +4498,8 @@ function textosMoverSegunEtiqueta(etiqueta){
   document.getElementById('botonMoverSesionEvento').textContent = esSesion ? 'Mover esta sesión a otro día' : 'Mover este evento para otro día';
   const mencionDuracion = (!esSesion && hasDurationEventoSeleccionado) ? ' Lo mismo pasa con la duración: cuántos días dura cada repetición se define una sola vez para toda la serie.' : '';
   document.getElementById('notaFechaEventoBloqueada').textContent = (esSesion
-    ? 'Esta sesión pertenece a una serie que se repite. Para cambiar el día de esta sesión en particular, usa "Mover esta sesión a otro día", arriba. La fecha de inicio de toda la serie no se edita desde acá.'
-    : 'Este evento pertenece a una serie que se repite. Para cambiar solo este día, usa "Mover este evento para otro día", arriba. La fecha de inicio de toda la serie no se edita desde acá.') + mencionDuracion;
+    ? 'Esta sesión pertenece a una serie que se repite. Para cambiar el día de esta sesión en particular, usa "Mover esta sesión a otro día", arriba. Para cambiar el día de TODA la serie desde acá en adelante, usa "Cambiar día de la serie desde aquí", también arriba.'
+    : 'Este evento pertenece a una serie que se repite. Para cambiar solo este día, usa "Mover este evento para otro día", arriba. Para cambiar el día de TODA la serie desde acá en adelante, usa "Cambiar día de la serie desde aquí", también arriba.') + mencionDuracion;
 }
 
 window.addEventListener('resize', () => {
@@ -4478,11 +4644,14 @@ function abrirFichaEventoNueva(){
   document.getElementById('eventoFechaTermino').value = '';
   document.getElementById('eventoFechaTermino').disabled = false;
   document.getElementById('eventoHoraTermino').value = '';
+  document.getElementById('notaHoraTerminoOcurrencia').style.display = 'none';
   document.getElementById('camposDuracionDetalle').style.display = 'none';
   document.getElementById('resumenDuracionEvento').textContent = '';
   document.getElementById('zonaEliminarEvento').style.display = 'none';
   document.getElementById('botonOmitirFechaEvento').style.display = 'none';
   document.getElementById('botonMoverSesionEvento').style.display = 'none';
+  document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'none';
+  document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = 'none';
   document.getElementById('confirmacionEliminarEvento').style.display = 'none';
   document.getElementById('confirmacionOmitirFecha').style.display = 'none';
   document.getElementById('botonEliminarEvento').style.display = 'block';
@@ -4518,6 +4687,8 @@ function abrirFichaEventoEdicion(instancia){
     document.getElementById('zonaEliminarEvento').style.display = 'block';
     document.getElementById('botonOmitirFechaEvento').style.display = 'none';
     document.getElementById('botonMoverSesionEvento').style.display = 'none';
+    document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'none';
+    document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = 'none';
     document.getElementById('botonEliminarEvento').textContent = 'Eliminar registro';
   }else{
     eventoEnEdicionId = instancia.eventoId; consultaEnEdicionId = null;
@@ -4550,11 +4721,24 @@ function abrirFichaEventoEdicion(instancia){
     duracionFijaPorSerie = esRecurrente && hasDurationEventoSeleccionado;
     document.getElementById('eventoFechaTermino').value = esRecurrente ? fechaTerminoParaOcurrencia(evento, instancia.fecha) : (evento.endDate || evento.fecha);
     document.getElementById('eventoFechaTermino').disabled = esRecurrente;
-    document.getElementById('eventoHoraTermino').value = evento.endTime || '';
+    // La hora de término SÍ se puede corregir por ocurrencia (a
+    // diferencia de la fecha de término, que es de toda la serie): si
+    // esta fecha puntual ya tiene su propia hora guardada en
+    // endTimePorFecha, se muestra esa; si no, la de la serie.
+    const horaTerminoOcurrencia = (esRecurrente && evento.endTimePorFecha && Object.prototype.hasOwnProperty.call(evento.endTimePorFecha, instancia.fecha))
+      ? evento.endTimePorFecha[instancia.fecha] : evento.endTime;
+    document.getElementById('eventoHoraTermino').value = horaTerminoOcurrencia || '';
+    document.getElementById('notaHoraTerminoOcurrencia').style.display = esRecurrente ? 'block' : 'none';
     document.getElementById('camposDuracionDetalle').style.display = hasDurationEventoSeleccionado ? 'block' : 'none';
     document.getElementById('zonaEliminarEvento').style.display = 'block';
     document.getElementById('botonOmitirFechaEvento').style.display = esRecurrente ? 'block' : 'none';
     document.getElementById('botonMoverSesionEvento').style.display = esRecurrente ? 'block' : 'none';
+    document.getElementById('botonCambiarSerieDesdeAqui').style.display = esRecurrente ? 'block' : 'none';
+    // La duración solo existe para categorías que no son Atenciones ni
+    // Análisis y Supervisión (ver actualizarCamposSegunEtiqueta), así
+    // que este botón solo aparece ahí, y solo si el evento se repite.
+    const permiteDuracion = etiquetaEventoSeleccionada !== 'atenciones' && etiquetaEventoSeleccionada !== 'analisis';
+    document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = (esRecurrente && permiteDuracion) ? 'block' : 'none';
     document.getElementById('botonEliminarEvento').textContent = esRecurrente ? 'Eliminar toda la serie' : 'Eliminar';
   }
 
@@ -4986,6 +5170,8 @@ async function guardarFichaEventoInterno(){
       const idIngreso = idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'consulta', consultaId: consultaGuardada.id }));
       const cambioEstado = estadoAnteriorConsulta !== estadoSesionEventoSeleccionado;
       const siguePagada = ESTADOS_QUE_GENERAN_INGRESO.includes(estadoSesionEventoSeleccionado);
+      if(siguePagada){ if(!consultaGuardada.fechaPago) consultaGuardada.fechaPago = hoyISO(); }
+      else{ consultaGuardada.fechaPago = null; }
       const cambioMontoEnPagada = siguePagada && montoAnteriorConsulta !== monto;
       // Solo se avisa a Ingresos si el estado cambió, o si sigue pagada
       // pero el monto se corrigió. Editar solo el nombre, por ejemplo,
@@ -5073,7 +5259,7 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
       diaSemana: recurrenciaEventoSeleccionada === 'mensual_personalizada' ? diaSemana : undefined,
       semanaDelMes: recurrenciaEventoSeleccionada === 'mensual_personalizada' ? semanaDelMesEventoSeleccionada : undefined,
       fechasExcluidas: [], estadoSesion: recurrenciaEventoSeleccionada === 'ninguna' ? estadoSesionEventoSeleccionado : null,
-      estadosPorFecha: {}, adultosPorFecha: {}, hasDuration, endDate, endTime, creado: Date.now(),
+      estadosPorFecha: {}, adultosPorFecha: {}, endTimePorFecha: {}, hasDuration, endDate, endTime, creado: Date.now(),
       pendienteSync:false, colaSync:[]
     };
     evento.colaSync.push({ accion:'crear_evento', datosBase: construirDatosEventoBase(evento) });
@@ -5094,8 +5280,10 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
       // "Cuántos días dura" es, igual que la fecha de inicio, una
       // propiedad de TODA la serie: si ya era recurrente, no se toca
       // desde la ficha de una fecha puntual (queda bloqueada en
-      // pantalla). endTime (la hora de término) sí es de la serie
-      // completa y se sigue actualizando siempre, como evento.hora.
+      // pantalla). La hora de término, en cambio, si el evento ya era
+      // recurrente, se guarda solo para ESTA ocurrencia puntual (en
+      // endTimePorFecha) y no pisa la hora de término de la serie —
+      // igual que estadoSesion/estadosPorFecha más abajo.
       if(recurrenciaEventoSeleccionada === 'mensual_personalizada'){ evento.diaSemana = diaSemana; evento.semanaDelMes = semanaDelMesEventoSeleccionada; }
       if(evento.recurrencia === 'ninguna'){
         estadoAnteriorEvento = evento.estadoSesion || null;
@@ -5108,8 +5296,17 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
         else delete evento.estadosPorFecha[fechaOcurrenciaEnEdicion];
         fechaOcurrenciaAfectada = fechaOcurrenciaEnEdicion;
       }
-      if(!eraRecurrente){ evento.hasDuration = hasDuration; evento.endDate = endDate; }
-      evento.endTime = endTime;
+      if(!eraRecurrente){
+        evento.hasDuration = hasDuration; evento.endDate = endDate; evento.endTime = endTime;
+      }else if(fechaOcurrenciaEnEdicion){
+        evento.endTimePorFecha = evento.endTimePorFecha || {};
+        if(endTime && endTime !== (evento.endTime || '')) evento.endTimePorFecha[fechaOcurrenciaEnEdicion] = endTime;
+        else delete evento.endTimePorFecha[fechaOcurrenciaEnEdicion];
+        // Se manda siempre (aunque quede vacío, para borrar un override
+        // anterior en la planilla) — mismo criterio que datos.fecha_fin
+        // en construirDatosEventoBase.
+        encolarActualizarHoraFinSesion(evento, fechaOcurrenciaEnEdicion, evento.endTimePorFecha[fechaOcurrenciaEnEdicion] || '');
+      }
       evento.colaSync = evento.colaSync || [];
       evento.colaSync.push({ accion:'editar_evento', datosBase: construirDatosEventoBase(evento) });
     }
@@ -5136,6 +5333,17 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
     const idIngreso = idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaClaveOrigen }));
     const siguePagada = ESTADOS_QUE_GENERAN_INGRESO.includes(estadoSesionEventoSeleccionado);
     if(montoInfo) montoInfo.formaPago = medioElegidoEvento || (ingresos.find(i => i.id === idIngreso) || {}).medioPago || '';
+    // Fecha en que se marcó pagada esta sesión puntual (distinta de la
+    // fecha de la sesión misma). Se fija la primera vez; si se
+    // desmarca y se vuelve a marcar más tarde, se renueva.
+    evento.marcadoPagadoPorFecha = evento.marcadoPagadoPorFecha || {};
+    if(siguePagada){ if(!evento.marcadoPagadoPorFecha[fechaClaveOrigen]) evento.marcadoPagadoPorFecha[fechaClaveOrigen] = hoyISO(); }
+    else{ delete evento.marcadoPagadoPorFecha[fechaClaveOrigen]; }
+    // Mismo nombre "Adulto; Paciente" que se ve en la Agenda para esta
+    // fecha puntual — así Ingresos y el Dashboard muestran quién
+    // acompañó la sesión, no solo el nombre del paciente. Se guarda
+    // así también en la planilla, para que sobreviva a un reinicio.
+    if(montoInfo) montoInfo.nombre = obtenerNombreEvento(evento, fechaClaveOrigen);
     // Los adultos presentes de esta sesión: si cambiaron, aunque el
     // estado de la sesión no haya cambiado, igual hay que avisar a la
     // planilla (si no, quedaría con el dato de adultos desactualizado).
@@ -5193,12 +5401,17 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
 function solicitarOmitirFecha(){
   document.getElementById('botonOmitirFechaEvento').style.display = 'none';
   document.getElementById('botonMoverSesionEvento').style.display = 'none';
+  document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'none';
+  document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = 'none';
   document.getElementById('botonEliminarEvento').style.display = 'none';
   document.getElementById('confirmacionOmitirFecha').style.display = 'block';
 }
 function cancelarOmitirFecha(){
   document.getElementById('botonOmitirFechaEvento').style.display = 'block';
   document.getElementById('botonMoverSesionEvento').style.display = 'block';
+  document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'block';
+  const permiteDuracion = etiquetaEventoSeleccionada !== 'atenciones' && etiquetaEventoSeleccionada !== 'analisis';
+  document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = permiteDuracion ? 'block' : 'none';
   document.getElementById('botonEliminarEvento').style.display = 'block';
   document.getElementById('confirmacionOmitirFecha').style.display = 'none';
 }
@@ -5234,21 +5447,46 @@ async function confirmarOmitirFecha(){
 let eventoEnMovimiento = null;
 let fechaOcurrenciaEnMovimiento = null;
 
-function abrirModalMoverSesion(){
+// moverModoGlobal: false = solo esta fecha (comportamiento de siempre,
+// crea un evento suelto). true = "Cambiar día de la serie desde
+// aquí": desde esta fecha en adelante, toda la serie pasa a repetirse
+// en el día/hora nuevos, SIN tocar ninguna repetición anterior (ni su
+// historial de estados, adultos o pagos). Por dentro no se reescribe
+// el ancla existente — eso correría el riesgo de correr también las
+// fechas ya pasadas, que ya ocurrieron tal como quedaron guardadas.
+// En vez de eso: se omiten en la serie vieja todas sus repeticiones
+// desde esta fecha en adelante (el mismo mecanismo de "Omitir esta
+// fecha", repetido para cada una) y se crea una serie NUEVA que
+// arranca en la fecha/hora elegidas, con la misma recurrencia,
+// paciente/nombre, etiqueta y duración.
+let moverModoGlobal = false;
+function abrirModalMoverSesion(esGlobal){
   const evento = eventosAgenda.find(x => x.id === eventoEnEdicionId);
   if(!evento || !fechaOcurrenciaEnEdicion) return;
   if(ESTADOS_QUE_GENERAN_INGRESO.includes(estadoSesionEventoSeleccionado)){
     mostrarAvisoFormulario('avisoFichaEvento', 'Esta sesión ya está pagada. Para moverla, primero quita el estado de pago, muévela y vuelve a marcarla en el nuevo día.', null);
     return;
   }
+  moverModoGlobal = !!esGlobal;
   eventoEnMovimiento = evento; fechaOcurrenciaEnMovimiento = fechaOcurrenciaEnEdicion;
   const esSesion = evento.etiqueta === 'atenciones';
-  document.getElementById('tituloModalMoverSesion').textContent = esSesion ? 'Mover esta sesión' : 'Mover este evento';
-  document.getElementById('botonConfirmarMoverSesion').textContent = esSesion ? 'Mover sesión' : 'Mover evento';
-  document.getElementById('etiquetaHoraMoverSesion').textContent = esSesion ? 'Nueva hora' : 'Nueva hora (opcional)';
-  document.getElementById('notaModalMoverSesion').textContent = esSesion
-    ? 'Esta fecha se quitará de la serie recurrente (igual que "Omitir esta fecha") y se creará como una atención suelta en el nuevo día. Las demás repeticiones de la serie no se ven afectadas.'
-    : 'Este día se quitará de la serie (igual que "Omitir esta fecha") y el evento se creará suelto en el nuevo día. Las demás repeticiones no se ven afectadas.';
+  const notaGlobal = document.getElementById('notaCambioGlobalSerie');
+  if(moverModoGlobal){
+    document.getElementById('tituloModalMoverSesion').textContent = esSesion ? 'Cambiar día de la serie' : 'Cambiar día del evento recurrente';
+    document.getElementById('botonConfirmarMoverSesion').textContent = 'Cambiar desde aquí';
+    document.getElementById('etiquetaHoraMoverSesion').textContent = esSesion ? 'Nueva hora' : 'Nueva hora (opcional)';
+    document.getElementById('notaModalMoverSesion').textContent = `Desde el ${fechaOcurrenciaEnEdicion} en adelante, toda la serie pasa a repetirse en el nuevo día y hora. Las repeticiones anteriores a esa fecha no cambian.`;
+    notaGlobal.style.display = 'block';
+    notaGlobal.textContent = 'Esto no toca ninguna repetición ya pasada: su fecha, su estado y quién asistió quedan exactamente igual que ahora.';
+  }else{
+    document.getElementById('tituloModalMoverSesion').textContent = esSesion ? 'Mover esta sesión' : 'Mover este evento';
+    document.getElementById('botonConfirmarMoverSesion').textContent = esSesion ? 'Mover sesión' : 'Mover evento';
+    document.getElementById('etiquetaHoraMoverSesion').textContent = esSesion ? 'Nueva hora' : 'Nueva hora (opcional)';
+    document.getElementById('notaModalMoverSesion').textContent = esSesion
+      ? 'Esta fecha se quitará de la serie recurrente (igual que "Omitir esta fecha") y se creará como una atención suelta en el nuevo día. Las demás repeticiones de la serie no se ven afectadas.'
+      : 'Este día se quitará de la serie (igual que "Omitir esta fecha") y el evento se creará suelto en el nuevo día. Las demás repeticiones no se ven afectadas.';
+    notaGlobal.style.display = 'none';
+  }
   document.getElementById('textoInfoMoverSesion').textContent = `${obtenerNombreEvento(evento, fechaOcurrenciaEnEdicion)} · actualmente el ${fechaOcurrenciaEnEdicion}`;
   document.getElementById('moverSesionFecha').value = '';
   document.getElementById('moverSesionHora').value = evento.hora || '';
@@ -5257,7 +5495,7 @@ function abrirModalMoverSesion(){
 }
 function cerrarModalMoverSesion(){
   document.getElementById('fondoModalMoverSesion').classList.remove('abierto');
-  eventoEnMovimiento = null; fechaOcurrenciaEnMovimiento = null;
+  eventoEnMovimiento = null; fechaOcurrenciaEnMovimiento = null; moverModoGlobal = false;
 }
 async function guardarMoverSesion(){
   if(!eventoEnMovimiento || !fechaOcurrenciaEnMovimiento) return;
@@ -5267,6 +5505,8 @@ async function guardarMoverSesion(){
   if(!nuevaFecha){ mostrarAvisoFormulario('avisoMoverSesion', 'Falta la nueva fecha.', 'moverSesionFecha'); return; }
   const horaObligatoria = eventoEnMovimiento.etiqueta === 'atenciones';
   if((horaObligatoria || nuevaHora) && !horaEsValida(nuevaHora)){ mostrarAvisoFormulario('avisoMoverSesion', 'Falta la hora o está incompleta. Usa el formato 24 horas, por ejemplo 09:30.', 'moverSesionHora'); return; }
+
+  if(moverModoGlobal){ await confirmarCambioSerieDesdeAqui(nuevaFecha, nuevaHora); return; }
 
   const evento = eventoEnMovimiento;
   const fechaVieja = fechaOcurrenciaEnMovimiento;
@@ -5291,7 +5531,7 @@ async function guardarMoverSesion(){
     id: generarIdEvento(), etiqueta: evento.etiqueta, nombre: evento.nombre, pacienteId: evento.pacienteId,
     fecha: nuevaFecha, hora: nuevaHora, recurrencia: 'ninguna',
     fechasExcluidas: [], estadoSesion: estadoAMover || null,
-    estadosPorFecha: {}, creado: Date.now(),
+    estadosPorFecha: {}, adultosPorFecha: {}, marcadoPagadoPorFecha: {}, creado: Date.now(),
     // Un evento de varios días conserva su duración en el nuevo día.
     hasDuration: !!(evento.hasDuration && evento.endDate && evento.endDate !== evento.fecha),
     endDate: (evento.hasDuration && evento.endDate && evento.endDate !== evento.fecha) ? (() => { const f = fechaDesdeISO(nuevaFecha); f.setDate(f.getDate() + diasEntreFechas(evento.fecha, evento.endDate)); return formatoISO(f); })() : '',
@@ -5311,11 +5551,161 @@ async function guardarMoverSesion(){
   procesarColaEntidadAgenda(evento, guardarEventosEnAlmacenamiento);
   procesarColaEntidadAgenda(nuevoEvento, guardarEventosEnAlmacenamiento);
 }
+// "Cambiar día de la serie desde aquí": corta la serie vieja justo
+// antes de fechaOcurrenciaEnMovimiento (omitiendo todas sus
+// repeticiones futuras, calculadas con el mismo motor que dibuja la
+// Agenda) y arranca una serie nueva, con la misma recurrencia,
+// paciente/nombre/etiqueta y duración, en la fecha y hora elegidas.
+async function confirmarCambioSerieDesdeAqui(nuevaFecha, nuevaHora){
+  const evento = eventoEnMovimiento;
+  const fechaCorte = fechaOcurrenciaEnMovimiento;
+
+  // 1) Repeticiones futuras (desde fechaCorte, calculadas hasta el
+  // horizonte de la propia recurrencia) de la serie vieja: se omiten
+  // todas, una por una, igual que "Omitir esta fecha".
+  const futuras = generarOcurrencias(evento, fechaCorte, rangoAnalisisFin());
+  evento.fechasExcluidas = evento.fechasExcluidas || [];
+  evento.colaSync = evento.colaSync || [];
+  futuras.forEach(f => {
+    if(!evento.fechasExcluidas.includes(f)){
+      evento.fechasExcluidas.push(f);
+      evento.colaSync.push({ accion:'omitir_fecha_evento', datosBase: { id_evento: evento.id, fecha_omitida: f } });
+    }
+  });
+
+  // 2) Serie nueva: mismo tipo de recurrencia (y, si es mensual
+  // personalizada, el mismo N-ésimo día de la semana), arrancando en
+  // la fecha/hora nuevas.
+  const nuevoEvento = {
+    id: generarIdEvento(), etiqueta: evento.etiqueta, nombre: evento.nombre, pacienteId: evento.pacienteId,
+    fecha: nuevaFecha, hora: nuevaHora || evento.hora, recurrencia: evento.recurrencia,
+    diaSemana: evento.diaSemana, semanaDelMes: evento.semanaDelMes,
+    fechasExcluidas: [], estadoSesion: null, estadosPorFecha: {}, adultosPorFecha: {}, marcadoPagadoPorFecha: {},
+    hasDuration: evento.hasDuration, endTime: evento.hasDuration ? (evento.endTime || '') : '',
+    endDate: (evento.hasDuration && evento.endDate && evento.endDate !== evento.fecha) ? nuevaFecha : '',
+    creado: Date.now(), pendienteSync:false, colaSync:[]
+  };
+  nuevoEvento.colaSync.push({ accion:'crear_evento', datosBase: construirDatosEventoBase(nuevoEvento) });
+  eventosAgenda.push(nuevoEvento);
+
+  cerrarModalMoverSesion(); cerrarFichaEvento(); rerenderizarVistaAgendaActual();
+  await guardarEventosEnAlmacenamiento();
+  procesarColaEntidadAgenda(evento, guardarEventosEnAlmacenamiento);
+  procesarColaEntidadAgenda(nuevoEvento, guardarEventosEnAlmacenamiento);
+}
+
+// ============================================================
+// CAMBIAR DURACIÓN DE LA SERIE DESDE AQUÍ
+//
+// Mismo mecanismo de "cortar la serie" que confirmarCambioSerieDesdeAqui
+// (arriba): se omiten todas las repeticiones futuras de la serie
+// vieja desde esta fecha, y se crea una serie nueva que arranca acá,
+// con el mismo día/hora/recurrencia/paciente/etiqueta, pero con la
+// duración (hasDuration/endDate/endTime) que se elija en el modal.
+// A diferencia de "Cambiar día de la serie", acá el día y la hora NO
+// cambian — solo la duración, y solo para etiquetas donde la
+// duración existe (no Atenciones ni Análisis y Supervisión).
+// ============================================================
+let eventoEnCambioDuracionSerie = null;
+let fechaOcurrenciaEnCambioDuracionSerie = null;
+let hasDurationSerieNuevaSeleccionado = false;
+
+function abrirModalCambiarDuracionSerie(){
+  const evento = eventosAgenda.find(x => x.id === eventoEnEdicionId);
+  if(!evento || !fechaOcurrenciaEnEdicion) return;
+  eventoEnCambioDuracionSerie = evento; fechaOcurrenciaEnCambioDuracionSerie = fechaOcurrenciaEnEdicion;
+  hasDurationSerieNuevaSeleccionado = evento.hasDuration || false;
+  document.getElementById('textoInfoCambiarDuracionSerie').textContent = `${obtenerNombreEvento(evento, fechaOcurrenciaEnEdicion)} · desde el ${fechaOcurrenciaEnEdicion}`;
+  // Se parte mostrando la duración que tiene HOY la serie (días +
+  // hora de término), como punto de partida para ajustarla, no vacío.
+  const diasActuales = duracionEnDiasDeSerie(evento);
+  document.getElementById('duracionSerieNuevaFechaTermino').value = diasActuales > 0
+    ? fechaTerminoParaOcurrencia(evento, fechaOcurrenciaEnEdicion)
+    : fechaOcurrenciaEnEdicion;
+  document.getElementById('duracionSerieNuevaHoraTermino').value = evento.endTime || '';
+  pintarSegmentadoDuracionSerieNueva();
+  document.getElementById('camposDuracionSerieNuevaDetalle').style.display = hasDurationSerieNuevaSeleccionado ? 'block' : 'none';
+  ocultarAvisoFormulario('avisoCambiarDuracionSerie');
+  document.getElementById('fondoModalCambiarDuracionSerie').classList.add('abierto');
+}
+function cerrarModalCambiarDuracionSerie(){
+  document.getElementById('fondoModalCambiarDuracionSerie').classList.remove('abierto');
+  eventoEnCambioDuracionSerie = null; fechaOcurrenciaEnCambioDuracionSerie = null;
+}
+function pintarSegmentadoDuracionSerieNueva(){
+  const c = document.getElementById('segmentadoDuracionSerieNueva'); c.innerHTML = '';
+  [{valor:false,nombre:'Sin duración'},{valor:true,nombre:'Con duración'}].forEach(op => {
+    const b = document.createElement('button');
+    b.className = hasDurationSerieNuevaSeleccionado === op.valor ? 'seleccionado' : '';
+    b.textContent = op.nombre;
+    b.onclick = () => {
+      hasDurationSerieNuevaSeleccionado = op.valor;
+      pintarSegmentadoDuracionSerieNueva();
+      document.getElementById('camposDuracionSerieNuevaDetalle').style.display = hasDurationSerieNuevaSeleccionado ? 'block' : 'none';
+      if(hasDurationSerieNuevaSeleccionado && !document.getElementById('duracionSerieNuevaFechaTermino').value){
+        document.getElementById('duracionSerieNuevaFechaTermino').value = fechaOcurrenciaEnCambioDuracionSerie;
+      }
+    };
+    c.appendChild(b);
+  });
+}
+async function confirmarCambiarDuracionSerie(){
+  if(!eventoEnCambioDuracionSerie || !fechaOcurrenciaEnCambioDuracionSerie) return;
+  ocultarAvisoFormulario('avisoCambiarDuracionSerie');
+  let endDateNueva = '', endTimeNueva = '';
+  if(hasDurationSerieNuevaSeleccionado){
+    endDateNueva = document.getElementById('duracionSerieNuevaFechaTermino').value || fechaOcurrenciaEnCambioDuracionSerie;
+    if(endDateNueva < fechaOcurrenciaEnCambioDuracionSerie){
+      mostrarAvisoFormulario('avisoCambiarDuracionSerie', 'La fecha de término no puede ser anterior a esta fecha.', 'duracionSerieNuevaFechaTermino');
+      return;
+    }
+    const horaTerminoTexto = document.getElementById('duracionSerieNuevaHoraTermino').value;
+    if(horaTerminoTexto && !horaEsValida(horaTerminoTexto)){
+      mostrarAvisoFormulario('avisoCambiarDuracionSerie', 'La hora de término está incompleta. Usa el formato 24 horas, por ejemplo 18:00.', 'duracionSerieNuevaHoraTermino');
+      return;
+    }
+    endTimeNueva = horaTerminoTexto || '';
+  }
+
+  const evento = eventoEnCambioDuracionSerie;
+  const fechaCorte = fechaOcurrenciaEnCambioDuracionSerie;
+
+  // 1) Repeticiones futuras de la serie vieja (desde fechaCorte): se
+  // omiten todas, una por una — igual que "Cambiar día de la serie".
+  const futuras = generarOcurrencias(evento, fechaCorte, rangoAnalisisFin());
+  evento.fechasExcluidas = evento.fechasExcluidas || [];
+  evento.colaSync = evento.colaSync || [];
+  futuras.forEach(f => {
+    if(!evento.fechasExcluidas.includes(f)){
+      evento.fechasExcluidas.push(f);
+      evento.colaSync.push({ accion:'omitir_fecha_evento', datosBase: { id_evento: evento.id, fecha_omitida: f } });
+    }
+  });
+
+  // 2) Serie nueva: mismo día, hora y recurrencia — solo cambia la duración.
+  const nuevoEvento = {
+    id: generarIdEvento(), etiqueta: evento.etiqueta, nombre: evento.nombre, pacienteId: evento.pacienteId,
+    fecha: fechaCorte, hora: evento.hora, recurrencia: evento.recurrencia,
+    diaSemana: evento.diaSemana, semanaDelMes: evento.semanaDelMes,
+    fechasExcluidas: [], estadoSesion: null, estadosPorFecha: {}, adultosPorFecha: {}, endTimePorFecha: {},
+    hasDuration: hasDurationSerieNuevaSeleccionado, endDate: endDateNueva, endTime: endTimeNueva,
+    creado: Date.now(), pendienteSync:false, colaSync:[]
+  };
+  nuevoEvento.colaSync.push({ accion:'crear_evento', datosBase: construirDatosEventoBase(nuevoEvento) });
+  eventosAgenda.push(nuevoEvento);
+
+  cerrarModalCambiarDuracionSerie(); cerrarFichaEvento(); rerenderizarVistaAgendaActual();
+  await guardarEventosEnAlmacenamiento();
+  procesarColaEntidadAgenda(evento, guardarEventosEnAlmacenamiento);
+  procesarColaEntidadAgenda(nuevoEvento, guardarEventosEnAlmacenamiento);
+}
 
 function solicitarEliminarEvento(){
   document.getElementById('botonEliminarEvento').style.display = 'none';
   document.getElementById('botonOmitirFechaEvento').style.display = 'none';
   document.getElementById('botonMoverSesionEvento').style.display = 'none';
+  document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'none';
+  document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = 'none';
   const eventoActual = eventoEnEdicionId !== null ? eventosAgenda.find(x => x.id === eventoEnEdicionId) : null;
   const esSerie = eventoActual && eventoActual.recurrencia !== 'ninguna';
   document.getElementById('textoConfirmacionEliminarEvento').textContent = esSerie
@@ -5329,6 +5719,9 @@ function cancelarEliminarEvento(){
   if(evento && evento.recurrencia !== 'ninguna'){
     document.getElementById('botonOmitirFechaEvento').style.display = 'block';
     document.getElementById('botonMoverSesionEvento').style.display = 'block';
+    document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'block';
+    const permiteDuracion = evento.etiqueta !== 'atenciones' && evento.etiqueta !== 'analisis';
+    document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = permiteDuracion ? 'block' : 'none';
   }
   document.getElementById('confirmacionEliminarEvento').style.display = 'none';
 }
@@ -5720,6 +6113,18 @@ function calcularNeto(montoBruto, esEntreLazos){
   monto = monto * (1 - (configuracion.porcentajeImpuesto/100));
   return Math.round(monto);
 }
+// Fecha en que la sesión quedó marcada como pagada (distinta de la
+// fecha de la sesión misma: un paciente puede pagar días o semanas
+// después). Se guarda una sola vez, la primera vez que la sesión
+// queda pagada; si se desmarca y se vuelve a marcar, se renueva.
+function obtenerFechaPagoInstancia(inst){
+  if(inst.tipoInstancia === 'consulta'){
+    const c = consultasUnicas.find(x => x.id === inst.consultaId);
+    return (c && c.fechaPago) || null;
+  }
+  const evento = eventosAgenda.find(e => e.id === inst.eventoId);
+  return (evento && evento.marcadoPagadoPorFecha && evento.marcadoPagadoPorFecha[inst.fecha]) || null;
+}
 function clasificarInstanciaIngreso(inst){
   if(inst.tipoInstancia === 'consulta'){
     const c = consultasUnicas.find(x => x.id === inst.consultaId); if(!c) return null;
@@ -5731,8 +6136,12 @@ function clasificarInstanciaIngreso(inst){
   const evento = eventosAgenda.find(e => e.id === inst.eventoId); if(!evento || !evento.pacienteId) return null;
   const paciente = pacientes.find(p => p.id === evento.pacienteId); if(!paciente) return null;
   const montoBruto = paciente.tipoPago === 'fonasa' ? obtenerMontoFonasaSegunCanal(paciente.canal) : paciente.montoHabitual;
-  if(paciente.canal === 'entrelazos') return { tipo:'entrelazos', montoBruto, esEntreLazos:true, nombre: paciente.nombreCompleto };
-  return { tipo: (paciente.tipoPago === 'fonasa' ? 'fonasa_directo' : 'particular'), montoBruto, esEntreLazos:false, nombre: paciente.nombreCompleto };
+  // Mismo nombre que se ve en la Agenda para esta fecha puntual: si se
+  // marcó con qué adulto responsable fue la sesión, aparece "Adulto;
+  // Paciente" también acá, no solo el nombre del paciente.
+  const nombreMostrado = obtenerNombreEvento(evento, inst.fecha);
+  if(paciente.canal === 'entrelazos') return { tipo:'entrelazos', montoBruto, esEntreLazos:true, nombre: nombreMostrado };
+  return { tipo: (paciente.tipoPago === 'fonasa' ? 'fonasa_directo' : 'particular'), montoBruto, esEntreLazos:false, nombre: nombreMostrado };
 }
 function obtenerSesionesPagadasHastaHoy(){
   // Sin tope superior de fecha a propósito: una sesión puede marcarse
@@ -5833,7 +6242,7 @@ function obtenerPendientesEntreLazos(){
   obtenerSesionesPagadasHastaHoy().forEach(inst => {
     const clave = obtenerClaveOrigen(inst); if(ya.has(clave)) return;
     const info = clasificarInstanciaIngreso(inst); if(!info || !info.esEntreLazos) return;
-    res.push({ instancia: inst, clave, info });
+    res.push({ instancia: inst, clave, info, fechaPago: obtenerFechaPagoInstancia(inst) });
   });
   return res;
 }
@@ -5856,27 +6265,49 @@ let confirmandoBoleta = false;
 function solicitarConfirmacionBoleta(){ confirmandoBoleta = true; renderizarVistaIngresos(); }
 function cancelarConfirmacionBoleta(){ confirmandoBoleta = false; renderizarVistaIngresos(); }
 async function generarBoletaEntreLazos(){
-  const pend = obtenerPendientesEntreLazos(); if(pend.length === 0){ confirmandoBoleta = false; renderizarVistaIngresos(); return; }
+  const todasPendientes = obtenerPendientesEntreLazos();
+  const pend = todasPendientes.filter(p => seleccionBoletaEL.has(p.clave));
+  if(pend.length === 0){ confirmandoBoleta = false; renderizarVistaIngresos(); return; }
+  const fechaEmision = hoyISO();
   const totalBruto = pend.reduce((a,p) => a + p.info.montoBruto, 0);
-  const totalNeto = calcularNeto(totalBruto, true);
-  const descripcionBoleta = `Boleta Entre Lazos (${pend.length} ${pend.length===1?'sesión':'sesiones'})`;
-  const nuevaBoleta = { id: generarId(), tipo:'entrelazos', origenClave: null, sesionesIncluidas: pend.map(p => p.clave), fecha: hoyISO(), montoBruto: totalBruto, montoNeto: totalNeto, medioPago:'transferencia', descripcion: descripcionBoleta, creado: Date.now() };
-  ingresos.push(nuevaBoleta);
+  const totalNeto = pend.reduce((a,p) => a + calcularNeto(p.info.montoBruto, true), 0);
+  // Un movimiento POR SESIÓN (con su propio paciente/adulto y fecha),
+  // no un solo bloque combinado: así "Movimientos del mes" muestra el
+  // detalle de quién es cada una, en vez de "Boleta Entre Lazos (N)".
+  // El id sale de la misma clave de la sesión (determinista), así un
+  // reintento no la duplica.
+  pend.forEach(p => {
+    const idIngresoEL = idIngresoDeterministico(p.clave);
+    const montoNetoSesion = calcularNeto(p.info.montoBruto, true);
+    ingresos.push({ id: idIngresoEL, tipo:'entrelazos', origenClave: p.clave, fecha: p.instancia.fecha, montoBruto: p.info.montoBruto, montoNeto: montoNetoSesion, medioPago:'transferencia', descripcion: p.info.nombre, creado: Date.now() });
+  });
   // La memoria persistente se actualiza en el mismo momento, para que
   // estas sesiones no reaparezcan como pendientes aunque después se
   // pierda o se recupere la lista de ingresos.
-  agregarClavesFacturadas(nuevaBoleta.sesionesIncluidas);
+  agregarClavesFacturadas(pend.map(p => p.clave));
   await guardarClavesFacturadas();
+  [...seleccionBoletaEL].forEach(c => { if(pend.some(p => p.clave === c)) seleccionBoletaEL.delete(c); });
   confirmandoBoleta = false; await guardarIngresosEnAlmacenamiento(); renderizarVistaIngresos();
+  // La boleta en sí (un documento, con todas las sesiones que incluye)
+  // sigue siendo UN registro en la pestaña BoletasEntreLazos — eso no
+  // cambia, es el respaldo de qué se facturó y cuándo.
   await encolarAccionIngreso('generar_boleta_entrelazos', {
-    mes_correspondiente: hoyISO().slice(0,7),
+    mes_correspondiente: fechaEmision.slice(0,7),
     ids_eventos_incluidos: pend.map(p => p.clave),
     monto_bruto_total: totalBruto,
     monto_neto_total: totalNeto,
-    fecha_emision: hoyISO()
+    fecha_emision: fechaEmision
   });
-  await encolarAccionIngreso('crear_ingreso_manual', { id_ingreso: nuevaBoleta.id, categoria_manual: 'entrelazos', descripcion: descripcionBoleta, monto_bruto: totalBruto, monto_neto: totalNeto, forma_pago: 'transferencia', fecha_evento: nuevaBoleta.fecha });
+  // Y un ingreso por sesión, también hacia la planilla.
+  pend.forEach(p => {
+    const idIngresoEL = idIngresoDeterministico(p.clave);
+    const montoNetoSesion = calcularNeto(p.info.montoBruto, true);
+    encolarAccionIngreso('crear_ingreso_manual', { id_ingreso: idIngresoEL, categoria_manual: 'entrelazos', descripcion: p.info.nombre, monto_bruto: p.info.montoBruto, monto_neto: montoNetoSesion, forma_pago: 'transferencia', fecha_evento: p.instancia.fecha });
+  });
 }
+
+// ============================================================
+// SINCRONIZACIÓN CON GOOGLE SHEETS (Módulo B — Ingresos)
 
 // ============================================================
 // SINCRONIZACIÓN CON GOOGLE SHEETS (Módulo B — Ingresos)
@@ -5976,6 +6407,76 @@ function alternarDesplegarPendientesBoleta(){ desplegarPendientesBoleta = !despl
 let mostrarTodosIngresosMes = false;
 function alternarVerTodosIngresosMes(){ mostrarTodosIngresosMes = !mostrarTodosIngresosMes; renderizarVistaIngresos(); }
 
+// Filtro de "Movimientos del mes": fechas (dentro del mes que se está
+// mirando), orígenes (multi-selección) y medio de pago. Vive fuera del
+// mes: se mantiene si cambias de mes, hasta que lo quites a mano.
+let filtroMovimientos = { desde:'', hasta:'', origenes: new Set(Object.keys(NOMBRES_FUENTE_INGRESO)), medioPago:'todos' };
+function filtroMovActivo(){
+  const f = filtroMovimientos;
+  return !!f.desde || !!f.hasta || f.origenes.size < Object.keys(NOMBRES_FUENTE_INGRESO).length || f.medioPago !== 'todos';
+}
+function abrirFiltroMovimientos(){
+  document.getElementById('filtroMovDesde').value = filtroMovimientos.desde;
+  document.getElementById('filtroMovHasta').value = filtroMovimientos.hasta;
+  pintarChipsFiltroOrigen(); pintarSegmentadoFiltroMedioPago();
+  document.getElementById('fondoModalFiltroMov').classList.add('abierto');
+}
+function cerrarFiltroMovimientos(){ document.getElementById('fondoModalFiltroMov').classList.remove('abierto'); }
+function pintarChipsFiltroOrigen(){
+  const c = document.getElementById('chipsFiltroOrigen'); c.innerHTML = '';
+  Object.keys(NOMBRES_FUENTE_INGRESO).forEach(k => {
+    const b = document.createElement('button');
+    b.className = 'chip-filtro-origen' + (filtroMovimientos.origenes.has(k) ? ' seleccionado' : '');
+    b.textContent = NOMBRES_FUENTE_INGRESO[k];
+    b.onclick = () => {
+      if(filtroMovimientos.origenes.has(k)) filtroMovimientos.origenes.delete(k); else filtroMovimientos.origenes.add(k);
+      pintarChipsFiltroOrigen();
+    };
+    c.appendChild(b);
+  });
+}
+function pintarSegmentadoFiltroMedioPago(){
+  const c = document.getElementById('segmentadoFiltroMedioPago'); c.innerHTML = '';
+  [['todos','Todos'],['efectivo','Efectivo'],['transferencia','Transferencia']].forEach(([valor,nombre]) => {
+    const b = document.createElement('button');
+    b.className = filtroMovimientos.medioPago === valor ? 'seleccionado' : '';
+    b.textContent = nombre;
+    b.onclick = () => { filtroMovimientos.medioPago = valor; pintarSegmentadoFiltroMedioPago(); };
+    c.appendChild(b);
+  });
+}
+function aplicarFiltroMovimientos(){
+  filtroMovimientos.desde = document.getElementById('filtroMovDesde').value || '';
+  filtroMovimientos.hasta = document.getElementById('filtroMovHasta').value || '';
+  cerrarFiltroMovimientos();
+  mostrarTodosIngresosMes = true; // si hay filtro, conviene ver el resultado desplegado
+  renderizarVistaIngresos();
+}
+function limpiarFiltroMovimientos(){
+  filtroMovimientos = { desde:'', hasta:'', origenes: new Set(Object.keys(NOMBRES_FUENTE_INGRESO)), medioPago:'todos' };
+  cerrarFiltroMovimientos();
+  renderizarVistaIngresos();
+}
+
+// Sesiones marcadas para incluir en la próxima boleta Entre Lazos.
+// Por defecto se marcan todas las pendientes (así "Generar boleta"
+// sigue facturando todo, como antes, salvo que se destilde alguna).
+// "clavesBoletaVistas" distingue una sesión pendiente NUEVA (se marca
+// sola la primera vez que aparece) de una que el usuario ya destildó
+// a propósito (no se le vuelve a marcar sola en el siguiente dibujo).
+let seleccionBoletaEL = new Set();
+let clavesBoletaVistas = new Set();
+function sincronizarSeleccionBoletaEL(pendientes){
+  const claves = new Set(pendientes.map(p => p.clave));
+  claves.forEach(c => { if(!clavesBoletaVistas.has(c)){ clavesBoletaVistas.add(c); seleccionBoletaEL.add(c); } });
+  [...seleccionBoletaEL].forEach(c => { if(!claves.has(c)) seleccionBoletaEL.delete(c); });
+  [...clavesBoletaVistas].forEach(c => { if(!claves.has(c)) clavesBoletaVistas.delete(c); });
+}
+function alternarSeleccionBoletaEL(clave){
+  if(seleccionBoletaEL.has(clave)) seleccionBoletaEL.delete(clave); else seleccionBoletaEL.add(clave);
+  renderizarVistaIngresos();
+}
+
 async function renderizarVistaIngresos(){
   document.getElementById('tituloMesIngresos').textContent = `${NOMBRES_MES[mesIngresosMostrado]} ${anioIngresosMostrado}`;
 
@@ -5996,9 +6497,18 @@ async function renderizarVistaIngresos(){
       <span class="monto monto-fuente">${textoMontoOculto(totales[k]||0, vIngTotal)}</span>
     </div>`).join('');
 
-  // Sesiones devengadas del mes que se está mirando (las de meses
-  // anteriores aparecen al volver a ese mes con las flechas).
-  const pendientesPago = obtenerPendientesPago().filter(i => i.fecha >= inicioMes && i.fecha <= finMes);
+  // En el mes ACTUAL (el de hoy), las sesiones devengadas de cualquier
+  // mes anterior también se muestran acá (no solo las de este mes),
+  // para que nunca quede una pendiente escondida en un mes que ya no
+  // se está mirando. Al volver a un mes pasado con las flechas, ese
+  // mes vuelve a mostrar solo lo suyo.
+  const esMesActualIngresos = mesIngresosMostrado === new Date().getMonth() && anioIngresosMostrado === new Date().getFullYear();
+  // Fuera del mes actual, estas dos tarjetas no aportan nada (un mes ya
+  // cerrado siempre queda en 0, porque lo pendiente de verdad se ve en
+  // el mes actual gracias al punto anterior), así que se ocultan enteras.
+  document.getElementById('tarjetaRecibir').style.display = esMesActualIngresos ? 'block' : 'none';
+  document.getElementById('tarjetaLazos').style.display = esMesActualIngresos ? 'block' : 'none';
+  const pendientesPago = esMesActualIngresos ? obtenerPendientesPago() : obtenerPendientesPago().filter(i => i.fecha >= inicioMes && i.fecha <= finMes);
   pintarBotonOjo('botonOjoIngRecibir', vIngRecibir);
   const totalRecibir = pendientesPago.reduce((a,i)=>a+i.montoBruto,0);
   document.getElementById('recibirTotalMonto').textContent = textoMontoOculto(totalRecibir, vIngRecibir);
@@ -6031,6 +6541,7 @@ async function renderizarVistaIngresos(){
   // pendientes de boleta, sin agrupar por mes (se van sumando desde la
   // última boleta generada, sin importar cuándo caiga cada sesión).
   const pendientesEL = obtenerPendientesEntreLazos();
+  sincronizarSeleccionBoletaEL(pendientesEL);
   const tarjetaLazos = document.getElementById('tarjetaLazos');
   pintarBotonOjo('botonOjoIngLazos', vIngLazos);
   const totalBrutoEL = pendientesEL.reduce((a,p)=>a+p.info.montoBruto,0);
@@ -6045,57 +6556,82 @@ async function renderizarVistaIngresos(){
     botonBoleta.style.display = 'block';
     botonBoleta.textContent = desplegarPendientesBoleta ? 'Ocultar detalle' : `Ver detalle (${pendientesEL.length})`;
     seccionBoleta.style.display = desplegarPendientesBoleta ? 'block' : 'none';
+    const seleccionados = pendientesEL.filter(p => seleccionBoletaEL.has(p.clave));
+    const totalSeleccionado = seleccionados.reduce((a,p) => a + p.info.montoBruto, 0);
     const listaSesionesEL = pendientesEL.map(p => `
       <div class="fila-pendiente-pago">
-        <div class="fila-top">
-          <span class="nombre">${escaparHTML(p.info.nombre || '')}</span>
+        <div class="fila-top-lazos">
+          <label style="position:relative; display:flex; touch-action:manipulation;">
+            <input type="checkbox" class="check-lazos" ${seleccionBoletaEL.has(p.clave) ? 'checked' : ''} onchange="alternarSeleccionBoletaEL('${p.clave}')">
+            <span class="casilla-lazos" aria-hidden="true"></span>
+          </label>
+          <span class="nombre" style="flex:1;">${escaparHTML(p.info.nombre || '')}</span>
           <span class="monto monto-fuente">${textoMontoOculto(p.info.montoBruto, vIngLazos)}</span>
         </div>
         <div class="fila-bottom">
-          <span class="fecha">${formatearFechaMovimiento(p.instancia.fecha)}</span>
+          <div class="fechas-lazos">
+            <span class="fecha">Sesión: ${formatearFechaMovimiento(p.instancia.fecha)}</span>
+            <span class="fecha">Pago: ${p.fechaPago ? formatearFechaMovimiento(p.fechaPago) : '—'}</span>
+          </div>
         </div>
       </div>
     `).join('');
     seccionBoleta.innerHTML = listaSesionesEL + (confirmandoBoleta ? `
-      <div class="nota-campo" style="margin:8px 0;">Se generará una boleta por este total, fechada hoy.</div>
+      <div class="nota-campo" style="margin:8px 0;">Se generará una boleta por ${seleccionados.length} ${seleccionados.length===1?'sesión':'sesiones'} (${textoMontoOculto(totalSeleccionado, vIngLazos)}), fechada hoy. Las sesiones sin marcar siguen pendientes.</div>
       <div class="fila-confirmacion">
         <button class="boton-confirmar-no" onclick="cancelarConfirmacionBoleta()">Cancelar</button>
         <button class="boton-confirmar-si" onclick="generarBoletaEntreLazos()">Sí, generar</button>
       </div>
-    ` : `<button class="boton-generar-boleta" onclick="solicitarConfirmacionBoleta()">Generar boleta</button>`);
+    ` : `<button class="boton-generar-boleta" onclick="solicitarConfirmacionBoleta()" ${seleccionados.length === 0 ? 'disabled' : ''}>Generar boleta${seleccionados.length ? ` (${seleccionados.length})` : ''}</button>`);
   }
 
-  // Movimientos del mes
+  // Movimientos del mes: mismo patrón que Sesiones devengadas y Entre
+  // Lazos — oculto por defecto, y al desplegar se ven TODOS (ya no 5
+  // y luego "ver todos"). El filtro se aplica sobre delMes (que ya
+  // está acotado al mes que se está mirando).
   pintarBotonOjo('botonOjoIngMov', vIngMov);
-  document.getElementById('conteoMovimientos').textContent = delMes.length;
+  const filtroActivo = filtroMovActivo();
+  document.getElementById('botonFiltroMov').classList.toggle('activo', filtroActivo);
+  document.getElementById('puntitoFiltroMov').style.display = filtroActivo ? 'block' : 'none';
+  const delMesFiltrado = delMes.filter(i =>
+    (!filtroMovimientos.desde || i.fecha >= filtroMovimientos.desde) &&
+    (!filtroMovimientos.hasta || i.fecha <= filtroMovimientos.hasta) &&
+    filtroMovimientos.origenes.has(i.tipo) &&
+    (filtroMovimientos.medioPago === 'todos' || i.medioPago === filtroMovimientos.medioPago)
+  );
+  const totalMovimientosBruto = delMesFiltrado.reduce((a,i) => a + (i.montoBruto||0), 0);
+  document.getElementById('movimientosMontoTotal').textContent = textoMontoOculto(totalMovimientosBruto, vIngMov);
+  document.getElementById('movimientosNota').textContent = delMesFiltrado.length === 0
+    ? (filtroActivo ? 'Ningún movimiento coincide con el filtro.' : 'No hay ingresos registrados este mes.')
+    : `${delMesFiltrado.length} ${delMesFiltrado.length===1?'movimiento':'movimientos'}${filtroActivo ? ' (filtrado)' : ''} · montos sin descuento`;
   const lista = document.getElementById('listaIngresosMes');
   const botonVerTodosMov = document.getElementById('botonVerTodosIngresosMes');
-  if(delMes.length === 0){
-    lista.innerHTML = '<div class="vacio" style="padding:24px;">No hay ingresos registrados este mes.</div>';
-    botonVerTodosMov.style.display = 'none';
-  }
-  else{
+  if(delMesFiltrado.length === 0){
+    botonVerTodosMov.style.display = filtroActivo ? 'none' : 'none';
+    lista.style.display = 'none'; lista.innerHTML = '';
+  }else{
+    botonVerTodosMov.style.display = 'block';
+    botonVerTodosMov.textContent = mostrarTodosIngresosMes ? 'Ocultar detalle' : `Ver detalle (${delMesFiltrado.length})`;
+    lista.style.display = mostrarTodosIngresosMes ? 'flex' : 'none';
     lista.innerHTML = '';
-    const aMostrarMov = mostrarTodosIngresosMes ? delMes : delMes.slice(0,5);
-    aMostrarMov.forEach(i => {
+    delMesFiltrado.forEach(i => {
       const fila = document.createElement('div'); fila.className = 'fila-ingreso'; fila.onclick = () => abrirDetalleIngreso(i.id);
       fila.innerHTML = `
         <div class="detalle">
           <span class="nombre">${escaparHTML(i.descripcion || '')}</span>
           <div class="fila-meta">
             <span class="badge-fuente" style="background:color-mix(in srgb, ${COLOR_FUENTE_INGRESO[i.tipo]||'var(--fuente-manual)'} 15%, white); color:${COLOR_FUENTE_INGRESO[i.tipo]||'var(--fuente-manual)'}">${NOMBRES_FUENTE_INGRESO[i.tipo] || i.tipo}</span>
-            <span class="fecha">${i.fecha}</span>
+            <span class="fecha">Sesión: ${formatearFechaMovimiento(i.fecha)}</span>
           </div>
+          <span class="fecha-pago">Pago: ${formatearFechaMovimiento(formatoISO(new Date(i.creado)))}</span>
         </div>
         <div class="derecha">
-          <span class="monto monto-fuente">${textoMontoOculto(i.montoNeto, vIngMov)}</span>
-          <span class="nota-neto">${i.medioPago ? (i.medioPago==='efectivo'?'Efectivo':'Transferencia') : 'neto'}</span>
+          <span class="monto monto-fuente">${textoMontoOculto(i.montoBruto, vIngMov)}</span>
+          <span class="nota-neto">${i.medioPago ? (i.medioPago==='efectivo'?'Efectivo':'Transferencia') : 'sin confirmar'}</span>
         </div>
       `;
       lista.appendChild(fila);
     });
-    if(delMes.length > 5){ botonVerTodosMov.style.display = 'block'; botonVerTodosMov.textContent = mostrarTodosIngresosMes ? 'Ver menos' : `Ver todos los movimientos (${delMes.length})`; }
-    else botonVerTodosMov.style.display = 'none';
   }
 }
 
@@ -7020,6 +7556,14 @@ async function aplicarSincronizacionCompleta(paquete){
       if(ses.fecha_evento && adultos.length){
         evento.adultosPorFecha = evento.adultosPorFecha || {};
         evento.adultosPorFecha[ses.fecha_evento] = adultos;
+      }
+      // Hora de término propia de esta ocurrencia (columna "hora_fin"
+      // de Sesiones) — solo tiene sentido en eventos recurrentes con
+      // duración; igual que estadosPorFecha, se reconstruye entera
+      // cada sincronización a partir de lo que diga la planilla.
+      if(ses.fecha_evento && ses.hora_fin && evento.recurrencia !== 'ninguna'){
+        evento.endTimePorFecha = evento.endTimePorFecha || {};
+        evento.endTimePorFecha[ses.fecha_evento] = ses.hora_fin;
       }
       if(!ses.estado_sesion) return;
       if(evento.recurrencia === 'ninguna'){ evento.estadoSesion = ses.estado_sesion; return; }
