@@ -639,6 +639,7 @@ input{ font-family:inherit; }
   --agenda-ancho-columna-horas:24px;  /* ancho de la columna de horas a la izquierda */
   --agenda-opacidad-realizado:0.42;   /* qué tan tenue se ve un evento realizado (1 = normal) */
   --agenda-alto-chip-mes:15px;        /* alto de cada evento en la vista de mes (define cuántos caben por día) */
+  --agenda-alto-fila-mes:92px;        /* alto fijo de cada semana en el scroll continuo del mes */
   --agenda-intensidad-chip-mes:30%;   /* qué tan fuerte es el color de fondo de los eventos en la vista de mes */
   --agenda-margen-lateral:6px;        /* margen a los lados de la Agenda (el resto de la app usa 16px) */
   --agenda-color-seleccion:#4F6B5C;   /* color que marca el día seleccionado */
@@ -1266,7 +1267,7 @@ input{ font-family:inherit; }
     <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
   </div>
 
-  <div style="flex:1; display:flex; flex-direction:column; min-height:0;">
+  <div id="zonaMesAnimada" style="flex:1; display:flex; flex-direction:column; min-height:0; overflow-y:auto; overscroll-behavior-y:contain;">
     <div id="gridDiasArriba" style="display:grid; grid-template-columns:repeat(7,1fr); padding:0 4px; touch-action:pan-y;"></div>
 
     <div id="panelSemana" style="display:none; flex-direction:column; background:#FBF7EF; border-top:1px solid #E5DACA; border-bottom:1px solid #E5DACA;">
@@ -1276,7 +1277,13 @@ input{ font-family:inherit; }
         <div style="flex:1"></div>
         <button class="boton-cerrar-semana" onclick="cerrarPanelSemana()">⌃</button>
       </div>
-      <div id="gridSemana" class="grilla-semana"></div>
+      <div id="pistaSemana" style="flex:1; min-height:0; overflow:hidden; touch-action:pan-y;">
+        <div id="carrilSemana" style="display:flex; width:300%; height:100%; transform:translateX(-33.3334%);">
+          <div id="gridSemanaAnt" class="grilla-semana" style="flex:0 0 33.3334%; pointer-events:none;"></div>
+          <div id="gridSemana" class="grilla-semana" style="flex:0 0 33.3334%;"></div>
+          <div id="gridSemanaSig" class="grilla-semana" style="flex:0 0 33.3334%; pointer-events:none;"></div>
+        </div>
+      </div>
     </div>
 
     <div id="gridDiasAbajo" style="display:grid; grid-template-columns:repeat(7,1fr); padding:0 4px; touch-action:pan-y;"></div>
@@ -1864,11 +1871,6 @@ input{ font-family:inherit; }
       <button class="boton-opcion-extra" id="botonAbrirRecurrencia" onclick="desplegarRecurrenciaEvento()">+ Recurrencia</button>
     </div>
 
-    <div class="campo-modal" id="campoDuracionToggle" style="display:none;">
-      <span class="etiqueta-campo">Duración</span>
-      <div class="segmentado" id="segmentadoDuracion"></div>
-    </div>
-
     <div id="camposDuracionDetalle" style="display:none;">
       <div class="campo-modal">
         <span class="etiqueta-campo">Fecha de término</span>
@@ -1879,8 +1881,10 @@ input{ font-family:inherit; }
         <input type="text" class="campo-hora-texto" id="eventoHoraTermino" inputmode="numeric" placeholder="HH:MM" maxlength="5" oninput="formatearEntradaHora(this); actualizarResumenDuracion();">
         <div class="nota-campo" id="notaHoraTerminoOcurrencia" style="display:none;">Esto cambia la hora de término solo de esta sesión — el resto de la serie sigue igual.</div>
       </div>
-      <div class="nota-campo" id="resumenDuracionEvento" style="margin-bottom:12px;"></div>
+      <div class="nota-campo" id="resumenDuracionEvento" style="margin-bottom:6px;"></div>
+      <button class="boton-opcion-extra" id="botonQuitarDuracion" onclick="quitarDuracionEvento()" style="display:none; margin-bottom:12px;">Quitar duración</button>
     </div>
+
 
     <div class="campo-modal" id="campoRecurrenciaEvento">
       <span class="etiqueta-campo">Recurrencia</span>
@@ -2384,9 +2388,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.44';
-const VERSION_FECHA = '27 sep 2026';
-const VERSION_DESCRIPCION = 'Agenda: hora de término editable para una sola sesión de una serie con duración, y botón para cambiar la duración de toda la serie desde una fecha en adelante';
+const VERSION_APP = '2.45';
+const VERSION_FECHA = '30 sep 2026';
+const VERSION_DESCRIPCION = 'Agenda: mes con scroll vertical continuo, swipe horizontal entre meses y transición continua entre semanas, hora de término por sesión suelta, cambiar duración de la serie, "+ Duración" directo; Ingresos: casillas de Entre Lazos destildadas por defecto';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -3937,7 +3941,8 @@ function cambiarMes(delta){
   if(mesMostrado > 11){ mesMostrado = 0; anioMostrado++; }
   if(mesMostrado < 0){ mesMostrado = 11; anioMostrado--; }
   semanaAbierta = false;
-  renderizarVistaMensual();
+  fechaColumnaSeleccionada = null; // sin día puntual elegido: el ancla pasa a ser el día 1 del mes nuevo
+  renderizarVistaMensual({ saltarAlAncla:true });
 }
 
 function irAHoyAgenda(){
@@ -3947,97 +3952,65 @@ function irAHoyAgenda(){
   fechaColumnaSeleccionada = hoyISO();
   inicioSemanaMostrada = obtenerLunesDeSemana(ahora);
   semanaAbierta = true;
-  renderizarVistaMensual();
+  renderizarVistaMensual({ saltarAlAncla:true });
   renderizarPanelSemana();
 }
 
-function renderizarVistaMensual(){
+// Cuántas semanas antes y después del mes "ancla" se dibujan de una
+// sola vez en el scroll continuo. No es infinito: si se llega a un
+// borde hay que usar "Hoy" o deslizar el mes para recentrar. Un
+// rango más ancho es más para scrollear pero más celdas para armar.
+const SEMANAS_SCROLL_CONTINUO_ANTES = 16;
+const SEMANAS_SCROLL_CONTINUO_DESPUES = 16;
+const EVENTOS_POR_DIA_MES_CONTINUO = 3; // pensado para calzar con --agenda-alto-fila-mes
+
+// Encuentra, dentro del contenedor con scroll, la fila (semana) que
+// está más arriba pero ya visible — la que queda "pegada" al borde
+// de arriba. Se usa para no perder el lugar cuando algo redibuja el
+// mes entero (por ejemplo, al abrir o cerrar una semana).
+function obtenerFilaEnTope(zona){
+  const filas = zona.querySelectorAll('[data-fecha-fila]');
+  let elegida = null;
+  for(const fila of filas){
+    if(fila.offsetTop <= zona.scrollTop + 2) elegida = fila; else break;
+  }
+  return elegida || filas[0] || null;
+}
+
+function renderizarVistaMensual(opciones){
+  const saltarAlAncla = !!(opciones && opciones.saltarAlAncla);
   document.getElementById('tituloMes').textContent = NOMBRES_MES[mesMostrado];
   document.getElementById('agendaAnio').textContent = anioMostrado;
 
-  const primerDiaMes = new Date(anioMostrado, mesMostrado, 1, 12);
-  const ultimoDiaMes = new Date(anioMostrado, mesMostrado+1, 0, 12);
-  const inicioGrilla = obtenerLunesDeSemana(primerDiaMes);
-  const finGrilla = new Date(ultimoDiaMes);
-  const diaSemanaFin = finGrilla.getDay();
-  finGrilla.setDate(finGrilla.getDate() + ((diaSemanaFin === 0) ? 0 : 7 - diaSemanaFin));
+  const zona = document.getElementById('zonaMesAnimada');
+  const filaTopePrevia = saltarAlAncla ? null : obtenerFilaEnTope(zona);
+  const offsetDentroDeFilaPrevia = filaTopePrevia ? (zona.scrollTop - filaTopePrevia.offsetTop) : 0;
+  const fechaFilaTopePrevia = filaTopePrevia ? filaTopePrevia.dataset.fechaFila : null;
+
+  // El "ancla" del scroll continuo es el lunes de la semana del día
+  // elegido (fechaColumnaSeleccionada) si hay uno, o si no, el lunes
+  // de la semana del día 1 del mes que se esté mostrando.
+  const diaAncla = fechaColumnaSeleccionada ? fechaDesdeISO(fechaColumnaSeleccionada) : new Date(anioMostrado, mesMostrado, 1, 12);
+  const lunesAncla = obtenerLunesDeSemana(diaAncla);
+  const inicioVentana = new Date(lunesAncla); inicioVentana.setDate(inicioVentana.getDate() - SEMANAS_SCROLL_CONTINUO_ANTES*7);
+  const finVentana = new Date(lunesAncla); finVentana.setDate(finVentana.getDate() + (SEMANAS_SCROLL_CONTINUO_DESPUES+1)*7 - 1);
 
   const hoy = hoyISO();
-
-  // Construir todos los días de la grilla (42 celdas)
-  const todosDias = [];
-  let cursor = new Date(inicioGrilla);
-  while(cursor <= finGrilla){
-    todosDias.push(new Date(cursor));
-    cursor.setDate(cursor.getDate()+1);
-  }
-
-  // Calcular inicio de la semana seleccionada
-  const selFecha = fechaColumnaSeleccionada ? fechaDesdeISO(fechaColumnaSeleccionada) : new Date(anioMostrado, mesMostrado, 1, 12);
-  const inicioSemSel = obtenerLunesDeSemana(selFecha);
-
-  // Separar días en arriba, abajo según semana seleccionada
-  let diasArriba, diasAbajo;
-  if(semanaAbierta){
-    const inicioArriba = new Date(inicioSemSel);
-    inicioArriba.setDate(inicioArriba.getDate() - 14);
-    diasArriba = [];
-    for(let i=0; i<14; i++){
-      const d = new Date(inicioArriba);
-      d.setDate(d.getDate() + i);
-      diasArriba.push(d);
-    }
-    const inicioAbajo = new Date(inicioSemSel);
-    inicioAbajo.setDate(inicioAbajo.getDate() + 7);
-    diasAbajo = [];
-    for(let i=0; i<14; i++){
-      const d = new Date(inicioAbajo);
-      d.setDate(d.getDate() + i);
-      diasAbajo.push(d);
-    }
-  }else{
-    diasArriba = todosDias;
-    diasAbajo = [];
-  }
-
-  // Los eventos se buscan en TODO el rango que se ve en pantalla. Con
-  // una semana abierta, las filas de arriba y abajo pueden caer en el
-  // mes anterior o siguiente, fuera de la grilla del mes: antes se
-  // buscaban solo dentro del mes y esas filas salían vacías.
-  const primerDiaVisible = semanaAbierta ? diasArriba[0] : inicioGrilla;
-  const ultimoDiaVisible = semanaAbierta ? diasAbajo[diasAbajo.length-1] : finGrilla;
-  const instancias = obtenerInstanciasEnRango(formatoISO(primerDiaVisible), formatoISO(ultimoDiaVisible));
+  const inicioSemSel = semanaAbierta ? obtenerLunesDeSemana(diaAncla) : null;
+  const instancias = obtenerInstanciasEnRango(formatoISO(inicioVentana), formatoISO(finVentana));
 
   const ALTO_BARRA = 17; // px por barra multi-día en la banda de la semana
 
-  // Cuántos eventos caben por día en la vista de mes: depende del alto
-  // que tenga cada fila al repartir la pantalla entre las semanas del mes.
-  let eventosQueCabenPorDia = 3;
-  if(!semanaAbierta){
-    const zona = document.getElementById('gridDiasArriba').parentElement;
-    altoZonaMesMedido = zona.clientHeight;
-    vigilarAltoZonaMes(zona);
-    const numFilas = Math.ceil(todosDias.length / 7);
-    const altoFila = zona.clientHeight / numFilas;
-    const raiz = getComputedStyle(document.documentElement);
-    const altoChip = (parseFloat(raiz.getPropertyValue('--agenda-alto-chip-mes')) || 15) + 2;
-    if(altoFila > 0) eventosQueCabenPorDia = Math.max(1, Math.floor((altoFila - 26) / altoChip));
-  }
-
   // Función para crear celda. numBarrasSemana reserva espacio vertical
-  // para la banda de barras absolutas de esa fila de semana.
-  const semanaAbiertaMezclaMeses = semanaAbierta && (() => { const f = new Date(inicioSemSel); f.setDate(f.getDate()+6); return f.getMonth() !== inicioSemSel.getMonth(); })();
-  const primeraFilaBajoSemana = new Set(semanaAbiertaMezclaMeses ? diasAbajo.slice(0,7).map(formatoISO) : []);
+  // para la banda de barras absolutas de esa fila de semana. En el
+  // scroll continuo ya no existe "otro mes" (dimming): todo lo que se
+  // ve pertenece por igual al flujo, no a un mes fijo en pantalla.
   const crearCelda = (fecha, numBarrasSemana) => {
     const fechaStr = formatoISO(fecha);
-    const dentroDelMes = fecha.getMonth() === mesMostrado;
     const celda = document.createElement('div');
     celda.className = 'celda-mes';
-    if(!dentroDelMes) celda.classList.add('otro-mes');
     if(fechaStr === fechaColumnaSeleccionada) celda.classList.add('seleccionada');
-    // La fila justo debajo de la semana abierta no dibuja su línea de
-    // arriba: esa línea ya la dibuja el borde inferior de la semana.
-    if(empiezaSemanaDeMesNuevo(fecha) && !primeraFilaBajoSemana.has(fechaStr)) celda.classList.add('borde-mes-arriba');
+    if(empiezaSemanaDeMesNuevo(fecha)) celda.classList.add('borde-mes-arriba');
     if(esPrimerDiaDeMesNoLunes(fecha)) celda.classList.add('borde-mes-izquierda');
 
     // Los eventos multi-día se dibujan como barras absolutas sobre la fila
@@ -4048,10 +4021,9 @@ function renderizarVistaMensual(){
       .filter(i => i.fecha === fechaStr)
       .filter(i => !(i.tipoInstancia === 'evento' && idsMultidia.has(i.eventoId)))
       .sort((a,b) => a.hora.localeCompare(b.hora));
-    const limite = semanaAbierta ? 2 : eventosQueCabenPorDia;
+    const limite = EVENTOS_POR_DIA_MES_CONTINUO;
 
     const esHoy = fechaStr === hoy;
-    const esSeleccionado = fechaStr === fechaColumnaSeleccionada;
     if(esHoy) celda.classList.add('hoy');
 
     celda.innerHTML = `<div class="numero-dia-mes-caja"><div class="numero-dia-mes">${fecha.getDate()}</div></div>`;
@@ -4076,10 +4048,8 @@ function renderizarVistaMensual(){
     celda.onclick = () => {
       const selAnterior = fechaColumnaSeleccionada;
       fechaColumnaSeleccionada = fechaStr;
-      if(fecha.getMonth() !== mesMostrado || fecha.getFullYear() !== anioMostrado){
-        mesMostrado = fecha.getMonth();
-        anioMostrado = fecha.getFullYear();
-      }
+      mesMostrado = fecha.getMonth();
+      anioMostrado = fecha.getFullYear();
       inicioSemanaMostrada = obtenerLunesDeSemana(fecha);
       const mismodia = fechaStr === selAnterior;
       semanaAbierta = !(semanaAbierta && mismodia);
@@ -4089,11 +4059,14 @@ function renderizarVistaMensual(){
     return celda;
   };
 
-  // Crea una fila de semana (7 celdas + banda de barras absolutas continuas)
+  // Crea una fila de semana (7 celdas + banda de barras absolutas continuas).
+  // En el scroll continuo todas las filas compactas miden lo mismo — la
+  // que está "abierta" no es una variante de esta fila, es el panel de
+  // semana (#panelSemana) insertado entero en su lugar (ver más abajo).
   const crearFilaSemana = (diasSemana) => {
     const fila = document.createElement('div');
-    fila.style.cssText = 'position:relative; display:grid; grid-template-columns:repeat(7,1fr);' +
-      (semanaAbierta ? ' height:74px; flex:none;' : ' flex:1; min-height:60px;');
+    fila.dataset.fechaFila = formatoISO(diasSemana[0]);
+    fila.style.cssText = 'position:relative; display:grid; grid-template-columns:repeat(7,1fr); flex:none; height:var(--agenda-alto-fila-mes);';
 
     // Detectar barras multi-día que atraviesan esta semana, por presencia diaria
     const presencia = {}; // id -> { ev, cols:[indices] }
@@ -4147,35 +4120,52 @@ function renderizarVistaMensual(){
     return fila;
   };
 
-  // Renderizar grid arriba: filas de semana apiladas verticalmente
-  const gridArriba = document.getElementById('gridDiasArriba');
-  gridArriba.innerHTML = '';
-  gridArriba.style.display = 'flex';
-  gridArriba.style.flexDirection = 'column';
-  gridArriba.style.gridAutoRows = '';
-  gridArriba.style.flex = semanaAbierta ? 'none' : '1';
-  for(let i = 0; i < diasArriba.length; i += 7){
-    gridArriba.appendChild(crearFilaSemana(diasArriba.slice(i, i + 7)));
-  }
-
-  // Renderizar grid abajo (solo cuando semana abierta)
-  const gridAbajo = document.getElementById('gridDiasAbajo');
-  gridAbajo.innerHTML = '';
-  gridAbajo.style.display = 'flex';
-  gridAbajo.style.flexDirection = 'column';
-  gridAbajo.style.gridAutoRows = '';
-  gridAbajo.style.flex = 'none';
-  for(let i = 0; i < diasAbajo.length; i += 7){
-    gridAbajo.appendChild(crearFilaSemana(diasAbajo.slice(i, i + 7)));
-  }
-
-  // Panel semanal
+  // Arma el flujo continuo entero: una fila por semana, salvo la
+  // semana abierta (si hay una dentro de la ventana), que se
+  // reemplaza por el panel de semana completo (#panelSemana, el
+  // mismo nodo de siempre, solo reubicado acá adentro).
+  const cont = document.getElementById('gridDiasArriba');
   const panel = document.getElementById('panelSemana');
-  if(semanaAbierta){
-    panel.style.display = 'flex';
-    panel.style.flexDirection = 'column';
-  }else{
-    panel.style.display = 'none';
+  // "gridDiasAbajo" ya no dibuja filas: ahora es solo el "estacionamiento"
+  // del panel cuando no está en uso. El panel SIEMPRE tiene que seguir
+  // colgado de algún lado del documento (acá o dentro de "cont") — si
+  // alguna vez quedara suelto y después vaciáramos su contenedor viejo
+  // con innerHTML, se destruiría junto con las filas y ya no se lo
+  // podría volver a encontrar por su id nunca más.
+  const estacionamiento = document.getElementById('gridDiasAbajo');
+  if(panel.parentElement !== estacionamiento) estacionamiento.appendChild(panel);
+  cont.innerHTML = '';
+  cont.style.display = 'flex';
+  cont.style.flexDirection = 'column';
+  let huboSemanaAbierta = false;
+  let cursor = new Date(inicioVentana);
+  while(cursor <= finVentana){
+    const esLaAbierta = semanaAbierta && inicioSemSel && formatoISO(cursor) === formatoISO(inicioSemSel);
+    if(esLaAbierta){
+      panel.dataset.fechaFila = formatoISO(cursor);
+      panel.style.display = 'flex';
+      panel.style.flexDirection = 'column';
+      cont.appendChild(panel); // lo saca del estacionamiento y lo pone acá
+      huboSemanaAbierta = true;
+    }else{
+      const diasSemana = []; for(let i=0;i<7;i++){ const d=new Date(cursor); d.setDate(d.getDate()+i); diasSemana.push(d); }
+      cont.appendChild(crearFilaSemana(diasSemana));
+    }
+    cursor.setDate(cursor.getDate()+7);
+  }
+  if(!huboSemanaAbierta) panel.style.display = 'none';
+
+  // Vuelve a dejar el scroll donde corresponde: en el mes ancla si se
+  // pidió saltar ahí (cambiar de mes, "Hoy", ir a un resultado de
+  // búsqueda), o si no, en la misma fila que estaba arriba antes de
+  // redibujar (para que abrir/cerrar una semana, o deslizarla, no
+  // haga saltar la pantalla).
+  if(saltarAlAncla){
+    const filaAncla = cont.querySelector(`[data-fecha-fila="${formatoISO(lunesAncla)}"]`);
+    zona.scrollTop = filaAncla ? filaAncla.offsetTop : 0;
+  }else if(fechaFilaTopePrevia){
+    const filaNueva = cont.querySelector(`[data-fecha-fila="${fechaFilaTopePrevia}"]`);
+    if(filaNueva) zona.scrollTop = filaNueva.offsetTop + offsetDentroDeFilaPrevia;
   }
 }
 
@@ -4184,26 +4174,52 @@ function cerrarPanelSemana(){
   renderizarVistaMensual();
 }
 function cambiarSemana(delta){
+  // El día seleccionado (y con él, el mes que se usa para las filas
+  // de arriba y abajo del mes) se mueve junto con la semana,
+  // conservando el mismo día de la semana que estaba elegido — así
+  // esas filas siempre corresponden a la semana desplegada y no se
+  // quedan ancladas al mes viejo cuando la semana cruza de mes.
+  const offsetDias = fechaColumnaSeleccionada ? Math.round((fechaDesdeISO(fechaColumnaSeleccionada) - inicioSemanaMostrada) / 86400000) : 0;
   inicioSemanaMostrada.setDate(inicioSemanaMostrada.getDate() + (delta*7));
+  const nuevaSeleccionada = new Date(inicioSemanaMostrada);
+  nuevaSeleccionada.setDate(nuevaSeleccionada.getDate() + Math.max(0, Math.min(6, offsetDias)));
+  fechaColumnaSeleccionada = formatoISO(nuevaSeleccionada);
+  mesMostrado = inicioSemanaMostrada.getMonth();
+  anioMostrado = inicioSemanaMostrada.getFullYear();
+  renderizarVistaMensual();
   renderizarPanelSemana();
 }
 
-function renderizarPanelSemana(){
-  const finSemana = new Date(inicioSemanaMostrada); finSemana.setDate(finSemana.getDate()+6);
-  const desde = `${inicioSemanaMostrada.getDate()} ${NOMBRES_MES[inicioSemanaMostrada.getMonth()].slice(0,3)}`;
-  const hasta = `${finSemana.getDate()} ${NOMBRES_MES[finSemana.getMonth()].slice(0,3)}`;
-  document.getElementById('tituloSemana').textContent = `${desde} – ${hasta}`;
+// opciones: { targetId, inicioSemana, soloVisual }. Sin argumentos,
+// dibuja la semana actual (inicioSemanaMostrada) en el panel de
+// siempre (#gridSemana), igual que antes. El carrusel de swipe (ver
+// más abajo, "TRÁNSITO CONTINUO ENTRE SEMANAS") también la usa para
+// pre-dibujar la semana anterior/siguiente en los paneles vecinos,
+// en modo "solo visual" (sin tocar el título ni el contador de
+// arriba, que son compartidos): esos paneles ya tienen
+// pointer-events:none puesto en el HTML, así que no hace falta
+// desactivar los clics acá adentro, el navegador ya los ignora.
+function renderizarPanelSemana(opciones){
+  const targetId = (opciones && opciones.targetId) || 'gridSemana';
+  const inicioSemana = (opciones && opciones.inicioSemana) || inicioSemanaMostrada;
+  const soloVisual = !!(opciones && opciones.soloVisual);
+  const finSemana = new Date(inicioSemana); finSemana.setDate(finSemana.getDate()+6);
+  if(!soloVisual){
+    const desde = `${inicioSemana.getDate()} ${NOMBRES_MES[inicioSemana.getMonth()].slice(0,3)}`;
+    const hasta = `${finSemana.getDate()} ${NOMBRES_MES[finSemana.getMonth()].slice(0,3)}`;
+    document.getElementById('tituloSemana').textContent = `${desde} – ${hasta}`;
+  }
 
-  const instancias = obtenerInstanciasEnRango(formatoISO(inicioSemanaMostrada), formatoISO(finSemana));
-  document.getElementById('conteoSemana').textContent = `${instancias.length} evento${instancias.length===1?'':'s'}`;
+  const instancias = obtenerInstanciasEnRango(formatoISO(inicioSemana), formatoISO(finSemana));
+  if(!soloVisual) document.getElementById('conteoSemana').textContent = `${instancias.length} evento${instancias.length===1?'':'s'}`;
   const hoy = hoyISO();
 
-  const grid = document.getElementById('gridSemana');
+  const grid = document.getElementById(targetId);
   grid.innerHTML = '';
 
   // Los 7 días de la semana, con sus eventos normales y de varios días.
   const dias = [];
-  let cursor = new Date(inicioSemanaMostrada);
+  let cursor = new Date(inicioSemana);
   for(let i=0;i<7;i++){
     const fechaStr = formatoISO(cursor);
     const multidiaHoy = obtenerEventosMultidiaEnFecha(fechaStr);
@@ -4375,6 +4391,12 @@ function renderizarPanelSemana(){
     cuerpo.appendChild(columna);
   });
   grid.appendChild(cuerpo);
+
+  // Los paneles vecinos (semana anterior/siguiente) se mantienen al
+  // día para que estén listos apenas empiece un arrastre — ver
+  // "TRÁNSITO CONTINUO ENTRE SEMANAS" más abajo. Solo se hace desde
+  // el dibujo real (no desde uno "solo visual", para no recursar).
+  if(!soloVisual) prepararPanelesVecinosSemana();
 }
 
 // Minuto de inicio y de término de una instancia. Si el evento tiene
@@ -4502,32 +4524,19 @@ function textosMoverSegunEtiqueta(etiqueta){
     : 'Este evento pertenece a una serie que se repite. Para cambiar solo este día, usa "Mover este evento para otro día", arriba. Para cambiar el día de TODA la serie desde acá en adelante, usa "Cambiar día de la serie desde aquí", también arriba.') + mencionDuracion;
 }
 
-window.addEventListener('resize', () => {
-  const pantalla = document.getElementById('pantallaAgenda');
-  if(pantalla && pantalla.style.display !== 'none' && !semanaAbierta) renderizarVistaMensual();
-});
-// En el iPhone, la app a veces dibuja el mes antes de que la pantalla
-// tenga su alto final (al abrir, al volver desde segundo plano), y
-// calculaba que cabía un solo evento por día. Ahora se vigila el alto
-// del área del mes: si cambia, se vuelve a dibujar con la medida real.
-let altoZonaMesMedido = -1, observadorAltoMes = null, redibujoMesPendiente = false;
-function vigilarAltoZonaMes(zona){
-  if(observadorAltoMes || typeof ResizeObserver === 'undefined') return;
-  observadorAltoMes = new ResizeObserver(() => {
-    const pantalla = document.getElementById('pantallaAgenda');
-    if(!pantalla || pantalla.style.display === 'none' || semanaAbierta) return;
-    if(Math.abs(zona.clientHeight - altoZonaMesMedido) < 4 || redibujoMesPendiente) return;
-    redibujoMesPendiente = true;
-    requestAnimationFrame(() => { redibujoMesPendiente = false; renderizarVistaMensual(); });
-  });
-  observadorAltoMes.observe(zona);
-}
+// No hace falta un redibujo especial al cambiar el tamaño de la
+// ventana: con el alto de fila fijo (--agenda-alto-fila-mes), ya no
+// depende del alto disponible en pantalla. Este listener existía
+// para el modelo viejo (una sola pantalla, ajustada a medida) y se
+// sacó a propósito: en el iPhone, esconder la barra de direcciones
+// al hacer scroll dispara un "resize", y volver a dibujar todo en
+// ese momento cerraba la semana que estaba abierta.
 function rerenderizarVistaAgendaActual(){
   renderizarVistaMensual();
   if(semanaAbierta) renderizarPanelSemana();
 }
 
-// --- Swipe horizontal: mes y semana ---
+// --- Swipe horizontal: mes ---
 let swipeStartX = 0, swipeStartY = 0;
 function iniciarSwipe(e){
   const p = e.touches ? e.touches[0] : e;
@@ -4536,13 +4545,125 @@ function iniciarSwipe(e){
 function finalizarSwipeMes(e){
   const p = e.changedTouches ? e.changedTouches[0] : e;
   const dx = p.clientX - swipeStartX, dy = p.clientY - swipeStartY;
-  if(Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) cambiarMes(dx < 0 ? 1 : -1);
+  if(Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) animarCambioMes(dx < 0 ? 1 : -1);
 }
-function finalizarSwipeSemana(e){
-  const p = e.changedTouches ? e.changedTouches[0] : e;
-  const dx = p.clientX - swipeStartX, dy = p.clientY - swipeStartY;
-  if(Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) cambiarSemana(dx < 0 ? 1 : -1);
+// A diferencia del scroll vertical continuo (que mezcla los meses sin
+// cortes), acá el horizontal se siente como pasar una página entera:
+// el mes actual se desliza hacia afuera, se cambia de mes de verdad
+// (lo que ya cierra la semana abierta, si había una), y el mes nuevo
+// entra deslizándose desde el otro lado.
+let cambioMesEnTransicion = false;
+function animarCambioMes(delta){
+  if(cambioMesEnTransicion) return;
+  cambioMesEnTransicion = true;
+  const zona = document.getElementById('zonaMesAnimada');
+  zona.style.transition = 'transform 200ms ease, opacity 200ms ease';
+  zona.style.transform = `translateX(${delta < 0 ? '28px' : '-28px'})`;
+  zona.style.opacity = '0';
+  setTimeout(() => {
+    cambiarMes(delta);
+    zona.style.transition = 'none';
+    zona.style.transform = `translateX(${delta < 0 ? '-28px' : '28px'})`;
+    void zona.offsetWidth; // fuerza a aplicar lo de arriba antes de animar, o no se vería el movimiento
+    zona.style.transition = 'transform 200ms ease, opacity 200ms ease';
+    zona.style.transform = 'translateX(0)';
+    zona.style.opacity = '1';
+    setTimeout(() => { cambioMesEnTransicion = false; }, 210);
+  }, 200);
 }
+
+// ============================================================
+// TRÁNSITO CONTINUO ENTRE SEMANAS
+//
+// A diferencia del mes (que cambia de un salto al soltar), acá el
+// carril de la semana (#carrilSemana, tres paneles: anterior/
+// actual/siguiente) sigue el dedo en vivo mientras se arrastra. Eso
+// dos cosas: (1) siempre se ve que es "la semana de al lado" y no
+// una pantalla nueva sin relación, y (2) hace falta cruzar un
+// arrastre bastante claro (UMBRAL_CONFIRMAR_SEMANA) para que el
+// cambio se confirme — un roce mínimo vuelve solo a su lugar.
+// ============================================================
+let arrastreSemanaActivo = false;
+let arrastreSemanaPointerId = null;
+let arrastreSemanaInicioX = 0;
+let arrastreSemanaInicioY = 0;
+let arrastreSemanaDx = 0;
+let arrastreSemanaAncho = 0;
+let arrastreSemanaEsHorizontal = null; // null = aún no se sabe si el gesto es horizontal o vertical
+let arrastreSemanaEnTransicion = false;
+const UMBRAL_CONFIRMAR_SEMANA = 0.3; // fracción del ancho de pantalla que hay que cruzar para confirmar
+
+// Dibuja (sin interacción propia: ver pointer-events:none en el HTML)
+// la semana anterior y la siguiente en los paneles vecinos, listas
+// para asomar apenas empieza un arrastre.
+function prepararPanelesVecinosSemana(){
+  const ant = new Date(inicioSemanaMostrada); ant.setDate(ant.getDate() - 7);
+  const sig = new Date(inicioSemanaMostrada); sig.setDate(sig.getDate() + 7);
+  renderizarPanelSemana({ targetId:'gridSemanaAnt', inicioSemana: ant, soloVisual:true });
+  renderizarPanelSemana({ targetId:'gridSemanaSig', inicioSemana: sig, soloVisual:true });
+}
+function aplicarTransformCarrilSemana(px, conTransicion){
+  const carril = document.getElementById('carrilSemana');
+  carril.style.transition = conTransicion ? 'transform 200ms ease' : 'none';
+  carril.style.transform = `translateX(${px}px)`;
+}
+function iniciarArrastreSemana(e){
+  if(arrastreSemanaEnTransicion) return;
+  if(e.pointerType === 'mouse' && e.button !== 0) return;
+  const pista = document.getElementById('pistaSemana');
+  arrastreSemanaAncho = pista.clientWidth;
+  if(!arrastreSemanaAncho) return;
+  arrastreSemanaActivo = true;
+  arrastreSemanaPointerId = e.pointerId;
+  arrastreSemanaInicioX = e.clientX;
+  arrastreSemanaInicioY = e.clientY;
+  arrastreSemanaDx = 0;
+  arrastreSemanaEsHorizontal = null;
+  try{ pista.setPointerCapture(e.pointerId); }catch(err){}
+  prepararPanelesVecinosSemana();
+}
+function moverArrastreSemana(e){
+  if(!arrastreSemanaActivo || e.pointerId !== arrastreSemanaPointerId) return;
+  const dx = e.clientX - arrastreSemanaInicioX;
+  const dy = e.clientY - arrastreSemanaInicioY;
+  if(arrastreSemanaEsHorizontal === null){
+    if(Math.abs(dx) < 10 && Math.abs(dy) < 10) return; // todavía no se movió lo suficiente para decidir
+    arrastreSemanaEsHorizontal = Math.abs(dx) > Math.abs(dy);
+    if(!arrastreSemanaEsHorizontal){ arrastreSemanaActivo = false; return; } // gesto vertical: se deja pasar el scroll normal
+  }
+  if(!arrastreSemanaEsHorizontal) return;
+  e.preventDefault();
+  arrastreSemanaDx = Math.max(-arrastreSemanaAncho, Math.min(arrastreSemanaAncho, dx));
+  aplicarTransformCarrilSemana(-arrastreSemanaAncho + arrastreSemanaDx, false);
+}
+function finalizarArrastreSemana(e){
+  if(!arrastreSemanaActivo || e.pointerId !== arrastreSemanaPointerId){
+    if(e.pointerId === arrastreSemanaPointerId) arrastreSemanaEsHorizontal = null;
+    return;
+  }
+  arrastreSemanaActivo = false;
+  const fueHorizontal = arrastreSemanaEsHorizontal;
+  arrastreSemanaEsHorizontal = null;
+  if(!fueHorizontal) return;
+
+  const dx = arrastreSemanaDx;
+  const pasaElUmbral = Math.abs(dx) > arrastreSemanaAncho * UMBRAL_CONFIRMAR_SEMANA;
+  arrastreSemanaEnTransicion = true;
+  if(!pasaElUmbral){
+    // No alcanzó: vuelve suavemente a donde estaba, sin cambiar de semana.
+    aplicarTransformCarrilSemana(-arrastreSemanaAncho, true);
+    setTimeout(() => { arrastreSemanaEnTransicion = false; }, 210);
+    return;
+  }
+  const delta = dx < 0 ? 1 : -1; // izquierda = semana siguiente, derecha = anterior
+  aplicarTransformCarrilSemana(-arrastreSemanaAncho + (delta < 0 ? arrastreSemanaAncho : -arrastreSemanaAncho), true);
+  setTimeout(() => {
+    cambiarSemana(delta); // ya deja las filas de arriba/abajo y los paneles vecinos al día
+    aplicarTransformCarrilSemana(-arrastreSemanaAncho, false);
+    arrastreSemanaEnTransicion = false;
+  }, 210);
+}
+
 function activarSwipeAgenda(){
   const ga = document.getElementById('gridDiasArriba');
   ga.addEventListener('pointerdown', iniciarSwipe);
@@ -4550,9 +4671,11 @@ function activarSwipeAgenda(){
   const gb = document.getElementById('gridDiasAbajo');
   gb.addEventListener('pointerdown', iniciarSwipe);
   gb.addEventListener('pointerup', finalizarSwipeMes);
-  const gs = document.getElementById('gridSemana');
-  gs.addEventListener('pointerdown', iniciarSwipe);
-  gs.addEventListener('pointerup', finalizarSwipeSemana);
+  const pista = document.getElementById('pistaSemana');
+  pista.addEventListener('pointerdown', iniciarArrastreSemana);
+  pista.addEventListener('pointermove', moverArrastreSemana);
+  pista.addEventListener('pointerup', finalizarArrastreSemana);
+  pista.addEventListener('pointercancel', finalizarArrastreSemana);
 }
 
 /* ============================================================
@@ -4658,7 +4781,6 @@ function abrirFichaEventoNueva(){
 
   pintarGridEtiquetasEvento(); pintarSegmentadoSubtipoAtencion(); pintarSegmentadoTipoPagoEventoConsulta();
   pintarSegmentadoRecurrenciaEvento(); pintarSegmentadoSemanaDelMes(); pintarSegmentadoEstadoSesionEvento();
-  pintarSegmentadoDuracion();
   actualizarCamposSegunEtiqueta(); actualizarMontoEventoConsulta(); renderizarBusquedaPaciente();
 
   document.getElementById('fondoModalEvento').classList.add('abierto');
@@ -4750,7 +4872,6 @@ function abrirFichaEventoEdicion(instancia){
 
   pintarGridEtiquetasEvento(); pintarSegmentadoSubtipoAtencion(); pintarSegmentadoTipoPagoEventoConsulta();
   pintarSegmentadoRecurrenciaEvento(); pintarSegmentadoSemanaDelMes(); pintarSegmentadoEstadoSesionEvento();
-  pintarSegmentadoDuracion();
   duracionDesplegada = hasDurationEventoSeleccionado;
   recurrenciaDesplegada = recurrenciaEventoSeleccionada !== 'ninguna';
   actualizarCamposSegunEtiqueta();
@@ -4795,7 +4916,7 @@ function pintarGridEtiquetasEvento(){
         recurrenciaDesplegada = false; recurrenciaEventoSeleccionada = 'ninguna';
         duracionDesplegada = false; hasDurationEventoSeleccionado = false;
         document.getElementById('camposDuracionDetalle').style.display = 'none';
-        pintarSegmentadoRecurrenciaEvento(); pintarSegmentadoDuracion();
+        pintarSegmentadoRecurrenciaEvento();
       }
       pintarGridEtiquetasEvento(); actualizarCamposSegunEtiqueta();
     };
@@ -4925,27 +5046,6 @@ function pintarSegmentadoEstadoSesionEvento(){
   }
 }
 
-function pintarSegmentadoDuracion(){
-  const c = document.getElementById('segmentadoDuracion'); c.innerHTML = '';
-  [{valor:false,nombre:'Sin duración'},{valor:true,nombre:'Con duración'}].forEach(op => {
-    const b = document.createElement('button');
-    b.className = hasDurationEventoSeleccionado === op.valor ? 'seleccionado' : '';
-    b.textContent = op.nombre;
-    b.disabled = duracionFijaPorSerie;
-    b.onclick = () => {
-      if(duracionFijaPorSerie) return;
-      hasDurationEventoSeleccionado = op.valor;
-      pintarSegmentadoDuracion();
-      const detalle = document.getElementById('camposDuracionDetalle');
-      detalle.style.display = hasDurationEventoSeleccionado ? 'block' : 'none';
-      if(hasDurationEventoSeleccionado && !document.getElementById('eventoFechaTermino').value){
-        document.getElementById('eventoFechaTermino').value = document.getElementById('eventoFecha').value;
-      }
-      actualizarResumenDuracion();
-    };
-    c.appendChild(b);
-  });
-}
 function actualizarResumenDuracion(){
   if(!hasDurationEventoSeleccionado) return;
   const fechaInicio = document.getElementById('eventoFecha').value;
@@ -4977,11 +5077,17 @@ function actualizarCamposSegunEtiqueta(){
   // La duración solo aplica a categorías que no son Atenciones ni
   // Análisis y Supervisión (sesiones de duración fija, no variable).
   const mostrarDuracion = etiquetaEventoSeleccionada !== 'atenciones' && etiquetaEventoSeleccionada !== 'analisis';
-  document.getElementById('campoDuracionToggle').style.display = (mostrarDuracion && duracionDesplegada) ? 'block' : 'none';
   if(!mostrarDuracion){
     hasDurationEventoSeleccionado = false;
+    duracionDesplegada = false;
     document.getElementById('camposDuracionDetalle').style.display = 'none';
+  }else{
+    // A diferencia de Recurrencia (que primero despliega un
+    // segmentado para elegir), acá "+ Duración" muestra el detalle
+    // directo: no hay paso intermedio de "con/sin duración".
+    document.getElementById('camposDuracionDetalle').style.display = duracionDesplegada ? 'block' : 'none';
   }
+  document.getElementById('botonQuitarDuracion').style.display = (mostrarDuracion && duracionDesplegada && !duracionFijaPorSerie) ? 'inline-block' : 'none';
   // Botones pequeños: solo aparecen si esa opción aplica y sigue cerrada.
   const verBotonDuracion = mostrarDuracion && !duracionDesplegada;
   const verBotonRecurrencia = !esConsulta && !recurrenciaDesplegada;
@@ -4991,7 +5097,28 @@ function actualizarCamposSegunEtiqueta(){
 }
 let duracionDesplegada = false;
 let recurrenciaDesplegada = false;
-function desplegarDuracionEvento(){ duracionDesplegada = true; actualizarCamposSegunEtiqueta(); }
+// "+ Duración" ya no abre un paso intermedio de "con/sin duración":
+// muestra el detalle directo, con la duración ya activada (mismo
+// criterio que tenía antes elegir "Con duración" en ese segmentado).
+function desplegarDuracionEvento(){
+  duracionDesplegada = true;
+  hasDurationEventoSeleccionado = true;
+  actualizarCamposSegunEtiqueta();
+  if(!document.getElementById('eventoFechaTermino').value){
+    document.getElementById('eventoFechaTermino').value = document.getElementById('eventoFecha').value;
+  }
+  actualizarResumenDuracion();
+}
+// Vuelve al estado "sin duración": reaparece el botón "+ Duración" y
+// se esconde el detalle. No se puede usar si la duración es de toda
+// la serie (duracionFijaPorSerie) — para eso está "Cambiar duración
+// de la serie desde aquí"; el botón ya queda oculto en ese caso.
+function quitarDuracionEvento(){
+  if(duracionFijaPorSerie) return;
+  duracionDesplegada = false;
+  hasDurationEventoSeleccionado = false;
+  actualizarCamposSegunEtiqueta();
+}
 function desplegarRecurrenciaEvento(){ recurrenciaDesplegada = true; actualizarCamposSegunEtiqueta(); }
 
 // La lista de pacientes parte cerrada; se abre con el botón de la
@@ -6459,16 +6586,16 @@ function limpiarFiltroMovimientos(){
 }
 
 // Sesiones marcadas para incluir en la próxima boleta Entre Lazos.
-// Por defecto se marcan todas las pendientes (así "Generar boleta"
-// sigue facturando todo, como antes, salvo que se destilde alguna).
-// "clavesBoletaVistas" distingue una sesión pendiente NUEVA (se marca
-// sola la primera vez que aparece) de una que el usuario ya destildó
-// a propósito (no se le vuelve a marcar sola en el siguiente dibujo).
+// Por defecto arrancan TODAS destildadas: hay que marcar a mano cada
+// sesión que se quiera incluir. "clavesBoletaVistas" solo registra
+// qué claves ya se mostraron una vez, para no volver a tocar la
+// selección de una sesión que el usuario ya marcó o destildó a mano
+// en un dibujo anterior.
 let seleccionBoletaEL = new Set();
 let clavesBoletaVistas = new Set();
 function sincronizarSeleccionBoletaEL(pendientes){
   const claves = new Set(pendientes.map(p => p.clave));
-  claves.forEach(c => { if(!clavesBoletaVistas.has(c)){ clavesBoletaVistas.add(c); seleccionBoletaEL.add(c); } });
+  claves.forEach(c => { if(!clavesBoletaVistas.has(c)) clavesBoletaVistas.add(c); });
   [...seleccionBoletaEL].forEach(c => { if(!claves.has(c)) seleccionBoletaEL.delete(c); });
   [...clavesBoletaVistas].forEach(c => { if(!claves.has(c)) clavesBoletaVistas.delete(c); });
 }
@@ -7735,7 +7862,7 @@ async function iniciar(){
   if(objetivos.length === 0) objetivos = objetivosPorDefecto();
   renderizarListaPacientes();
   renderizarListaGastos();
-  renderizarVistaMensual();
+  renderizarVistaMensual({ saltarAlAncla:true });
 
   // FASE 2: en vez de revisar módulo por módulo si está vacío para
   // decidir si recupera, ahora se sincroniza todo junto, siempre, en
@@ -7913,9 +8040,7 @@ function irAEventoDesdeBusqueda(inst){
   semanaAbierta = true;
   eventoElegidoSemana = (inst.eventoId || inst.consultaId) + '|' + inst.fecha;
   ranuraElegidaSemana = null;
-  renderizarVistaMensual(); renderizarPanelSemana();
-  const chip = document.querySelector('#gridSemana .elegido');
-  (chip || document.getElementById('panelSemana')).scrollIntoView({ block:'center', behavior:'smooth' });
+  renderizarVistaMensual({ saltarAlAncla:true }); renderizarPanelSemana();
 }
 
 // ============================================================
