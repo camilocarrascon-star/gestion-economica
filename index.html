@@ -2407,9 +2407,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.48';
+const VERSION_APP = '2.50';
 const VERSION_FECHA = '4 oct 2026';
-const VERSION_DESCRIPCION = 'Gastos: categoría Casa y hogar, subcategorías que se despliegan al elegir la categoría, manejo con teclado en el computador (Tab/flechas y Enter) y barra de monto editable con el teclado';
+const VERSION_DESCRIPCION = 'Agenda: una atención realizada devengada también se ve tenue; una sola línea de cambio de mes; Gastos con Casa y hogar, subcategorías y teclado; fechas de pago; eliminar ingreso Entre Lazos deja la sesión sin estado';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -4034,12 +4034,13 @@ function renderizarVistaMensual(opciones){
   // para la banda de barras absolutas de esa fila de semana. En el
   // scroll continuo ya no existe "otro mes" (dimming): todo lo que se
   // ve pertenece por igual al flujo, no a un mes fijo en pantalla.
-  const crearCelda = (fecha, numBarrasSemana) => {
+  const crearCelda = (fecha, numBarrasSemana, sinLineaSuperior) => {
     const fechaStr = formatoISO(fecha);
     const celda = document.createElement('div');
     celda.className = 'celda-mes';
     if(fechaStr === fechaColumnaSeleccionada) celda.classList.add('seleccionada');
-    if(empiezaSemanaDeMesNuevo(fecha)) celda.classList.add('borde-mes-arriba');
+    // Justo debajo de la semana abierta, la línea ya la dibuja el propio panel (en su borde de abajo): no se repite acá.
+    if(empiezaSemanaDeMesNuevo(fecha) && !sinLineaSuperior) celda.classList.add('borde-mes-arriba');
     if(esPrimerDiaDeMesNoLunes(fecha)) celda.classList.add('borde-mes-izquierda');
 
     // Los eventos multi-día se dibujan como barras absolutas sobre la fila
@@ -4092,7 +4093,7 @@ function renderizarVistaMensual(opciones){
   // En el scroll continuo todas las filas compactas miden lo mismo — la
   // que está "abierta" no es una variante de esta fila, es el panel de
   // semana (#panelSemana) insertado entero en su lugar (ver más abajo).
-  const crearFilaSemana = (diasSemana) => {
+  const crearFilaSemana = (diasSemana, sinLineaSuperior) => {
     const fila = document.createElement('div');
     fila.dataset.fechaFila = formatoISO(diasSemana[0]);
     fila.style.cssText = 'position:relative; display:grid; grid-template-columns:repeat(7,1fr); flex:none; height:var(--agenda-alto-fila-mes);';
@@ -4112,7 +4113,7 @@ function renderizarVistaMensual(opciones){
     }));
 
     // Celdas
-    const celdasFila = diasSemana.map(fecha => crearCelda(fecha, barras.length));
+    const celdasFila = diasSemana.map(fecha => crearCelda(fecha, barras.length, sinLineaSuperior));
     celdasFila.forEach(c => fila.appendChild(c));
 
     // Nombre del mes que empieza, sobre la línea divisoria del día 1
@@ -4167,6 +4168,9 @@ function renderizarVistaMensual(opciones){
   cont.style.display = 'flex';
   cont.style.flexDirection = 'column';
   let huboSemanaAbierta = false;
+  let filaJustoDebajoDelPanel = false;
+  // El panel solo dibuja la línea de cambio de mes si su semana tiene días de dos meses.
+  const panelDibujaLineaMes = !!(inicioSemSel && (() => { const f = new Date(inicioSemSel); f.setDate(f.getDate()+6); return f.getMonth() !== inicioSemSel.getMonth(); })());
   let cursor = new Date(inicioVentana);
   while(cursor <= finVentana){
     const esLaAbierta = semanaAbierta && inicioSemSel && formatoISO(cursor) === formatoISO(inicioSemSel);
@@ -4176,9 +4180,11 @@ function renderizarVistaMensual(opciones){
       panel.style.flexDirection = 'column';
       cont.appendChild(panel); // lo saca del estacionamiento y lo pone acá
       huboSemanaAbierta = true;
+      filaJustoDebajoDelPanel = panelDibujaLineaMes;
     }else{
       const diasSemana = []; for(let i=0;i<7;i++){ const d=new Date(cursor); d.setDate(d.getDate()+i); diasSemana.push(d); }
-      cont.appendChild(crearFilaSemana(diasSemana));
+      cont.appendChild(crearFilaSemana(diasSemana, filaJustoDebajoDelPanel));
+      filaJustoDebajoDelPanel = false;
     }
     cursor.setDate(cursor.getDate()+7);
   }
@@ -4498,7 +4504,8 @@ function esPrimerDiaDeMesNoLunes(fecha){
 // está en ninguna lista de estados que generen ingreso o deuda, así
 // que Ingresos y Dashboard lo ignoran.
 // ============================================================
-const ESTADOS_SESION_CERRADOS = ['realizada_percibida', 'ausencia_percibida', 'ausencia_justificada'];
+// Estados que se ven tenues en la Agenda. La ausencia devengada sigue intensa, como recordatorio de cobro.
+const ESTADOS_SESION_CERRADOS = ['realizada_percibida', 'realizada_devengada', 'ausencia_percibida', 'ausencia_justificada'];
 const ESTADO_REALIZADO = 'realizado';
 function instanciaEstaRealizada(inst){
   if(inst.etiqueta === 'atenciones') return ESTADOS_SESION_CERRADOS.includes(inst.estadoSesion);
