@@ -70,6 +70,7 @@
   --cat-CO:#6B7A45;
   --cat-SP:#4F6B5C;
   --cat-DT:#6E4B2A;
+  --cat-CH:#4E7A8C;
 
   --pago-Efectivo:#6B7A45;
   --pago-BancoEstado:#A9741B;
@@ -647,6 +648,7 @@ input{ font-family:inherit; }
 }
 
 /* La Agenda usa casi todo el ancho y alto de la pantalla. */
+#zonaMesAnimada{ position:relative; } /* para que offsetTop de cada semana se mida desde la zona con scroll */
 #pantallaAgenda{ padding-left:var(--agenda-margen-lateral); padding-right:var(--agenda-margen-lateral); gap:4px; }
 
 /* Lupa del encabezado de la Agenda */
@@ -925,6 +927,19 @@ input{ font-family:inherit; }
 .chip-categoria-gasto .nombre-categoria-gasto{ font-size:12px; font-weight:700; line-height:1.2; text-align:center; font-family:'Quicksand',sans-serif; }
 .chip-categoria-gasto.seleccionada{ border-color:var(--chip-color); background:color-mix(in srgb, var(--chip-color) 10%, white); }
 
+/* Subcategorías: aparecen debajo de las categorías al elegir una que las tiene */
+.contenedor-subcategorias-gasto{ display:none; margin-top:10px; padding:10px; border-radius:12px; background:var(--borde-suave); }
+.contenedor-subcategorias-gasto.visible{ display:block; }
+.contenedor-subcategorias-gasto .gastos-etiqueta-seccion{ display:block; margin-bottom:2px; }
+.contenedor-subcategorias-gasto .grid-pagos-gasto{ margin-top:6px; }
+.contenedor-subcategorias-gasto .chip-pago-gasto{ font-size:12px; }
+/* Foco visible al moverse con el teclado en el computador (Tab o flechas) */
+.chip-categoria-gasto:focus-visible, .chip-pago-gasto:focus-visible, .tecla-gasto:focus-visible,
+.tecla-funcion-gasto:focus-visible, .tecla-op-gasto:focus-visible, .boton-guardar-gasto:focus-visible{
+  outline:3px solid var(--acento); outline-offset:2px;
+}
+.monto-fijo-gasto{ cursor:pointer; }
+.monto-fijo-gasto:focus{ outline:none; background:var(--borde-suave); box-shadow:inset 0 -2px 0 var(--acento); }
 .grid-pagos-gasto{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:7px; }
 .chip-pago-gasto{
   border:1.5px solid var(--borde); border-radius:11px; padding:9px 6px;
@@ -1277,13 +1292,7 @@ input{ font-family:inherit; }
         <div style="flex:1"></div>
         <button class="boton-cerrar-semana" onclick="cerrarPanelSemana()">⌃</button>
       </div>
-      <div id="pistaSemana" style="flex:1; min-height:0; overflow:hidden; touch-action:pan-y;">
-        <div id="carrilSemana" style="display:flex; width:300%; height:100%; transform:translateX(-33.3334%);">
-          <div id="gridSemanaAnt" class="grilla-semana" style="flex:0 0 33.3334%; pointer-events:none;"></div>
-          <div id="gridSemana" class="grilla-semana" style="flex:0 0 33.3334%;"></div>
-          <div id="gridSemanaSig" class="grilla-semana" style="flex:0 0 33.3334%; pointer-events:none;"></div>
-        </div>
-      </div>
+      <div id="gridSemana" class="grilla-semana"></div>
     </div>
 
     <div id="gridDiasAbajo" style="display:grid; grid-template-columns:repeat(7,1fr); padding:0 4px; touch-action:pan-y;"></div>
@@ -1295,7 +1304,7 @@ input{ font-family:inherit; }
      ============================================================ -->
 <div class="contenedor" id="pantallaGastos">
 
-  <div class="monto-fijo-gasto" id="gastoMontoFijo">$0</div>
+  <div class="monto-fijo-gasto monto-fuente" id="gastoMontoFijo" tabindex="0" onkeydown="manejarTecladoFisicoGasto(event)" onclick="this.focus()">$0</div>
 
   <div class="zona-monto-gasto">
     <div id="gastoMontoPantalla" class="monto-fuente" tabindex="0" onkeydown="manejarTecladoFisicoGasto(event)">$0</div>
@@ -1333,6 +1342,10 @@ input{ font-family:inherit; }
   <div>
     <div class="gastos-etiqueta-seccion">Categoría</div>
     <div class="grid-categorias-gasto" id="gastoGridCategorias"></div>
+    <div class="contenedor-subcategorias-gasto" id="gastoContSubcategorias">
+      <span class="gastos-etiqueta-seccion">Subcategoría</span>
+      <div class="grid-pagos-gasto" id="gastoGridSubcategorias"></div>
+    </div>
   </div>
 
   <div>
@@ -1899,6 +1912,7 @@ input{ font-family:inherit; }
     </div>
 
     <span id="lugarOriginalEstadoSesion"></span>
+    <div class="nota-campo" id="notaEstadoSerieNueva" style="display:none; margin-bottom:14px;">El estado de la sesión se marca después, en cada sesión de la serie, abriéndola desde la Agenda.</div>
     <div class="campo-modal" id="campoEstadoSesionEvento" style="display:none;">
       <span class="etiqueta-campo">Estado de la sesión</span>
       <div id="segmentadoEstadoSesionEvento"></div>
@@ -2034,7 +2048,7 @@ input{ font-family:inherit; }
     <div class="zona-archivar" id="zonaEliminarIngreso" style="display:none;">
       <button class="boton-archivar" onclick="solicitarEliminarIngreso()">Eliminar</button>
       <div class="confirmacion-archivar" id="confirmacionEliminarIngreso" style="display:none;">
-        <p>Este ingreso se eliminará permanentemente. Si viene de una sesión o de una boleta, esa sesión volverá a quedar pendiente de importar. No se puede deshacer.</p>
+        <p id="textoConfirmacionEliminarIngreso">Este ingreso se eliminará permanentemente. No se puede deshacer.</p>
         <div class="fila-confirmacion">
           <button class="boton-confirmar-no" onclick="cancelarEliminarIngreso()">Cancelar</button>
           <button class="boton-confirmar-si" onclick="confirmarEliminarIngreso()">Sí, eliminar</button>
@@ -2218,7 +2232,12 @@ input{ font-family:inherit; }
     </div>
 
     <div class="gastos-etiqueta-seccion">Categoría</div>
-    <div class="grid-categorias-gasto" id="modalGastoGridCategorias" style="margin-bottom:16px;"></div>
+    <div class="grid-categorias-gasto" id="modalGastoGridCategorias"></div>
+    <div class="contenedor-subcategorias-gasto" id="modalGastoContSubcategorias">
+      <span class="gastos-etiqueta-seccion">Subcategoría</span>
+      <div class="grid-pagos-gasto" id="modalGastoGridSubcategorias"></div>
+    </div>
+    <div style="height:16px;"></div>
 
     <div class="gastos-etiqueta-seccion">Medio de pago</div>
     <div class="grid-pagos-gasto" id="modalGastoGridPagos" style="margin-bottom:16px;"></div>
@@ -2388,9 +2407,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.45';
-const VERSION_FECHA = '30 sep 2026';
-const VERSION_DESCRIPCION = 'Agenda: mes con scroll vertical continuo, swipe horizontal entre meses y transición continua entre semanas, hora de término por sesión suelta, cambiar duración de la serie, "+ Duración" directo; Ingresos: casillas de Entre Lazos destildadas por defecto';
+const VERSION_APP = '2.48';
+const VERSION_FECHA = '4 oct 2026';
+const VERSION_DESCRIPCION = 'Gastos: categoría Casa y hogar, subcategorías que se despliegan al elegir la categoría, manejo con teclado en el computador (Tab/flechas y Enter) y barra de monto editable con el teclado';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -2563,7 +2582,8 @@ function mapearIngresoDesdeServidor(fila){
     montoNeto: Number(fila.monto_neto) || 0,
     medioPago: fila.forma_pago || null,
     descripcion: fila.descripcion || '',
-    creado: Date.now()
+    // "Pago:" en Movimientos: fecha en que el ingreso se registró en la planilla
+    creado: Date.parse(String(fila.fecha_registro || '').replace(' ', 'T')) || Date.now()
   };
 }
 async function recuperarIngresosDesdeSheets(){
@@ -2694,6 +2714,7 @@ function mapearGastoDesdeServidor(fila){
     id: fila.id_gasto,
     fecha: fila.fecha_evento || '',
     categoria: fila.categoria || '',
+    subcategoria: fila.subcategoria || '',
     medioPago: fila.medio_pago || '',
     monto: Number(fila.monto) || 0,
     descripcion: fila.descripcion || '',
@@ -3756,6 +3777,7 @@ function mapearEventoDesdeServidor(fila){
     estadoSesion: fila.estado_sesion || null,
     estadosPorFecha: {},
     adultosPorFecha: {},
+    marcadoPagadoPorFecha: {},
     // Todavía no tiene una columna propia en la planilla (ver aviso en
     // el chat): por ahora vive solo en este aparato y una sincronización
     // completa la deja en blanco otra vez, igual que pasaría con
@@ -3810,13 +3832,20 @@ function calcularMontoBrutoParaPaciente(pacienteId){
 // abajo): siempre el mismo para la misma sesión, así que si esta orden
 // se repite (una corrección, un reintento), el servidor actualiza la
 // misma fila en vez de crear una nueva.
+// Fecha en que quedó pagada una sesión puntual (vacía si no está pagada).
+function fechaPagoParaEnviar(entidad, fechaEvento, estado){
+  if(!ESTADOS_QUE_GENERAN_INGRESO.includes(estado)) return '';
+  const esConsulta = entidad.etiqueta === undefined && entidad.tipoPago !== undefined;
+  const f = esConsulta ? entidad.fechaPago : (entidad.marcadoPagadoPorFecha || {})[fechaEvento];
+  return f || '';
+}
 function encolarActualizarEstadoSesion(entidad, fechaOcurrencia, estado, montoInfo, idIngreso, adultosPresentes){
   // Un estado nulo o vacío ya no se descarta: significa que el usuario
   // quitó la marca de la sesión, y eso también hay que mandarlo, porque
   // si no la planilla sigue mostrando el estado viejo (y, cuando ese
   // estado generaba ingreso, ese ingreso queda huérfano).
   const fechaEvento = fechaOcurrencia || entidad.fecha;
-  const datosBase = { id_evento: entidad.id, fecha_evento: fechaEvento, estado_sesion: estado || '' };
+  const datosBase = { id_evento: entidad.id, fecha_evento: fechaEvento, estado_sesion: estado || '', fecha_pago: fechaPagoParaEnviar(entidad, fechaEvento, estado) };
   // Se manda SIEMPRE (incluso vacío) cuando se llama a esta función
   // desde una Atención: si no, al sacar al único adulto marcado, la
   // planilla se quedaría con el nombre viejo.
@@ -4163,6 +4192,7 @@ function renderizarVistaMensual(opciones){
   if(saltarAlAncla){
     const filaAncla = cont.querySelector(`[data-fecha-fila="${formatoISO(lunesAncla)}"]`);
     zona.scrollTop = filaAncla ? filaAncla.offsetTop : 0;
+    momentoUltimoSaltoAncla = Date.now();
   }else if(fechaFilaTopePrevia){
     const filaNueva = cont.querySelector(`[data-fecha-fila="${fechaFilaTopePrevia}"]`);
     if(filaNueva) zona.scrollTop = filaNueva.offsetTop + offsetDentroDeFilaPrevia;
@@ -4190,19 +4220,10 @@ function cambiarSemana(delta){
   renderizarPanelSemana();
 }
 
-// opciones: { targetId, inicioSemana, soloVisual }. Sin argumentos,
-// dibuja la semana actual (inicioSemanaMostrada) en el panel de
-// siempre (#gridSemana), igual que antes. El carrusel de swipe (ver
-// más abajo, "TRÁNSITO CONTINUO ENTRE SEMANAS") también la usa para
-// pre-dibujar la semana anterior/siguiente en los paneles vecinos,
-// en modo "solo visual" (sin tocar el título ni el contador de
-// arriba, que son compartidos): esos paneles ya tienen
-// pointer-events:none puesto en el HTML, así que no hace falta
-// desactivar los clics acá adentro, el navegador ya los ignora.
-function renderizarPanelSemana(opciones){
-  const targetId = (opciones && opciones.targetId) || 'gridSemana';
-  const inicioSemana = (opciones && opciones.inicioSemana) || inicioSemanaMostrada;
-  const soloVisual = !!(opciones && opciones.soloVisual);
+function renderizarPanelSemana(){
+  const targetId = 'gridSemana';
+  const inicioSemana = inicioSemanaMostrada;
+  const soloVisual = false;
   const finSemana = new Date(inicioSemana); finSemana.setDate(finSemana.getDate()+6);
   if(!soloVisual){
     const desde = `${inicioSemana.getDate()} ${NOMBRES_MES[inicioSemana.getMonth()].slice(0,3)}`;
@@ -4392,11 +4413,6 @@ function renderizarPanelSemana(opciones){
   });
   grid.appendChild(cuerpo);
 
-  // Los paneles vecinos (semana anterior/siguiente) se mantienen al
-  // día para que estén listos apenas empiece un arrastre — ver
-  // "TRÁNSITO CONTINUO ENTRE SEMANAS" más abajo. Solo se hace desde
-  // el dibujo real (no desde uno "solo visual", para no recursar).
-  if(!soloVisual) prepararPanelesVecinosSemana();
 }
 
 // Minuto de inicio y de término de una instancia. Si el evento tiene
@@ -4545,123 +4561,32 @@ function iniciarSwipe(e){
 function finalizarSwipeMes(e){
   const p = e.changedTouches ? e.changedTouches[0] : e;
   const dx = p.clientX - swipeStartX, dy = p.clientY - swipeStartY;
-  if(Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) animarCambioMes(dx < 0 ? 1 : -1);
-}
-// A diferencia del scroll vertical continuo (que mezcla los meses sin
-// cortes), acá el horizontal se siente como pasar una página entera:
-// el mes actual se desliza hacia afuera, se cambia de mes de verdad
-// (lo que ya cierra la semana abierta, si había una), y el mes nuevo
-// entra deslizándose desde el otro lado.
-let cambioMesEnTransicion = false;
-function animarCambioMes(delta){
-  if(cambioMesEnTransicion) return;
-  cambioMesEnTransicion = true;
-  const zona = document.getElementById('zonaMesAnimada');
-  zona.style.transition = 'transform 200ms ease, opacity 200ms ease';
-  zona.style.transform = `translateX(${delta < 0 ? '28px' : '-28px'})`;
-  zona.style.opacity = '0';
-  setTimeout(() => {
-    cambiarMes(delta);
-    zona.style.transition = 'none';
-    zona.style.transform = `translateX(${delta < 0 ? '-28px' : '28px'})`;
-    void zona.offsetWidth; // fuerza a aplicar lo de arriba antes de animar, o no se vería el movimiento
-    zona.style.transition = 'transform 200ms ease, opacity 200ms ease';
-    zona.style.transform = 'translateX(0)';
-    zona.style.opacity = '1';
-    setTimeout(() => { cambioMesEnTransicion = false; }, 210);
-  }, 200);
+  if(Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) cambiarMes(dx < 0 ? 1 : -1);
 }
 
-// ============================================================
-// TRÁNSITO CONTINUO ENTRE SEMANAS
-//
-// A diferencia del mes (que cambia de un salto al soltar), acá el
-// carril de la semana (#carrilSemana, tres paneles: anterior/
-// actual/siguiente) sigue el dedo en vivo mientras se arrastra. Eso
-// dos cosas: (1) siempre se ve que es "la semana de al lado" y no
-// una pantalla nueva sin relación, y (2) hace falta cruzar un
-// arrastre bastante claro (UMBRAL_CONFIRMAR_SEMANA) para que el
-// cambio se confirme — un roce mínimo vuelve solo a su lugar.
-// ============================================================
-let arrastreSemanaActivo = false;
-let arrastreSemanaPointerId = null;
-let arrastreSemanaInicioX = 0;
-let arrastreSemanaInicioY = 0;
-let arrastreSemanaDx = 0;
-let arrastreSemanaAncho = 0;
-let arrastreSemanaEsHorizontal = null; // null = aún no se sabe si el gesto es horizontal o vertical
-let arrastreSemanaEnTransicion = false;
-const UMBRAL_CONFIRMAR_SEMANA = 0.3; // fracción del ancho de pantalla que hay que cruzar para confirmar
+function finalizarSwipeSemana(e){
+  const p = e.changedTouches ? e.changedTouches[0] : e;
+  const dx = p.clientX - swipeStartX, dy = p.clientY - swipeStartY;
+  if(Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) cambiarSemana(dx < 0 ? 1 : -1);
+}
 
-// Dibuja (sin interacción propia: ver pointer-events:none en el HTML)
-// la semana anterior y la siguiente en los paneles vecinos, listas
-// para asomar apenas empieza un arrastre.
-function prepararPanelesVecinosSemana(){
-  const ant = new Date(inicioSemanaMostrada); ant.setDate(ant.getDate() - 7);
-  const sig = new Date(inicioSemanaMostrada); sig.setDate(sig.getDate() + 7);
-  renderizarPanelSemana({ targetId:'gridSemanaAnt', inicioSemana: ant, soloVisual:true });
-  renderizarPanelSemana({ targetId:'gridSemanaSig', inicioSemana: sig, soloVisual:true });
-}
-function aplicarTransformCarrilSemana(px, conTransicion){
-  const carril = document.getElementById('carrilSemana');
-  carril.style.transition = conTransicion ? 'transform 200ms ease' : 'none';
-  carril.style.transform = `translateX(${px}px)`;
-}
-function iniciarArrastreSemana(e){
-  if(arrastreSemanaEnTransicion) return;
-  if(e.pointerType === 'mouse' && e.button !== 0) return;
-  const pista = document.getElementById('pistaSemana');
-  arrastreSemanaAncho = pista.clientWidth;
-  if(!arrastreSemanaAncho) return;
-  arrastreSemanaActivo = true;
-  arrastreSemanaPointerId = e.pointerId;
-  arrastreSemanaInicioX = e.clientX;
-  arrastreSemanaInicioY = e.clientY;
-  arrastreSemanaDx = 0;
-  arrastreSemanaEsHorizontal = null;
-  try{ pista.setPointerCapture(e.pointerId); }catch(err){}
-  prepararPanelesVecinosSemana();
-}
-function moverArrastreSemana(e){
-  if(!arrastreSemanaActivo || e.pointerId !== arrastreSemanaPointerId) return;
-  const dx = e.clientX - arrastreSemanaInicioX;
-  const dy = e.clientY - arrastreSemanaInicioY;
-  if(arrastreSemanaEsHorizontal === null){
-    if(Math.abs(dx) < 10 && Math.abs(dy) < 10) return; // todavía no se movió lo suficiente para decidir
-    arrastreSemanaEsHorizontal = Math.abs(dx) > Math.abs(dy);
-    if(!arrastreSemanaEsHorizontal){ arrastreSemanaActivo = false; return; } // gesto vertical: se deja pasar el scroll normal
-  }
-  if(!arrastreSemanaEsHorizontal) return;
-  e.preventDefault();
-  arrastreSemanaDx = Math.max(-arrastreSemanaAncho, Math.min(arrastreSemanaAncho, dx));
-  aplicarTransformCarrilSemana(-arrastreSemanaAncho + arrastreSemanaDx, false);
-}
-function finalizarArrastreSemana(e){
-  if(!arrastreSemanaActivo || e.pointerId !== arrastreSemanaPointerId){
-    if(e.pointerId === arrastreSemanaPointerId) arrastreSemanaEsHorizontal = null;
-    return;
-  }
-  arrastreSemanaActivo = false;
-  const fueHorizontal = arrastreSemanaEsHorizontal;
-  arrastreSemanaEsHorizontal = null;
-  if(!fueHorizontal) return;
-
-  const dx = arrastreSemanaDx;
-  const pasaElUmbral = Math.abs(dx) > arrastreSemanaAncho * UMBRAL_CONFIRMAR_SEMANA;
-  arrastreSemanaEnTransicion = true;
-  if(!pasaElUmbral){
-    // No alcanzó: vuelve suavemente a donde estaba, sin cambiar de semana.
-    aplicarTransformCarrilSemana(-arrastreSemanaAncho, true);
-    setTimeout(() => { arrastreSemanaEnTransicion = false; }, 210);
-    return;
-  }
-  const delta = dx < 0 ? 1 : -1; // izquierda = semana siguiente, derecha = anterior
-  aplicarTransformCarrilSemana(-arrastreSemanaAncho + (delta < 0 ? arrastreSemanaAncho : -arrastreSemanaAncho), true);
-  setTimeout(() => {
-    cambiarSemana(delta); // ya deja las filas de arriba/abajo y los paneles vecinos al día
-    aplicarTransformCarrilSemana(-arrastreSemanaAncho, false);
-    arrastreSemanaEnTransicion = false;
-  }, 210);
+// El título del mes (arriba) sigue al scroll vertical: muestra el mes de
+// la semana que queda arriba de la pantalla. Una semana que cruza dos
+// meses cuenta como del mes que tiene la mayoría de sus días (el del
+// jueves), así el título no parpadea. Justo después de un salto
+// programático (cambiar de mes, "Hoy", buscar) no se toca: ahí manda el
+// mes elegido.
+let momentoUltimoSaltoAncla = 0;
+function actualizarTituloMesSegunScroll(){
+  if(Date.now() - momentoUltimoSaltoAncla < 250) return;
+  const fila = obtenerFilaEnTope(document.getElementById('zonaMesAnimada'));
+  if(!fila) return;
+  const jueves = fechaDesdeISO(fila.dataset.fechaFila); jueves.setDate(jueves.getDate() + 3);
+  const m = jueves.getMonth(), a = jueves.getFullYear();
+  if(m === mesMostrado && a === anioMostrado) return;
+  mesMostrado = m; anioMostrado = a;
+  document.getElementById('tituloMes').textContent = NOMBRES_MES[m];
+  document.getElementById('agendaAnio').textContent = a;
 }
 
 function activarSwipeAgenda(){
@@ -4671,11 +4596,16 @@ function activarSwipeAgenda(){
   const gb = document.getElementById('gridDiasAbajo');
   gb.addEventListener('pointerdown', iniciarSwipe);
   gb.addEventListener('pointerup', finalizarSwipeMes);
-  const pista = document.getElementById('pistaSemana');
-  pista.addEventListener('pointerdown', iniciarArrastreSemana);
-  pista.addEventListener('pointermove', moverArrastreSemana);
-  pista.addEventListener('pointerup', finalizarArrastreSemana);
-  pista.addEventListener('pointercancel', finalizarArrastreSemana);
+  const gs = document.getElementById('gridSemana');
+  gs.addEventListener('pointerdown', iniciarSwipe);
+  gs.addEventListener('pointerup', finalizarSwipeSemana);
+  const zona = document.getElementById('zonaMesAnimada');
+  let tituloPendiente = false;
+  zona.addEventListener('scroll', () => {
+    if(tituloPendiente) return;
+    tituloPendiente = true;
+    requestAnimationFrame(() => { tituloPendiente = false; actualizarTituloMesSegunScroll(); });
+  }, { passive:true });
 }
 
 /* ============================================================
@@ -4917,6 +4847,7 @@ function pintarGridEtiquetasEvento(){
         duracionDesplegada = false; hasDurationEventoSeleccionado = false;
         document.getElementById('camposDuracionDetalle').style.display = 'none';
         pintarSegmentadoRecurrenciaEvento();
+        if(et.valor !== 'atenciones'){ estadoSesionEventoSeleccionado = null; grupoEstadoEventoElegido = null; pintarSegmentadoEstadoSesionEvento(); }
       }
       pintarGridEtiquetasEvento(); actualizarCamposSegunEtiqueta();
     };
@@ -4950,7 +4881,7 @@ function pintarSegmentadoRecurrenciaEvento(){
     const b = document.createElement('button');
     b.className = recurrenciaEventoSeleccionada === r.valor ? 'seleccionado' : '';
     b.textContent = r.nombre;
-    b.onclick = () => { recurrenciaEventoSeleccionada = r.valor; pintarSegmentadoRecurrenciaEvento(); actualizarVisibilidadRecurrenciaPersonalizada(); };
+    b.onclick = () => { recurrenciaEventoSeleccionada = r.valor; pintarSegmentadoRecurrenciaEvento(); actualizarVisibilidadRecurrenciaPersonalizada(); actualizarCamposSegunEtiqueta(); };
     c.appendChild(b);
   });
   actualizarVisibilidadRecurrenciaPersonalizada();
@@ -5063,7 +4994,11 @@ function actualizarCamposSegunEtiqueta(){
   const esAtenciones = etiquetaEventoSeleccionada === 'atenciones';
   document.getElementById('campoSubtipoAtencion').style.display = esAtenciones ? 'block' : 'none';
   document.getElementById('campoNombreLibreEvento').style.display = esAtenciones ? 'none' : 'block';
-  document.getElementById('campoEstadoSesionEvento').style.display = esAtenciones ? 'block' : 'none';
+  // Una serie nueva no puede nacer con estado (se marcaría una fecha que no existe).
+  const esSerieNueva = esAtenciones && subtipoAtencionSeleccionado === 'existente' && eventoEnEdicionId === null && consultaEnEdicionId === null && recurrenciaEventoSeleccionada !== 'ninguna';
+  document.getElementById('campoEstadoSesionEvento').style.display = (esAtenciones && !esSerieNueva) ? 'block' : 'none';
+  document.getElementById('notaEstadoSerieNueva').style.display = esSerieNueva ? 'block' : 'none';
+  if(esSerieNueva){ estadoSesionEventoSeleccionado = null; grupoEstadoEventoElegido = null; pintarSegmentadoEstadoSesionEvento(); }
   document.getElementById('etiquetaHoraEvento').textContent = esAtenciones ? 'Hora' : 'Hora (opcional)';
 
   const esExistente = esAtenciones && subtipoAtencionSeleccionado === 'existente';
@@ -5220,6 +5155,10 @@ async function guardarFichaEvento(){
   finally{ if(!document.getElementById('fondoModalMedioPagoSesion').classList.contains('abierto')) medioPagoSesionElegido = null; }
 }
 async function guardarFichaEventoInterno(){
+  // Resguardo: un evento nuevo que se repite, o que no es Atención, nunca guarda estado de sesión.
+  if(eventoEnEdicionId === null && consultaEnEdicionId === null && (recurrenciaEventoSeleccionada !== 'ninguna' || etiquetaEventoSeleccionada !== 'atenciones')){
+    estadoSesionEventoSeleccionado = null; grupoEstadoEventoElegido = null;
+  }
   if(etiquetaEventoSeleccionada === 'atenciones' && grupoEstadoEventoElegido && !estadoSesionEventoSeleccionado){
     avisoEstadoIncompleto = true; pintarSegmentadoEstadoSesionEvento(); return;
   }
@@ -5922,14 +5861,27 @@ const CATEGORIAS_GASTO = [
   { codigo:'FO', nombre:'Formación',        color:'var(--cat-FO)' },
   { codigo:'OC', nombre:'Ocio',             color:'var(--cat-OC)' },
   { codigo:'CO', nombre:'Cotidianos',       color:'var(--cat-CO)' },
+  { codigo:'CH', nombre:'Casa y hogar',     color:'var(--cat-CH)' },
   { codigo:'SP', nombre:'Salud y personal', color:'var(--cat-SP)' },
   { codigo:'DT', nombre:'Deudas y tarjeta', color:'var(--cat-DT)' },
 ];
 const MEDIOS_PAGO_GASTO = ['Efectivo', 'BancoEstado', 'Santander'];
+// Subcategorías por categoría. Si una categoría no aparece acá (Cuentas
+// fijas, Deudas y tarjeta), no tiene subcategorías y no se pide elegir.
+// Para agregar o cambiar una, se edita solo esta lista.
+const SUBCATEGORIAS_GASTO = {
+  CH: ['Feria y supermercado', 'Otros'],
+  CO: ['Transporte público', 'Taxis', 'Auto', 'Comida afuera'],
+  OC: ['Salidas con amistades', 'Carrete', 'Salidas mías'],
+  FO: ['Congresos y seminarios', 'Análisis', 'Supervisión', 'Libros'],
+  SP: ['Farmacia', 'Oficina']
+};
+function subcategoriasDe(codigo){ return SUBCATEGORIAS_GASTO[codigo] || []; }
 
 let expresionGasto = '';
 let modoOperadoresGasto = false;
 let categoriaSeleccionadaGasto = null;
+let subcategoriaSeleccionadaGasto = null;
 let pagoSeleccionadoGasto = null;
 let mostrarTodosGasto = false;
 let idGastoEnEdicion = null;
@@ -5993,8 +5945,13 @@ function actualizarPantallaGasto(){
     fijo.textContent = '$' + formateada;
   }
 }
+// Al repintar una fila de botones, el foco del teclado (computador) se
+// devuelve al mismo botón, para poder seguir con Tab/flechas sin perderse.
+function indiceBotonConFoco(contenedor){ return Array.prototype.indexOf.call(contenedor.children, document.activeElement); }
+function devolverFocoBoton(contenedor, indice){ if(indice >= 0 && contenedor.children[indice]) contenedor.children[indice].focus(); }
 function pintarCategoriasGasto(contenedorId, seleccionActual, alSeleccionar){
-  const c = document.getElementById(contenedorId); c.innerHTML = '';
+  const c = document.getElementById(contenedorId);
+  const foco = indiceBotonConFoco(c); c.innerHTML = '';
   CATEGORIAS_GASTO.forEach(cat => {
     const chip = document.createElement('button');
     chip.className = 'chip-categoria-gasto' + (seleccionActual === cat.codigo ? ' seleccionada' : '');
@@ -6003,9 +5960,11 @@ function pintarCategoriasGasto(contenedorId, seleccionActual, alSeleccionar){
     chip.onclick = () => alSeleccionar(cat.codigo);
     c.appendChild(chip);
   });
+  devolverFocoBoton(c, foco);
 }
 function pintarPagosGasto(contenedorId, seleccionActual, alSeleccionar){
-  const c = document.getElementById(contenedorId); c.innerHTML = '';
+  const c = document.getElementById(contenedorId);
+  const foco = indiceBotonConFoco(c); c.innerHTML = '';
   MEDIOS_PAGO_GASTO.forEach(medio => {
     const chip = document.createElement('button');
     chip.className = 'chip-pago-gasto' + (seleccionActual === medio ? ' seleccionada' : '');
@@ -6014,9 +5973,55 @@ function pintarPagosGasto(contenedorId, seleccionActual, alSeleccionar){
     chip.onclick = () => alSeleccionar(medio);
     c.appendChild(chip);
   });
+  devolverFocoBoton(c, foco);
 }
-function seleccionarCategoriaPrincipalGasto(codigo){ categoriaSeleccionadaGasto = codigo; pintarCategoriasGasto('gastoGridCategorias', categoriaSeleccionadaGasto, seleccionarCategoriaPrincipalGasto); }
+// Subcategorías: solo se muestran cuando la categoría elegida las tiene.
+function pintarSubcategoriasGasto(contenedorId, codigoCategoria, seleccionActual, alSeleccionar){
+  const c = document.getElementById(contenedorId);
+  const caja = c.parentElement;
+  const lista = subcategoriasDe(codigoCategoria);
+  const foco = indiceBotonConFoco(c); c.innerHTML = '';
+  caja.classList.toggle('visible', lista.length > 0);
+  if(lista.length === 0) return;
+  const color = obtenerCategoriaGastoPorCodigo(codigoCategoria).color;
+  lista.forEach(nombre => {
+    const chip = document.createElement('button');
+    chip.className = 'chip-pago-gasto' + (seleccionActual === nombre ? ' seleccionada' : '');
+    chip.style.setProperty('--chip-color', color);
+    chip.textContent = nombre;
+    chip.onclick = () => alSeleccionar(nombre);
+    c.appendChild(chip);
+  });
+  devolverFocoBoton(c, foco);
+}
+function seleccionarCategoriaPrincipalGasto(codigo){
+  if(categoriaSeleccionadaGasto !== codigo) subcategoriaSeleccionadaGasto = null;
+  categoriaSeleccionadaGasto = codigo;
+  pintarCategoriasGasto('gastoGridCategorias', categoriaSeleccionadaGasto, seleccionarCategoriaPrincipalGasto);
+  pintarSubcategoriasGasto('gastoGridSubcategorias', categoriaSeleccionadaGasto, subcategoriaSeleccionadaGasto, seleccionarSubcategoriaPrincipalGasto);
+}
+function seleccionarSubcategoriaPrincipalGasto(nombre){
+  subcategoriaSeleccionadaGasto = nombre;
+  pintarSubcategoriasGasto('gastoGridSubcategorias', categoriaSeleccionadaGasto, subcategoriaSeleccionadaGasto, seleccionarSubcategoriaPrincipalGasto);
+}
 function seleccionarPagoPrincipalGasto(medio){ pagoSeleccionadoGasto = medio; pintarPagosGasto('gastoGridPagos', pagoSeleccionadoGasto, seleccionarPagoPrincipalGasto); }
+
+// Moverse con el teclado en el computador: Tab pasa de un botón a otro y
+// las flechas se mueven dentro de la misma fila de botones; Enter o
+// Espacio eligen el botón (los botones ya lo hacen de fábrica).
+document.addEventListener('keydown', e => {
+  const flechas = ['ArrowRight','ArrowDown','ArrowLeft','ArrowUp'];
+  if(!flechas.includes(e.key)) return;
+  const boton = e.target && e.target.closest ? e.target.closest('button') : null;
+  const fila = boton && boton.parentElement;
+  if(!fila || !(fila.classList.contains('grid-categorias-gasto') || fila.classList.contains('grid-pagos-gasto'))) return;
+  const botones = Array.prototype.slice.call(fila.children);
+  const i = botones.indexOf(boton);
+  const siguiente = (e.key === 'ArrowRight' || e.key === 'ArrowDown') ? i + 1 : i - 1;
+  if(siguiente < 0 || siguiente >= botones.length) return;
+  e.preventDefault();
+  botones[siguiente].focus();
+});
 
 async function guardarNuevoGasto(){
   const monto = evaluarExpresionGasto(expresionGasto);
@@ -6024,15 +6029,17 @@ async function guardarNuevoGasto(){
   const faltanGasto = [], camposGasto = [];
   if(monto === null || monto <= 0){ faltanGasto.push('el monto'); camposGasto.push('gastoMontoPantalla'); }
   if(!categoriaSeleccionadaGasto){ faltanGasto.push('la categoría'); camposGasto.push('gastoGridCategorias'); }
+  else if(subcategoriasDe(categoriaSeleccionadaGasto).length && !subcategoriaSeleccionadaGasto){ faltanGasto.push('la subcategoría'); camposGasto.push('gastoGridSubcategorias'); }
   if(!pagoSeleccionadoGasto){ faltanGasto.push('el medio de pago'); camposGasto.push('gastoGridPagos'); }
   if(faltanGasto.length){ mostrarAvisoFormulario('avisoNuevoGasto', 'Falta ' + unirFaltantes(faltanGasto) + '.', camposGasto); return; }
-  const nuevoRegistro = { id: generarId(), fecha: document.getElementById('gastoCampoFecha').value, categoria: categoriaSeleccionadaGasto, medioPago: pagoSeleccionadoGasto, monto, descripcion: document.getElementById('gastoCampoDescripcion').value.trim(), creado: Date.now(), pendienteSync:false, colaSync:[] };
+  const nuevoRegistro = { id: generarId(), fecha: document.getElementById('gastoCampoFecha').value, categoria: categoriaSeleccionadaGasto, subcategoria: subcategoriaSeleccionadaGasto || '', medioPago: pagoSeleccionadoGasto, monto, descripcion: document.getElementById('gastoCampoDescripcion').value.trim(), creado: Date.now(), pendienteSync:false, colaSync:[] };
   nuevoRegistro.colaSync.push({ accion:'crear_gasto', datosBase: construirDatosGastoBase(nuevoRegistro) });
   registrosGasto.push(nuevoRegistro);
-  expresionGasto = ''; categoriaSeleccionadaGasto = null; pagoSeleccionadoGasto = null;
+  expresionGasto = ''; categoriaSeleccionadaGasto = null; subcategoriaSeleccionadaGasto = null; pagoSeleccionadoGasto = null;
   document.getElementById('gastoCampoDescripcion').value = ''; document.getElementById('gastoCampoFecha').value = hoyISO();
   actualizarPantallaGasto();
   pintarCategoriasGasto('gastoGridCategorias', null, seleccionarCategoriaPrincipalGasto);
+  pintarSubcategoriasGasto('gastoGridSubcategorias', null, null, seleccionarSubcategoriaPrincipalGasto);
   pintarPagosGasto('gastoGridPagos', null, seleccionarPagoPrincipalGasto);
   renderizarListaGastos();
   await guardarGastosEnAlmacenamiento();
@@ -6057,7 +6064,7 @@ function renderizarListaGastos(){
           <span class="monto-registro-gasto monto-fuente">${formatearCLP(reg.monto)}</span>
           <span class="meta-gasto">${formatearFechaCortaGasto(reg.fecha)}</span>
         </div>
-        <div class="meta-gasto">${cat.nombre} · ${reg.medioPago}${reg.descripcion ? ' · ' + escaparHTML(reg.descripcion) : ''}</div>
+        <div class="meta-gasto">${cat.nombre}${reg.subcategoria ? ' · ' + escaparHTML(reg.subcategoria) : ''} · ${reg.medioPago}${reg.descripcion ? ' · ' + escaparHTML(reg.descripcion) : ''}</div>
       </div>
       <button class="boton-menu-gasto" onclick="alternarMenuGasto(event, '${reg.id}')">⋮</button>
       <div class="menu-contextual-gasto ${idMenuAbiertoGasto === reg.id ? 'abierto' : ''}" id="menuGasto-${reg.id}">
@@ -6089,20 +6096,30 @@ async function confirmarEliminacionGasto(evento, id){
   registrosGasto = registrosGasto.filter(r => r.id !== id); renderizarListaGastos(); await guardarGastosEnAlmacenamiento();
   enviarAccionAgendaConReintentos('eliminar_gasto', { id_gasto: id });
 }
-let categoriaModalGasto = null; let pagoModalGasto = null;
+let categoriaModalGasto = null; let pagoModalGasto = null; let subcategoriaModalGasto = null;
 function editarRegistroGasto(id){
   idMenuAbiertoGasto = null;
   const registro = registrosGasto.find(r => r.id === id); if(!registro) return;
-  idGastoEnEdicion = id; categoriaModalGasto = registro.categoria; pagoModalGasto = registro.medioPago;
+  idGastoEnEdicion = id; categoriaModalGasto = registro.categoria; pagoModalGasto = registro.medioPago; subcategoriaModalGasto = registro.subcategoria || null;
   document.getElementById('modalGastoMonto').value = registro.monto;
   document.getElementById('modalGastoFecha').value = registro.fecha;
   document.getElementById('modalGastoDescripcion').value = registro.descripcion || '';
   pintarCategoriasGasto('modalGastoGridCategorias', categoriaModalGasto, seleccionarCategoriaModalGasto);
+  pintarSubcategoriasGasto('modalGastoGridSubcategorias', categoriaModalGasto, subcategoriaModalGasto, seleccionarSubcategoriaModalGasto);
   pintarPagosGasto('modalGastoGridPagos', pagoModalGasto, seleccionarPagoModalGasto);
   document.getElementById('fondoModalGasto').classList.add('abierto');
   renderizarListaGastos();
 }
-function seleccionarCategoriaModalGasto(codigo){ categoriaModalGasto = codigo; pintarCategoriasGasto('modalGastoGridCategorias', categoriaModalGasto, seleccionarCategoriaModalGasto); }
+function seleccionarCategoriaModalGasto(codigo){
+  if(categoriaModalGasto !== codigo) subcategoriaModalGasto = null;
+  categoriaModalGasto = codigo;
+  pintarCategoriasGasto('modalGastoGridCategorias', categoriaModalGasto, seleccionarCategoriaModalGasto);
+  pintarSubcategoriasGasto('modalGastoGridSubcategorias', categoriaModalGasto, subcategoriaModalGasto, seleccionarSubcategoriaModalGasto);
+}
+function seleccionarSubcategoriaModalGasto(nombre){
+  subcategoriaModalGasto = nombre;
+  pintarSubcategoriasGasto('modalGastoGridSubcategorias', categoriaModalGasto, subcategoriaModalGasto, seleccionarSubcategoriaModalGasto);
+}
 function seleccionarPagoModalGasto(medio){ pagoModalGasto = medio; pintarPagosGasto('modalGastoGridPagos', pagoModalGasto, seleccionarPagoModalGasto); }
 async function guardarEdicionGasto(){
   const registro = registrosGasto.find(r => r.id === idGastoEnEdicion); if(!registro) return;
@@ -6110,7 +6127,11 @@ async function guardarEdicionGasto(){
   ocultarAvisoFormulario('avisoEdicionGasto');
   if(isNaN(monto) || monto <= 0){ mostrarAvisoFormulario('avisoEdicionGasto', 'Falta el monto.', 'modalGastoMonto'); return; }
   if(!categoriaModalGasto || !pagoModalGasto){ mostrarAvisoFormulario('avisoEdicionGasto', 'Falta elegir la categoría y el medio de pago.', ['modalGastoGridCategorias','modalGastoGridPagos']); return; }
-  registro.monto = monto; registro.categoria = categoriaModalGasto; registro.medioPago = pagoModalGasto;
+  // Un gasto antiguo (de antes de las subcategorías) se puede editar sin elegir
+  // una; pero si cambia de categoría, o ya tenía una, se pide de nuevo.
+  const exigeSub = subcategoriasDe(categoriaModalGasto).length && !subcategoriaModalGasto && (registro.subcategoria || registro.categoria !== categoriaModalGasto);
+  if(exigeSub){ mostrarAvisoFormulario('avisoEdicionGasto', 'Falta la subcategoría.', 'modalGastoGridSubcategorias'); return; }
+  registro.monto = monto; registro.categoria = categoriaModalGasto; registro.subcategoria = subcategoriaModalGasto || ''; registro.medioPago = pagoModalGasto;
   registro.fecha = document.getElementById('modalGastoFecha').value; registro.descripcion = document.getElementById('modalGastoDescripcion').value.trim();
   registro.colaSync = registro.colaSync || [];
   registro.colaSync.push({ accion:'editar_gasto', datosBase: construirDatosGastoBase(registro) });
@@ -6121,6 +6142,7 @@ function cerrarModalGasto(){ idGastoEnEdicion = null; document.getElementById('f
 function iniciarModuloGastos(){
   document.getElementById('gastoCampoFecha').value = hoyISO();
   pintarCategoriasGasto('gastoGridCategorias', null, seleccionarCategoriaPrincipalGasto);
+  pintarSubcategoriasGasto('gastoGridSubcategorias', null, null, seleccionarSubcategoriaPrincipalGasto);
   pintarPagosGasto('gastoGridPagos', null, seleccionarPagoPrincipalGasto);
   actualizarPantallaGasto(); renderizarListaGastos();
   actualizarBannerSyncGastos();
@@ -6147,6 +6169,7 @@ function construirDatosGastoBase(registro){
   return {
     monto: registro.monto,
     categoria: registro.categoria,
+    subcategoria: registro.subcategoria || '',
     medio_pago: registro.medioPago,
     descripcion: registro.descripcion,
     fecha_evento: registro.fecha
@@ -6320,7 +6343,7 @@ async function confirmarPagoDesdeIngresos(inst, medioPago){
 
   if(inst.tipoInstancia === 'consulta'){
     const c = consultasUnicas.find(x => x.id === inst.consultaId); if(!c) return;
-    c.estadoSesion = nuevoEstado;
+    c.estadoSesion = nuevoEstado; c.fechaPago = hoyISO();
     encolarActualizarEstadoSesion(c, null, nuevoEstado, montoInfo, idIngreso);
     if(!info.esEntreLazos) sincronizarIngresoLocalDeSesion(idIngreso, { tipo: info.tipo, claveOrigen: obtenerClaveOrigen(inst), fecha: inst.fecha, montoBruto: info.montoBruto, montoNeto: calcularNeto(info.montoBruto, false), nombre: info.nombre, medioPago });
     await guardarConsultasEnAlmacenamiento();
@@ -6329,7 +6352,8 @@ async function confirmarPagoDesdeIngresos(inst, medioPago){
     const evento = eventosAgenda.find(e => e.id === inst.eventoId); if(!evento) return;
     if(evento.recurrencia === 'ninguna'){ evento.estadoSesion = nuevoEstado; }
     else{ evento.estadosPorFecha = evento.estadosPorFecha || {}; evento.estadosPorFecha[inst.fecha] = nuevoEstado; }
-    encolarActualizarEstadoSesion(evento, evento.recurrencia === 'ninguna' ? null : inst.fecha, nuevoEstado, montoInfo, idIngreso);
+    evento.marcadoPagadoPorFecha = evento.marcadoPagadoPorFecha || {}; evento.marcadoPagadoPorFecha[inst.fecha] = hoyISO();
+    encolarActualizarEstadoSesion(evento, evento.recurrencia === 'ninguna' ? null : inst.fecha, nuevoEstado, montoInfo, idIngreso, (evento.adultosPorFecha && evento.adultosPorFecha[inst.fecha]) || []);
     if(!info.esEntreLazos) sincronizarIngresoLocalDeSesion(idIngreso, { tipo: info.tipo, claveOrigen: obtenerClaveOrigen(inst), fecha: inst.fecha, montoBruto: info.montoBruto, montoNeto: calcularNeto(info.montoBruto, false), nombre: info.nombre, medioPago });
     await guardarEventosEnAlmacenamiento();
     procesarColaEntidadAgenda(evento, guardarEventosEnAlmacenamiento);
@@ -6850,18 +6874,57 @@ function abrirDetalleIngreso(id){
   document.getElementById('fondoModalIngreso').classList.add('abierto');
 }
 function cerrarFichaIngreso(){ document.getElementById('fondoModalIngreso').classList.remove('abierto'); ingresoEnEdicionId = null; }
-function solicitarEliminarIngreso(){ document.getElementById('confirmacionEliminarIngreso').style.display = 'block'; }
+// Para un ingreso de Entre Lazos creado desde una sesión, encuentra esa sesión
+// (el id del ingreso se calcula siempre igual a partir de la sesión).
+function buscarSesionDeIngresoEntreLazos(ing){
+  if(!ing || ing.tipo !== 'entrelazos') return null;
+  const candidatas = obtenerInstanciasEnRango(rangoAnalisisInicio(), rangoAnalisisFin()).filter(inst => inst.etiqueta === 'atenciones');
+  return candidatas.find(inst => idIngresoDeterministico(obtenerClaveOrigen(inst)) === ing.id) || null;
+}
+function solicitarEliminarIngreso(){
+  const ing = ingresos.find(i => i.id === ingresoEnEdicionId);
+  document.getElementById('textoConfirmacionEliminarIngreso').textContent = buscarSesionDeIngresoEntreLazos(ing)
+    ? 'Este ingreso se eliminará. La sesión volverá a quedar sin estado (pendiente) en la Agenda y se sacará de la boleta registrada, para poder incluirla en una boleta nueva. La boleta ya emitida conserva su monto. No se puede deshacer.'
+    : 'Este ingreso se eliminará permanentemente. No se puede deshacer.';
+  document.getElementById('confirmacionEliminarIngreso').style.display = 'block';
+}
 function cancelarEliminarIngreso(){ document.getElementById('confirmacionEliminarIngreso').style.display = 'none'; }
+// Deja una sesión sin ningún estado (como si nunca se hubiera marcado).
+async function dejarSesionSinEstado(inst){
+  if(inst.tipoInstancia === 'consulta'){
+    const c = consultasUnicas.find(x => x.id === inst.consultaId); if(!c) return;
+    c.estadoSesion = null; c.fechaPago = null;
+    encolarActualizarEstadoSesion(c, null, null, null, null);
+    await guardarConsultasEnAlmacenamiento();
+    procesarColaEntidadAgenda(c, guardarConsultasEnAlmacenamiento);
+    return;
+  }
+  const ev = eventosAgenda.find(x => x.id === inst.eventoId); if(!ev) return;
+  if(ev.recurrencia === 'ninguna') ev.estadoSesion = null;
+  else if(ev.estadosPorFecha) delete ev.estadosPorFecha[inst.fecha];
+  if(ev.marcadoPagadoPorFecha) delete ev.marcadoPagadoPorFecha[inst.fecha];
+  encolarActualizarEstadoSesion(ev, ev.recurrencia === 'ninguna' ? null : inst.fecha, null, null, null, (ev.adultosPorFecha && ev.adultosPorFecha[inst.fecha]) || []);
+  await guardarEventosEnAlmacenamiento();
+  procesarColaEntidadAgenda(ev, guardarEventosEnAlmacenamiento);
+}
 async function confirmarEliminarIngreso(){
+  const ing = ingresos.find(i => i.id === ingresoEnEdicionId);
+  const inst = buscarSesionDeIngresoEntreLazos(ing);
   // Primero se le avisa a la planilla (mientras todavía tenemos a mano
-  // cuál ingreso es) y recién después se borra del teléfono y se cierra
-  // la ficha. Solo llegan acá ingresos que no vienen de una sesión
-  // (manuales, boleta Entre Lazos, sueldo dependiente), así que no hay
-  // ninguna sesión de Agenda que descuadrar. Sin este aviso, la fila
-  // seguía viva en Sheets y reaparecía inflando el mes.
+  // cuál ingreso es) y recién después se borra del teléfono. Sin este
+  // aviso, la fila seguía viva en Sheets y reaparecía inflando el mes.
   await encolarAccionIngreso('eliminar_ingreso', { id_ingreso: ingresoEnEdicionId });
+  if(inst){
+    const clave = obtenerClaveOrigen(inst);
+    await encolarAccionIngreso('quitar_sesion_de_boleta', { clave });
+    clavesFacturadasDesdeServidor.delete(clave);
+    ingresos.forEach(i => { if(i.sesionesIncluidas) i.sesionesIncluidas = i.sesionesIncluidas.filter(c => c !== clave); });
+    await guardarClavesFacturadas();
+    await dejarSesionSinEstado(inst);
+  }
   ingresos = ingresos.filter(i => i.id !== ingresoEnEdicionId);
   cerrarFichaIngreso(); renderizarVistaIngresos(); await guardarIngresosEnAlmacenamiento();
+  if(inst) rerenderizarVistaAgendaActual();
 }
 
 /* ============================================================
@@ -7674,9 +7737,13 @@ async function aplicarSincronizacionCompleta(paquete){
       if(!ses || !ses.id_evento) return;
       const adultos = ses.adultos_presentes ? String(ses.adultos_presentes).split('|').map(n => n.trim()).filter(Boolean) : [];
       const consulta = nuevasConsultas.find(c => c.id === ses.id_evento);
-      if(consulta){ if(ses.estado_sesion) consulta.estadoSesion = ses.estado_sesion; return; }
+      if(consulta){ if(ses.estado_sesion) consulta.estadoSesion = ses.estado_sesion; if(ses.fecha_pago) consulta.fechaPago = ses.fecha_pago; return; }
       const evento = nuevosEventos.find(e => e.id === ses.id_evento);
       if(!evento) return;
+      if(ses.fecha_evento && ses.fecha_pago){
+        evento.marcadoPagadoPorFecha = evento.marcadoPagadoPorFecha || {};
+        evento.marcadoPagadoPorFecha[ses.fecha_evento] = ses.fecha_pago;
+      }
       // Con qué adulto fue esa sesión puntual: siempre por fecha, sea o
       // no un evento recurrente (a diferencia de estadoSesion, que en
       // los eventos sueltos se guarda directo en el evento).
