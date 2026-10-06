@@ -406,6 +406,16 @@ input{ font-family:inherit; }
    acciones definitivas de Configuración se vean igual de importantes. */
 .boton-primario.peligro{ background:#9B4A4A; }
 
+/* Configuración > Categorías de gastos */
+.boton-nombre-categoria-gasto{ flex:1; min-width:0; text-align:left; font-size:13.5px; font-weight:650; color:var(--texto-principal); font-family:'Quicksand',sans-serif; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; touch-action:manipulation; }
+.bloque-subs-gasto-config{ margin:4px 0 0 14px; padding:8px 0 4px 10px; border-left:2px solid var(--borde); }
+.fila-sub-gasto-config{ display:flex; align-items:center; gap:8px; padding:6px 0; }
+.fila-sub-gasto-config .nombre{ flex:1; min-width:0; font-size:12.5px; font-weight:600; color:var(--texto-principal); font-family:'Quicksand',sans-serif; }
+.fila-sub-gasto-config.quitada .nombre{ color:var(--texto-terciario); }
+.fila-agregar-config{ display:flex; gap:7px; margin-top:8px; }
+.fila-agregar-config input{ flex:1; min-width:0; padding:9px 11px; border-radius:10px; border:1px solid var(--borde); background:var(--superficie); font-size:13px; color:var(--texto-principal); }
+.boton-agregar-config{ flex:none; padding:0 13px; border-radius:10px; background:var(--acento); color:#FFF6E8; font-size:12.5px; font-weight:700; font-family:'Quicksand',sans-serif; touch-action:manipulation; }
+.titulo-agregar-categoria-gasto{ font-size:13px; font-weight:750; color:var(--texto-principal); font-family:'Quicksand',sans-serif; margin:18px 0 6px; }
 /* Configuración > Tipos de evento */
 .titulo-seccion-config{ font-size:15px; font-weight:750; color:var(--texto-principal); font-family:'Quicksand',sans-serif; margin:22px 0 4px; }
 .fila-tipo-evento{
@@ -651,6 +661,13 @@ input{ font-family:inherit; }
 #zonaMesAnimada{ position:relative; } /* para que offsetTop de cada semana se mida desde la zona con scroll */
 #pantallaAgenda{ padding-left:var(--agenda-margen-lateral); padding-right:var(--agenda-margen-lateral); gap:4px; }
 
+/* Botones "Ver más" al final y al comienzo del scroll de la Agenda */
+.boton-ver-mas-agenda{
+  flex:none; margin:8px 4px; padding:10px; border-radius:10px; border:1.5px dashed var(--borde);
+  background:transparent; color:var(--texto-secundario); font-size:11.5px; font-weight:700;
+  font-family:'Quicksand',sans-serif; touch-action:manipulation;
+}
+.boton-ver-mas-agenda:active{ background:var(--borde-suave); }
 /* Lupa del encabezado de la Agenda */
 .icono-lupa{ width:18px; height:18px; fill:none; stroke:var(--texto-secundario); stroke-width:2.4; stroke-linecap:round; }
 
@@ -1751,7 +1768,21 @@ input{ font-family:inherit; }
     </div>
     <div class="separador-seccion-config"></div>
 
-    <!-- ================= 3. Memoria y Borrado de Datos ================= -->
+    <!-- ================= 3. Categorías de gastos ================= -->
+    <div class="seccion-config">
+      <button class="encabezado-seccion-config" id="encabezadoSeccionGastos" onclick="alternarSeccionConfig('gastos')">
+        <span>Categorías de gastos</span>
+        <span class="chevron-seccion-config" id="chevronSeccionGastos">⌄</span>
+      </button>
+      <div class="contenido-seccion-config" id="contenidoSeccionGastos" style="display:none;">
+        <div class="nota-campo" style="margin-bottom:10px;">Toca el nombre de una categoría para ver sus subcategorías. Quitar una categoría o subcategoría solo la saca de la lista al registrar gastos nuevos: los gastos que ya la usan se siguen viendo con su nombre.</div>
+        <div id="listaCategoriasGastoConfig"></div>
+        <div class="aviso-formulario" id="avisoCategoriasGasto" style="margin-top:10px;"></div>
+      </div>
+    </div>
+    <div class="separador-seccion-config"></div>
+
+    <!-- ================= 4. Memoria y Borrado de Datos ================= -->
     <div class="seccion-config">
       <button class="encabezado-seccion-config" id="encabezadoSeccionMemoria" onclick="alternarSeccionConfig('memoria')">
         <span>Memoria y Borrado de Datos</span>
@@ -2407,9 +2438,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.50';
-const VERSION_FECHA = '4 oct 2026';
-const VERSION_DESCRIPCION = 'Agenda: una atención realizada devengada también se ve tenue; una sola línea de cambio de mes; Gastos con Casa y hogar, subcategorías y teclado; fechas de pago; eliminar ingreso Entre Lazos deja la sesión sin estado';
+const VERSION_APP = '2.52';
+const VERSION_FECHA = '5 oct 2026';
+const VERSION_DESCRIPCION = 'Agenda: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -2527,7 +2558,7 @@ let eventosAgenda = [];
 let ingresos = [];
 let objetivos = [];
 let registrosGasto = [];
-let configuracion = { montoFonasa: 0, montoFonasaEL: 0, porcentajeImpuesto: 15.25, porcentajeComisionEL: 10, sueldoDependienteMonto: 0, sueldoDependienteInicio: '', tiposEvento: { propias: [], quitadas: [] }, pendienteSync: false, colaSync: [] };
+let configuracion = { montoFonasa: 0, montoFonasaEL: 0, porcentajeImpuesto: 15.25, porcentajeComisionEL: 10, sueldoDependienteMonto: 0, sueldoDependienteInicio: '', tiposEvento: { propias: [], quitadas: [] }, categoriasGasto: { propias: [], quitadas: [], subsAgregadas: {}, subsQuitadas: {} }, pendienteSync: false, colaSync: [] };
 
 let filtroEstado = 'activo';
 let canalSeleccionado = null;
@@ -2681,6 +2712,7 @@ async function cargarConfiguracion(){
   try{ const r = await window.storage.get(CLAVE_CONFIG, false); if(r && r.value) configuracion = JSON.parse(r.value); }catch(e){ /* valores por defecto */ }
   configuracion._procesando = false; // el bloqueo de sincronización es solo en memoria, nunca debe empezar "trabado"
   configuracion.tiposEvento = normalizarTiposEvento(configuracion.tiposEvento);
+  configuracion.categoriasGasto = normalizarCategoriasGasto(configuracion.categoriasGasto);
   aplicarEstilosEtiquetasPropias();
 }
 function normalizarTiposEvento(t){
@@ -2692,6 +2724,24 @@ function normalizarTiposEvento(t){
 }
 // Lee los tipos de evento que vienen de la planilla (se guardan como
 // un solo valor de configuración, "tipos_evento", en HistorialTarifas).
+// Las categorías y subcategorías de gastos que agrega o quita el usuario viajan
+// a la planilla como un solo valor de configuración, "categorias_gasto"
+// (igual que los tipos de evento), sin tocar el Apps Script.
+function normalizarCategoriasGasto(t){
+  t = (t && typeof t === 'object') ? t : {};
+  const mapaListas = (o) => { const r = {}; if(o && typeof o === 'object') Object.keys(o).forEach(k => { if(Array.isArray(o[k])) r[k] = o[k].filter(x => typeof x === 'string' && x); }); return r; };
+  return {
+    propias: Array.isArray(t.propias) ? t.propias.filter(x => x && x.codigo && x.nombre && x.paleta) : [],
+    quitadas: Array.isArray(t.quitadas) ? t.quitadas.filter(v => typeof v === 'string') : [],
+    subsAgregadas: mapaListas(t.subsAgregadas),
+    subsQuitadas: mapaListas(t.subsQuitadas)
+  };
+}
+function aplicarCategoriasGastoDesdeServidor(vigentes){
+  if(!vigentes || !vigentes.categorias_gasto) return;
+  try{ configuracion.categoriasGasto = normalizarCategoriasGasto(JSON.parse(vigentes.categorias_gasto.monto_o_porcentaje)); }
+  catch(e){ console.error('Categorías de gastos con formato inválido en la planilla:', e); }
+}
 function aplicarTiposEventoDesdeServidor(vigentes){
   if(!vigentes || !vigentes.tipos_evento) return;
   try{
@@ -2844,7 +2894,7 @@ function irAPantalla(nombre){
 
   cerrarMenuMas();
 
-  if(nombre === 'agenda') renderizarVistaMensual();
+  if(nombre === 'agenda') irAHoyAgenda(); // siempre se abre en hoy
   else if(nombre === 'ingresos') renderizarVistaIngresos();
   else if(nombre === 'objetivos') renderizarVistaObjetivos();
   else if(nombre === 'dashboard'){ reiniciarMesDashboard(); renderizarDashboard(); }
@@ -3230,11 +3280,154 @@ async function recuperarPacientesDesdeSheets(){
    5. CONFIGURACIÓN GLOBAL
    ============================================================ */
 // Las tres secciones parten siempre cerradas al abrir Configuración.
-let seccionesConfigAbiertas = { valores:false, eventos:false, memoria:false };
+let seccionesConfigAbiertas = { valores:false, eventos:false, gastos:false, memoria:false };
+// ------------------------------------------------------------
+// Categorías de gastos (Configuración). Se pueden agregar y quitar
+// categorías y subcategorías; lo de fábrica se puede quitar y volver
+// a agregar. Todo se guarda como un solo valor "categorias_gasto".
+// ------------------------------------------------------------
+let categoriaGastoAbiertaConfig = null;
+let quitandoCategoriaGasto = null;   // { tipo:'cat', codigo } o { tipo:'sub', codigo, indice }
+let paletaNuevaCategoriaGasto = null;
+function renderizarCategoriasGastoConfig(){
+  const cfg = configuracion.categoriasGasto;
+  const lista = document.getElementById('listaCategoriasGastoConfig'); if(!lista) return;
+  const previoInput = document.getElementById('nuevaCategoriaGastoNombre');
+  const nombreEscrito = previoInput ? previoInput.value : '';
+  const quitando = quitandoCategoriaGasto;
+  const botonesQuitar = (esteQuitando, alSolicitar, alCancelar, alConfirmar) => esteQuitando
+    ? `<button class="boton-tipo-evento" onclick="${alCancelar}">No</button><button class="boton-tipo-evento confirmar" onclick="${alConfirmar}">Sí, quitar</button>`
+    : `<button class="boton-tipo-evento quitar" onclick="${alSolicitar}">Quitar</button>`;
+
+  const filaCategoria = (cat) => {
+    const abierta = categoriaGastoAbiertaConfig === cat.codigo;
+    const subs = subcategoriasDe(cat.codigo);
+    const esteQuitando = quitando && quitando.tipo === 'cat' && quitando.codigo === cat.codigo;
+    let html = `<div class="fila-tipo-evento">
+      <span class="punto-tipo-evento" style="background:${cat.color};"></span>
+      <button class="boton-nombre-categoria-gasto" onclick="alternarCategoriaGastoConfig('${cat.codigo}')">${escaparHTML(cat.nombre)} ${abierta ? '⌃' : '⌄'}</button>
+      <span class="nota-tipo-evento">${subs.length} sub.</span>
+      ${botonesQuitar(esteQuitando, `solicitarQuitarCategoriaGasto('${cat.codigo}')`, 'cancelarQuitarGastoConfig()', `confirmarQuitarCategoriaGasto('${cat.codigo}')`)}
+    </div>`;
+    if(abierta){
+      const base = SUBCATEGORIAS_GASTO_BASE[cat.codigo] || [];
+      const quitadasSubs = cfg.subsQuitadas[cat.codigo] || [];
+      html += '<div class="bloque-subs-gasto-config">';
+      if(subs.length === 0) html += '<div class="nota-campo">Sin subcategorías: al registrar un gasto de esta categoría no se pide elegir una.</div>';
+      subs.forEach((nombre, i) => {
+        const qs = quitando && quitando.tipo === 'sub' && quitando.codigo === cat.codigo && quitando.indice === i;
+        html += `<div class="fila-sub-gasto-config"><span class="nombre">${escaparHTML(nombre)}</span>${botonesQuitar(qs, `solicitarQuitarSubGasto('${cat.codigo}',${i})`, 'cancelarQuitarGastoConfig()', `confirmarQuitarSubGasto('${cat.codigo}',${i})`)}</div>`;
+      });
+      quitadasSubs.forEach((nombre, i) => {
+        html += `<div class="fila-sub-gasto-config quitada"><span class="nombre">${escaparHTML(nombre)} (quitada)</span><button class="boton-tipo-evento" onclick="volverAgregarSubGasto('${cat.codigo}',${i})">Volver a agregar</button></div>`;
+      });
+      html += `<div class="fila-agregar-config"><input type="text" id="nuevaSubGastoNombre" placeholder="Nueva subcategoría" maxlength="30"><button class="boton-agregar-config" onclick="agregarSubcategoriaGasto('${cat.codigo}')">Agregar</button></div></div>`;
+    }
+    return html;
+  };
+
+  const activas = categoriasGastoActivas();
+  const quitadasCat = categoriasGastoTodas().filter(c => cfg.quitadas.includes(c.codigo));
+  let html = activas.map(filaCategoria).join('');
+  if(quitadasCat.length){
+    html += '<div class="subtitulo-tipos-quitados">Quitadas</div>' + quitadasCat.map(c => `<div class="fila-tipo-evento quitado">
+      <span class="punto-tipo-evento" style="background:${c.color};"></span>
+      <span class="nombre-tipo-evento">${escaparHTML(c.nombre)}</span>
+      <button class="boton-tipo-evento" onclick="volverAgregarCategoriaGasto('${c.codigo}')">Volver a agregar</button>
+    </div>`).join('');
+  }
+  let paleta = '';
+  for(let i = 1; i <= NUMERO_COLORES_PALETA_EVENTO; i++){
+    const clave = 'paleta-evento-' + i;
+    paleta += `<button type="button" class="muestra-color-evento${paletaNuevaCategoriaGasto === clave ? ' seleccionada' : ''}" style="background:var(--${clave});" aria-label="Color ${i}" onclick="elegirColorCategoriaGasto('${clave}')"></button>`;
+  }
+  html += `<div class="titulo-agregar-categoria-gasto">Agregar categoría</div>
+    <div class="fila-agregar-config"><input type="text" id="nuevaCategoriaGastoNombre" placeholder="Ej: Mascotas" maxlength="30" value="${escaparHTML(nombreEscrito)}"></div>
+    <div class="paleta-tipo-evento">${paleta}</div>
+    <button class="boton-primario" style="margin-top:12px;" onclick="agregarCategoriaGasto()">Agregar categoría</button>`;
+  lista.innerHTML = html;
+}
+// Guarda en el aparato, avisa a la planilla y redibuja Gastos.
+async function guardarCategoriasGasto(){
+  configuracion.colaSync = configuracion.colaSync || [];
+  configuracion.colaSync.push({ accion:'nueva_config_global', datosBase: { tipo:'categorias_gasto', monto_o_porcentaje: JSON.stringify(configuracion.categoriasGasto), vigente_desde: hoyISO() } });
+  // Si lo que estaba elegido en el formulario de Gastos dejó de existir, se limpia.
+  if(categoriaSeleccionadaGasto && !categoriasGastoActivas().some(c => c.codigo === categoriaSeleccionadaGasto)){ categoriaSeleccionadaGasto = null; subcategoriaSeleccionadaGasto = null; }
+  else if(categoriaSeleccionadaGasto && subcategoriaSeleccionadaGasto && !subcategoriasDe(categoriaSeleccionadaGasto).includes(subcategoriaSeleccionadaGasto)) subcategoriaSeleccionadaGasto = null;
+  pintarCategoriasGasto('gastoGridCategorias', categoriaSeleccionadaGasto, seleccionarCategoriaPrincipalGasto);
+  pintarSubcategoriasGasto('gastoGridSubcategorias', categoriaSeleccionadaGasto, subcategoriaSeleccionadaGasto, seleccionarSubcategoriaPrincipalGasto);
+  renderizarListaGastos();
+  renderizarCategoriasGastoConfig();
+  await guardarConfiguracionEnAlmacenamiento();
+  procesarColaConfiguracion();
+}
+function alternarCategoriaGastoConfig(codigo){ categoriaGastoAbiertaConfig = (categoriaGastoAbiertaConfig === codigo) ? null : codigo; quitandoCategoriaGasto = null; ocultarAvisoFormulario('avisoCategoriasGasto'); renderizarCategoriasGastoConfig(); }
+function cancelarQuitarGastoConfig(){ quitandoCategoriaGasto = null; renderizarCategoriasGastoConfig(); }
+function solicitarQuitarCategoriaGasto(codigo){ quitandoCategoriaGasto = { tipo:'cat', codigo }; renderizarCategoriasGastoConfig(); }
+async function confirmarQuitarCategoriaGasto(codigo){
+  quitandoCategoriaGasto = null;
+  if(!configuracion.categoriasGasto.quitadas.includes(codigo)) configuracion.categoriasGasto.quitadas.push(codigo);
+  if(categoriaGastoAbiertaConfig === codigo) categoriaGastoAbiertaConfig = null;
+  await guardarCategoriasGasto();
+}
+async function volverAgregarCategoriaGasto(codigo){
+  configuracion.categoriasGasto.quitadas = configuracion.categoriasGasto.quitadas.filter(c => c !== codigo);
+  await guardarCategoriasGasto();
+}
+function solicitarQuitarSubGasto(codigo, indice){ quitandoCategoriaGasto = { tipo:'sub', codigo, indice }; renderizarCategoriasGastoConfig(); }
+async function confirmarQuitarSubGasto(codigo, indice){
+  quitandoCategoriaGasto = null;
+  const cfg = configuracion.categoriasGasto;
+  const nombre = subcategoriasDe(codigo)[indice]; if(!nombre) return;
+  const base = SUBCATEGORIAS_GASTO_BASE[codigo] || [];
+  if(base.includes(nombre)){ cfg.subsQuitadas[codigo] = (cfg.subsQuitadas[codigo] || []).concat(nombre); }
+  cfg.subsAgregadas[codigo] = (cfg.subsAgregadas[codigo] || []).filter(n => n !== nombre);
+  await guardarCategoriasGasto();
+}
+async function volverAgregarSubGasto(codigo, indice){
+  const cfg = configuracion.categoriasGasto;
+  const lista = (cfg.subsQuitadas[codigo] || []).slice();
+  lista.splice(indice, 1);
+  cfg.subsQuitadas[codigo] = lista;
+  await guardarCategoriasGasto();
+}
+async function agregarSubcategoriaGasto(codigo){
+  ocultarAvisoFormulario('avisoCategoriasGasto');
+  const nombre = document.getElementById('nuevaSubGastoNombre').value.trim();
+  if(!nombre){ mostrarAvisoFormulario('avisoCategoriasGasto', 'Falta el nombre de la subcategoría.', 'nuevaSubGastoNombre'); return; }
+  const cfg = configuracion.categoriasGasto;
+  if(subcategoriasDe(codigo).some(n => n.toLowerCase() === nombre.toLowerCase())){ mostrarAvisoFormulario('avisoCategoriasGasto', `Ya existe la subcategoría "${nombre}" en esta categoría.`, 'nuevaSubGastoNombre'); return; }
+  // Si coincide con una de fábrica que se había quitado, simplemente se vuelve a activar.
+  const quitadaIgual = (cfg.subsQuitadas[codigo] || []).find(n => n.toLowerCase() === nombre.toLowerCase());
+  if(quitadaIgual) cfg.subsQuitadas[codigo] = cfg.subsQuitadas[codigo].filter(n => n !== quitadaIgual);
+  else cfg.subsAgregadas[codigo] = (cfg.subsAgregadas[codigo] || []).concat(nombre);
+  await guardarCategoriasGasto();
+}
+function elegirColorCategoriaGasto(clave){ paletaNuevaCategoriaGasto = clave; ocultarAvisoFormulario('avisoCategoriasGasto'); renderizarCategoriasGastoConfig(); }
+async function agregarCategoriaGasto(){
+  ocultarAvisoFormulario('avisoCategoriasGasto');
+  const nombre = document.getElementById('nuevaCategoriaGastoNombre').value.trim();
+  const faltan = [];
+  if(!nombre) faltan.push('el nombre');
+  if(!paletaNuevaCategoriaGasto) faltan.push('el color');
+  if(faltan.length){ mostrarAvisoFormulario('avisoCategoriasGasto', 'Falta ' + faltan.join(' y ') + '.', nombre ? null : 'nuevaCategoriaGastoNombre'); return; }
+  const repetida = categoriasGastoTodas().find(c => c.nombre.toLowerCase() === nombre.toLowerCase());
+  if(repetida){
+    const estaQuitada = configuracion.categoriasGasto.quitadas.includes(repetida.codigo);
+    mostrarAvisoFormulario('avisoCategoriasGasto', estaQuitada ? `Ya existe la categoría "${repetida.nombre}" en Quitadas: usa "Volver a agregar".` : `Ya existe una categoría llamada "${repetida.nombre}".`, 'nuevaCategoriaGastoNombre');
+    return;
+  }
+  const unico = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID().replace(/-/g,'').slice(0,8) : Date.now().toString(36);
+  configuracion.categoriasGasto.propias.push({ codigo: 'prop' + unico, nombre, paleta: paletaNuevaCategoriaGasto });
+  document.getElementById('nuevaCategoriaGastoNombre').value = '';
+  paletaNuevaCategoriaGasto = null;
+  await guardarCategoriasGasto();
+}
+
 function alternarSeccionConfig(nombre){
   seccionesConfigAbiertas[nombre] = !seccionesConfigAbiertas[nombre];
   const abierta = seccionesConfigAbiertas[nombre];
-  const mapa = { valores:'Valores', eventos:'Eventos', memoria:'Memoria' };
+  const mapa = { valores:'Valores', eventos:'Eventos', gastos:'Gastos', memoria:'Memoria' };
   document.getElementById('contenidoSeccion' + mapa[nombre]).style.display = abierta ? 'block' : 'none';
   document.getElementById('encabezadoSeccion' + mapa[nombre]).classList.toggle('abierto', abierta);
 }
@@ -3249,8 +3442,8 @@ function abrirConfiguracion(){
   document.getElementById('configComisionEL').value = configuracion.porcentajeComisionEL;
   actualizarBannerSyncConfig();
   pintarTarjetaVersionConfig();
-  seccionesConfigAbiertas = { valores:false, eventos:false, memoria:false };
-  ['Valores','Eventos','Memoria'].forEach(n => {
+  seccionesConfigAbiertas = { valores:false, eventos:false, gastos:false, memoria:false };
+  ['Valores','Eventos','Gastos','Memoria'].forEach(n => {
     document.getElementById('contenidoSeccion' + n).style.display = 'none';
     document.getElementById('encabezadoSeccion' + n).classList.remove('abierto');
   });
@@ -3259,13 +3452,16 @@ function abrirConfiguracion(){
   document.getElementById('confirmacionAgregarTipoEvento').style.display = 'none';
   document.getElementById('botonAgregarTipoEvento').style.display = 'block';
   tipoEventoPorQuitar = null; paletaNuevoTipoElegida = null; modoTiposEvento = 'quitar';
+  categoriaGastoAbiertaConfig = null; quitandoCategoriaGasto = null; paletaNuevaCategoriaGasto = null;
+  ocultarAvisoFormulario('avisoCategoriasGasto');
+  renderizarCategoriasGastoConfig();
   document.getElementById('nuevoTipoEventoNombre').value = '';
   ocultarAvisoFormulario('avisoTiposEvento');
   pintarSegmentadoModoTiposEvento();
   renderizarTiposEvento();
   document.getElementById('fondoModalConfig').classList.add('abierto');
 }
-function cerrarConfiguracion(){ document.getElementById('fondoModalConfig').classList.remove('abierto'); tipoEventoPorQuitar = null; }
+function cerrarConfiguracion(){ document.getElementById('fondoModalConfig').classList.remove('abierto'); tipoEventoPorQuitar = null; quitandoCategoriaGasto = null; }
 
 // ------------------------------------------------------------
 // Tipos de evento (Configuración). Los tipos propios funcionan igual
@@ -3496,6 +3692,7 @@ async function recuperarConfigGlobalDesdeSheets(){
       configuracion.sueldoDependienteInicio = (vigentes.sueldo_dependiente.vigente_desde || '').slice(0,7);
     }
     aplicarTiposEventoDesdeServidor(vigentes);
+    aplicarCategoriasGastoDesdeServidor(vigentes);
     await guardarConfiguracionEnAlmacenamiento();
   }catch(err){
     console.error('No se pudo recuperar la configuración global desde Sheets:', err);
@@ -3991,6 +4188,9 @@ function irAHoyAgenda(){
 // rango más ancho es más para scrollear pero más celdas para armar.
 const SEMANAS_SCROLL_CONTINUO_ANTES = 16;
 const SEMANAS_SCROLL_CONTINUO_DESPUES = 16;
+// Cuántas semanas más se agregan cada vez que se toca "Ver más" en un borde.
+const SEMANAS_VER_MAS_AGENDA = 12;
+let semanasExtraAntesAgenda = 0, semanasExtraDespuesAgenda = 0;
 const EVENTOS_POR_DIA_MES_CONTINUO = 3; // pensado para calzar con --agenda-alto-fila-mes
 
 // Encuentra, dentro del contenedor con scroll, la fila (semana) que
@@ -4008,6 +4208,8 @@ function obtenerFilaEnTope(zona){
 
 function renderizarVistaMensual(opciones){
   const saltarAlAncla = !!(opciones && opciones.saltarAlAncla);
+  // Al saltar a otro lugar (Hoy, cambiar de mes, buscar) se vuelve al largo normal.
+  if(saltarAlAncla){ semanasExtraAntesAgenda = 0; semanasExtraDespuesAgenda = 0; }
   document.getElementById('tituloMes').textContent = NOMBRES_MES[mesMostrado];
   document.getElementById('agendaAnio').textContent = anioMostrado;
 
@@ -4021,8 +4223,8 @@ function renderizarVistaMensual(opciones){
   // de la semana del día 1 del mes que se esté mostrando.
   const diaAncla = fechaColumnaSeleccionada ? fechaDesdeISO(fechaColumnaSeleccionada) : new Date(anioMostrado, mesMostrado, 1, 12);
   const lunesAncla = obtenerLunesDeSemana(diaAncla);
-  const inicioVentana = new Date(lunesAncla); inicioVentana.setDate(inicioVentana.getDate() - SEMANAS_SCROLL_CONTINUO_ANTES*7);
-  const finVentana = new Date(lunesAncla); finVentana.setDate(finVentana.getDate() + (SEMANAS_SCROLL_CONTINUO_DESPUES+1)*7 - 1);
+  const inicioVentana = new Date(lunesAncla); inicioVentana.setDate(inicioVentana.getDate() - (SEMANAS_SCROLL_CONTINUO_ANTES + semanasExtraAntesAgenda)*7);
+  const finVentana = new Date(lunesAncla); finVentana.setDate(finVentana.getDate() + (SEMANAS_SCROLL_CONTINUO_DESPUES + semanasExtraDespuesAgenda + 1)*7 - 1);
 
   const hoy = hoyISO();
   const inicioSemSel = semanaAbierta ? obtenerLunesDeSemana(diaAncla) : null;
@@ -4167,6 +4369,14 @@ function renderizarVistaMensual(opciones){
   cont.innerHTML = '';
   cont.style.display = 'flex';
   cont.style.flexDirection = 'column';
+  const crearBotonVerMas = (direccion) => {
+    const b = document.createElement('button');
+    b.className = 'boton-ver-mas-agenda';
+    b.textContent = direccion < 0 ? '↑ Ver más semanas anteriores' : 'Ver más semanas siguientes ↓';
+    b.onclick = () => verMasSemanasAgenda(direccion);
+    return b;
+  };
+  cont.appendChild(crearBotonVerMas(-1));
   let huboSemanaAbierta = false;
   let filaJustoDebajoDelPanel = false;
   // El panel solo dibuja la línea de cambio de mes si su semana tiene días de dos meses.
@@ -4188,6 +4398,7 @@ function renderizarVistaMensual(opciones){
     }
     cursor.setDate(cursor.getDate()+7);
   }
+  cont.appendChild(crearBotonVerMas(1));
   if(!huboSemanaAbierta) panel.style.display = 'none';
 
   // Vuelve a dejar el scroll donde corresponde: en el mes ancla si se
@@ -4205,6 +4416,13 @@ function renderizarVistaMensual(opciones){
   }
 }
 
+// Agrega más semanas en el borde que se tocó. El lugar donde estás no se mueve:
+// renderizarVistaMensual deja la misma semana arriba de la pantalla.
+function verMasSemanasAgenda(direccion){
+  if(direccion < 0) semanasExtraAntesAgenda += SEMANAS_VER_MAS_AGENDA;
+  else semanasExtraDespuesAgenda += SEMANAS_VER_MAS_AGENDA;
+  renderizarVistaMensual();
+}
 function cerrarPanelSemana(){
   semanaAbierta = false;
   renderizarVistaMensual();
@@ -5863,7 +6081,7 @@ async function confirmarEliminarEvento(){
 /* ============================================================
    10. MÓDULO C — GASTOS (integrado como pestaña)
    ============================================================ */
-const CATEGORIAS_GASTO = [
+const CATEGORIAS_GASTO_BASE = [
   { codigo:'CF', nombre:'Cuentas fijas',    color:'var(--cat-CF)' },
   { codigo:'FO', nombre:'Formación',        color:'var(--cat-FO)' },
   { codigo:'OC', nombre:'Ocio',             color:'var(--cat-OC)' },
@@ -5875,15 +6093,29 @@ const CATEGORIAS_GASTO = [
 const MEDIOS_PAGO_GASTO = ['Efectivo', 'BancoEstado', 'Santander'];
 // Subcategorías por categoría. Si una categoría no aparece acá (Cuentas
 // fijas, Deudas y tarjeta), no tiene subcategorías y no se pide elegir.
-// Para agregar o cambiar una, se edita solo esta lista.
-const SUBCATEGORIAS_GASTO = {
+// Son las de fábrica; las que agrega o quita el usuario viven en Configuración.
+const SUBCATEGORIAS_GASTO_BASE = {
   CH: ['Feria y supermercado', 'Otros'],
   CO: ['Transporte público', 'Taxis', 'Auto', 'Comida afuera'],
   OC: ['Salidas con amistades', 'Carrete', 'Salidas mías'],
   FO: ['Congresos y seminarios', 'Análisis', 'Supervisión', 'Libros'],
   SP: ['Farmacia', 'Oficina']
 };
-function subcategoriasDe(codigo){ return SUBCATEGORIAS_GASTO[codigo] || []; }
+// Todas las categorías que existen (de fábrica y propias, incluidas las quitadas):
+// sirven para dibujar gastos antiguos con su nombre y color.
+function categoriasGastoTodas(){
+  const propias = configuracion.categoriasGasto.propias.map(c => ({ codigo:c.codigo, nombre:c.nombre, color:`var(--${c.paleta})`, propia:true }));
+  return CATEGORIAS_GASTO_BASE.concat(propias);
+}
+// Las que se ofrecen al registrar un gasto nuevo.
+function categoriasGastoActivas(){ return categoriasGastoTodas().filter(c => !configuracion.categoriasGasto.quitadas.includes(c.codigo)); }
+function subcategoriasDe(codigo){
+  const cfg = configuracion.categoriasGasto;
+  const base = SUBCATEGORIAS_GASTO_BASE[codigo] || [];
+  const quitadas = cfg.subsQuitadas[codigo] || [];
+  const agregadas = cfg.subsAgregadas[codigo] || [];
+  return base.filter(n => !quitadas.includes(n)).concat(agregadas.filter(n => !base.includes(n)));
+}
 
 let expresionGasto = '';
 let modoOperadoresGasto = false;
@@ -5959,7 +6191,9 @@ function devolverFocoBoton(contenedor, indice){ if(indice >= 0 && contenedor.chi
 function pintarCategoriasGasto(contenedorId, seleccionActual, alSeleccionar){
   const c = document.getElementById(contenedorId);
   const foco = indiceBotonConFoco(c); c.innerHTML = '';
-  CATEGORIAS_GASTO.forEach(cat => {
+  const lista = categoriasGastoActivas();
+  if(seleccionActual && !lista.some(x => x.codigo === seleccionActual)){ const q = categoriasGastoTodas().find(x => x.codigo === seleccionActual); if(q) lista.push(q); }
+  lista.forEach(cat => {
     const chip = document.createElement('button');
     chip.className = 'chip-categoria-gasto' + (seleccionActual === cat.codigo ? ' seleccionada' : '');
     chip.style.setProperty('--chip-color', cat.color);
@@ -5986,7 +6220,9 @@ function pintarPagosGasto(contenedorId, seleccionActual, alSeleccionar){
 function pintarSubcategoriasGasto(contenedorId, codigoCategoria, seleccionActual, alSeleccionar){
   const c = document.getElementById(contenedorId);
   const caja = c.parentElement;
-  const lista = subcategoriasDe(codigoCategoria);
+  const lista = subcategoriasDe(codigoCategoria).slice();
+  // Un gasto antiguo con una subcategoría que ya se quitó sigue mostrándola.
+  if(seleccionActual && lista.length > 0 && !lista.includes(seleccionActual)) lista.push(seleccionActual);
   const foco = indiceBotonConFoco(c); c.innerHTML = '';
   caja.classList.toggle('visible', lista.length > 0);
   if(lista.length === 0) return;
@@ -6054,7 +6290,7 @@ async function guardarNuevoGasto(){
   // Sheets ocurre en segundo plano y no retrasa ni bloquea la pantalla.
   procesarColaGasto(nuevoRegistro);
 }
-function obtenerCategoriaGastoPorCodigo(codigo){ return CATEGORIAS_GASTO.find(c => c.codigo === codigo) || { color:'var(--texto-terciario)', nombre:codigo }; }
+function obtenerCategoriaGastoPorCodigo(codigo){ return categoriasGastoTodas().find(c => c.codigo === codigo) || { color:'var(--texto-terciario)', nombre:codigo }; }
 function renderizarListaGastos(){
   const lista = document.getElementById('gastoListaRegistros'); const botonVerTodos = document.getElementById('gastoBotonVerTodos');
   lista.innerHTML = '';
@@ -7822,6 +8058,7 @@ async function aplicarSincronizacionCompleta(paquete){
       configuracion.sueldoDependienteInicio = (vigentes.sueldo_dependiente.vigente_desde || '').slice(0,7);
     }
     aplicarTiposEventoDesdeServidor(vigentes);
+    aplicarCategoriasGastoDesdeServidor(vigentes);
     await guardarConfiguracionEnAlmacenamiento();
   }
 }
@@ -8137,6 +8374,8 @@ document.addEventListener('visibilitychange', async () => {
     const ok = await sincronizarTodo();
     if(ok && !document.querySelector('.fondo-modal.abierto')){
       renderizarListaPacientes(); renderizarListaGastos();
+      pintarCategoriasGasto('gastoGridCategorias', categoriaSeleccionadaGasto, seleccionarCategoriaPrincipalGasto);
+      pintarSubcategoriasGasto('gastoGridSubcategorias', categoriaSeleccionadaGasto, subcategoriaSeleccionadaGasto, seleccionarSubcategoriaPrincipalGasto);
       renderizarVistaMensual(); if(semanaAbierta) renderizarPanelSemana();
       if(document.getElementById('pantallaIngresos').style.display !== 'none') renderizarVistaIngresos();
       if(document.getElementById('pantallaObjetivos').style.display !== 'none') renderizarVistaObjetivos();
