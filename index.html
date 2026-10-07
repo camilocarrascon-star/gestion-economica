@@ -647,6 +647,9 @@ input{ font-family:inherit; }
   --agenda-alto-hora:34px;            /* alto de cada hora en la semana abierta */
   --agenda-color-aviso-atenciones:#B23B3B; /* marco de dos Atenciones que empiezan con 30 min o menos de diferencia */
   --agenda-linea-hora:#E2D6C3;        /* color de las líneas horizontales de cada hora */
+  --agenda-linea-hora-fuerte:#C9B79C; /* color de las líneas de las horas 8, 12 y 20 (más marcadas) */
+  --agenda-hora-inicio:8;             /* hora en que parte la franja de la semana desplegada */
+  --agenda-hora-fin-minima:20;        /* hora hasta la que llega la franja aunque no haya eventos */
   --agenda-ancho-columna-horas:24px;  /* ancho de la columna de horas a la izquierda */
   --agenda-opacidad-realizado:0.42;   /* qué tan tenue se ve un evento realizado (1 = normal) */
   --agenda-alto-chip-mes:15px;        /* alto de cada evento en la vista de mes (define cuántos caben por día) */
@@ -736,6 +739,7 @@ input{ font-family:inherit; }
   background-image:repeating-linear-gradient(to bottom, var(--agenda-linea-hora) 0 1px, transparent 1px var(--agenda-alto-hora));
 }
 .columna-semana.seleccionada{ background-color:var(--agenda-fondo-seleccion); }
+.linea-hora-fuerte{ position:absolute; left:0; right:0; height:1px; background:var(--agenda-linea-hora-fuerte); pointer-events:none; z-index:0; }
 .columna-semana.borde-mes-izquierda,
 .columna-semana-cabecera.borde-mes-izquierda{ box-shadow:inset var(--agenda-grosor-linea-mes) 0 0 var(--agenda-linea-mes); }
 .columna-semana-cabecera{ display:flex; flex-direction:column; align-items:center; gap:1px; padding:8px 0 3px; /* arriba deja espacio a la pestaña del mes */ border-radius:7px 7px 0 0; touch-action:manipulation; }
@@ -749,11 +753,11 @@ input{ font-family:inherit; }
   font-size:11px; font-weight:700; color:var(--texto-principal);
 }
 .chip-evento-semana{
-  position:absolute; border-radius:4px; padding:2px 3px; overflow:hidden; touch-action:manipulation;
-  box-shadow:0 0 0 1px #FBF7EF; /* fino borde claro para separar eventos pegados */
+  position:absolute; border-radius:3px; padding:1px 3px; overflow:hidden; touch-action:manipulation;
+  box-shadow:0 0 0 1px #FBF7EF; z-index:1; /* fino borde claro para separar eventos pegados */
 }
-/* Solo Atenciones: dos sesiones que empiezan con 30 minutos o menos de
-   diferencia quedan con este marco rojo, encima del borde claro de
+/* Dos Atenciones que empiezan con 30 minutos o menos de diferencia, o
+   cualquier otro par de eventos con menos de 30, quedan con este marco rojo, encima del borde claro de
    siempre (no lo reemplaza). */
 .chip-evento-semana.aviso-atenciones-juntas{ box-shadow:0 0 0 1px #FBF7EF, inset 0 0 0 2px var(--agenda-color-aviso-atenciones); }
 /* Escalera del cambio de mes dentro de la semana abierta: línea arriba de
@@ -780,12 +784,12 @@ input{ font-family:inherit; }
   display:flex; align-items:center; justify-content:center; touch-action:manipulation;
 }
 .chip-evento-semana .hora{ font-size:7.5px; font-weight:700; line-height:1; color:rgba(255,246,232,0.85); }
-.chip-evento-semana .titulo{ font-size:8.5px; font-weight:700; line-height:1.15; color:#FFF6E8; margin-top:1.5px; overflow-wrap:normal; word-break:normal; }
+.chip-evento-semana .titulo{ font-size:8.5px; font-weight:650; line-height:1.2; color:inherit; margin-top:0; overflow-wrap:normal; word-break:normal; }
 .chip-mas-semana{ text-align:center; font-size:8px; font-weight:700; color:var(--texto-terciario); padding-top:2px; }
 .chip-multidia-semana{
-  border-radius:4px; padding:2px 3px; overflow:hidden; touch-action:manipulation;
-  font-size:8.5px; font-weight:700; line-height:1.15; color:#FFF6E8;
-  height:calc(var(--agenda-alto-hora) - 1px); /* mismo alto que un evento de 1 hora */
+  border-radius:3px; padding:1.5px 3px; overflow:hidden; touch-action:manipulation;
+  font-size:8.5px; font-weight:650; line-height:1.2;
+  height:var(--agenda-alto-chip-mes); box-sizing:border-box; white-space:nowrap; text-overflow:ellipsis;
   box-shadow:0 0 0 1px #FBF7EF;
 }
 .sin-eventos-columna{ text-align:center; font-size:8px; font-weight:700; color:var(--texto-terciario); padding-top:6px; }
@@ -2438,9 +2442,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.52';
-const VERSION_FECHA = '5 oct 2026';
-const VERSION_DESCRIPCION = 'Agenda: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
+const VERSION_APP = '2.54';
+const VERSION_FECHA = '7 oct 2026';
+const VERSION_DESCRIPCION = 'Agenda: marco rojo y apilado también entre eventos que no son Atenciones; semana desplegada: eventos más chicos como en el mes, selección de bloques cada 30 minutos, franja desde las 08:00 con líneas más marcadas a las 8, 12 y 20; antes: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -4483,11 +4487,13 @@ function renderizarPanelSemana(){
   // Rango de horas visible: desde la primera hasta la última hora con
   // eventos en la semana (si no hay ninguno, de 9 a 19).
   const todos = dias.flatMap(d => d.delDia);
-  let horaInicio = 9, horaFin = 19;
+  const cssNum = (nombre, defecto) => { const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(nombre)); return isNaN(v) ? defecto : v; };
+  let horaInicio = cssNum('--agenda-hora-inicio', 8);
+  let horaFin = cssNum('--agenda-hora-fin-minima', 20);
   if(todos.length){
-    horaInicio = Math.floor(Math.min(...todos.map(e => e.inicioMin)) / 60);
-    horaFin = Math.min(24, Math.ceil(Math.max(...todos.map(e => e.finMin)) / 60));
-    if(horaFin - horaInicio < 3) horaFin = Math.min(24, horaInicio + 3);
+    // Parte a las 08:00; solo baja si hay un evento más temprano.
+    horaInicio = Math.min(horaInicio, Math.floor(Math.min(...todos.map(e => e.inicioMin)) / 60));
+    horaFin = Math.max(horaFin, Math.min(24, Math.ceil(Math.max(...todos.map(e => e.finMin)) / 60)));
   }
   const altoHora = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--agenda-alto-hora')) || 34;
   const altoTotal = (horaFin - horaInicio) * altoHora;
@@ -4549,7 +4555,7 @@ function renderizarPanelSemana(){
       d.multidiaHoy.forEach(ev => {
         const bar = document.createElement('div');
         bar.className = 'chip-multidia-semana' + (ev.estadoSesion === 'realizado' ? ' realizado' : '');
-        bar.style.background = obtenerEtiquetaInfo(ev.etiqueta).color;
+        bar.classList.add('chip-mes-' + ev.etiqueta);
         bar.textContent = ev.nombre || '(sin nombre)';
         const claveBar = ev.id + '|' + d.fechaStr;
         if(eventoElegidoSemana === claveBar) bar.classList.add('elegido');
@@ -4560,7 +4566,7 @@ function renderizarPanelSemana(){
       d.sinHora.forEach(inst => {
         const bar = document.createElement('div');
         bar.className = 'chip-multidia-semana' + (instanciaEstaRealizada(inst) ? ' realizado' : '');
-        bar.style.background = obtenerEtiquetaInfo(inst.etiqueta).color;
+        bar.classList.add('chip-mes-' + inst.etiqueta);
         bar.textContent = inst.nombre || '(sin nombre)';
         const clave = inst.eventoId + '|' + inst.fecha;
         if(eventoElegidoSemana === clave) bar.classList.add('elegido');
@@ -4585,20 +4591,30 @@ function renderizarPanelSemana(){
     et.textContent = h + ':00';
     horas.appendChild(et);
   }
+  const horasFuertes = [8, 12, 20];
   cuerpo.appendChild(horas);
 
   dias.forEach(d => {
     const columna = document.createElement('div');
     columna.className = 'columna-semana' + claseDia(d);
     columna.style.height = altoTotal + 'px';
+    horasFuertes.forEach(h => {
+      if(h < horaInicio || h > horaFin) return;
+      const l = document.createElement('div');
+      l.className = 'linea-hora-fuerte';
+      l.style.top = Math.min(altoTotal - 1, (h - horaInicio) * altoHora) + 'px';
+      columna.appendChild(l);
+    });
     // Toque en espacio vacío: el primero marca esa hora ("+ 18:00"), el
     // segundo en la misma marca abre la ficha de evento nuevo, igual
     // que el botón "+", con el día y la hora ya puestos.
     columna.onclick = (evento) => {
       const y = evento.clientY - columna.getBoundingClientRect().top;
-      const hora = Math.min(horaFin - 1, Math.max(horaInicio, horaInicio + Math.floor(y / altoHora)));
+      // Bloques de 30 minutos: 12:00, 12:30, 13:00...
+      const bloque = Math.min((horaFin - horaInicio) * 2 - 1, Math.max(0, Math.floor(y / (altoHora / 2))));
+      const minutos = horaInicio * 60 + bloque * 30;
       eventoElegidoSemana = null;
-      ranuraElegidaSemana = { fecha: d.fechaStr, hora };
+      ranuraElegidaSemana = { fecha: d.fechaStr, minutos };
       fechaColumnaSeleccionada = d.fechaStr;
       renderizarPanelSemana();
     };
@@ -4606,14 +4622,15 @@ function renderizarPanelSemana(){
       const r = ranuraElegidaSemana;
       const ranura = document.createElement('div');
       ranura.className = 'ranura-nueva';
-      ranura.style.top = ((r.hora - horaInicio) * altoHora) + 'px';
-      ranura.style.height = (altoHora - 1) + 'px';
-      ranura.textContent = '+ ' + r.hora + ':00';
+      const textoHora = String(Math.floor(r.minutos / 60)).padStart(2,'0') + ':' + String(r.minutos % 60).padStart(2,'0');
+      ranura.style.top = ((r.minutos - horaInicio*60) / 60 * altoHora) + 'px';
+      ranura.style.height = (altoHora / 2 - 1) + 'px';
+      ranura.textContent = '+ ' + textoHora;
       ranura.onclick = (evento) => {
         evento.stopPropagation();
         ranuraElegidaSemana = null;
         abrirFichaEventoNueva();
-        document.getElementById('eventoHora').value = String(r.hora).padStart(2,'0') + ':00';
+        document.getElementById('eventoHora').value = textoHora;
         renderizarPanelSemana();
       };
       columna.appendChild(ranura);
@@ -4621,8 +4638,7 @@ function renderizarPanelSemana(){
     d.delDia.forEach(inst => {
       const info = obtenerEtiquetaInfo(inst.etiqueta);
       const chip = document.createElement('div');
-      chip.className = 'chip-evento-semana' + (instanciaEstaRealizada(inst) ? ' realizado' : '') + (inst.inicioMuyJunto ? ' aviso-atenciones-juntas' : '');
-      chip.style.background = info.color;
+      chip.className = 'chip-evento-semana chip-mes-' + inst.etiqueta + (instanciaEstaRealizada(inst) ? ' realizado' : '') + (inst.inicioMuyJunto ? ' aviso-atenciones-juntas' : '');
       chip.style.top = ((inst.inicioMin - horaInicio*60) / 60 * altoHora) + 'px';
       chip.style.height = Math.max(14, (inst.finMin - inst.inicioMin) / 60 * altoHora - 1) + 'px';
       chip.style.left = `calc(${inst.carril / inst.totalCarriles * 100}% + 1px)`;
@@ -4662,7 +4678,7 @@ function rangoMinutosInstancia(inst){
   return { inicio, fin: Math.min(fin, 24*60) };
 }
 
-// Solo Atenciones: como nunca tienen hora de término propia (se asume
+// Atenciones: como nunca tienen hora de término propia (se asume
 // 1 hora fija), si la siguiente Atención del mismo día empieza antes
 // de que termine esa hora asumida, el bloque de la primera se acorta
 // (solo para dibujarse, no cambia ningún dato guardado) hasta la hora
@@ -4673,11 +4689,29 @@ function rangoMinutosInstancia(inst){
 // minutos o menos de diferencia entre sí (posible error al agendar).
 function ajustarAtencionesConsecutivas(lista){
   const atenciones = lista.filter(e => e.etiqueta === 'atenciones').sort((a,b) => a.inicioMin - b.inicioMin);
-  atenciones.forEach(e => { e.inicioMuyJunto = false; });
+  lista.forEach(e => { e.inicioMuyJunto = false; });
   for(let i = 0; i < atenciones.length - 1; i++){
     const actual = atenciones[i], siguiente = atenciones[i+1];
     if(siguiente.inicioMin < actual.finMin) actual.finMin = siguiente.inicioMin;
-    if(siguiente.inicioMin - actual.inicioMin <= 30){ actual.inicioMuyJunto = true; siguiente.inicioMuyJunto = true; }
+  }
+  // Todos los eventos: si el siguiente empieza 30 minutos o menos después
+  // (y no a la misma hora exacta), el primero se acorta hasta ahí para que
+  // queden uno arriba del otro y no lado a lado.
+  const todos = lista.slice().sort((a,b) => a.inicioMin - b.inicioMin);
+  for(let i = 0; i < todos.length - 1; i++){
+    const actual = todos[i], siguiente = todos[i+1];
+    const dif = siguiente.inicioMin - actual.inicioMin;
+    if(dif > 0 && dif <= 30 && siguiente.inicioMin < actual.finMin) actual.finMin = siguiente.inicioMin;
+  }
+  // Marco rojo: dos Atenciones con 30 min o menos de diferencia; cualquier
+  // otro par de eventos con menos de 30 min de diferencia.
+  for(let i = 0; i < todos.length; i++){
+    for(let j = i + 1; j < todos.length; j++){
+      const dif = todos[j].inicioMin - todos[i].inicioMin;
+      if(dif > 30) break;
+      const ambasAtenciones = todos[i].etiqueta === 'atenciones' && todos[j].etiqueta === 'atenciones';
+      if(ambasAtenciones ? dif <= 30 : dif < 30){ todos[i].inicioMuyJunto = true; todos[j].inicioMuyJunto = true; }
+    }
   }
 }
 
