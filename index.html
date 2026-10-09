@@ -2442,9 +2442,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.55';
+const VERSION_APP = '2.56';
 const VERSION_FECHA = '7 oct 2026';
-const VERSION_DESCRIPCION = 'Agenda: los eventos sin duración se acortan siempre que otro empieza antes de que terminen (quedan apilados, no lado a lado); marco rojo y apilado también entre eventos que no son Atenciones; semana desplegada: eventos más chicos como en el mes, selección de bloques cada 30 minutos, franja desde las 08:00 con líneas más marcadas a las 8, 12 y 20; antes: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
+const VERSION_DESCRIPCION = 'Sesión de ingreso: nuevo tipo de pago Particular Entre Lazos (monto variable, pasa por la boleta de Entre Lazos); Agenda: los eventos sin duración se acortan siempre que otro empieza antes de que terminen (quedan apilados, no lado a lado); marco rojo y apilado también entre eventos que no son Atenciones; semana desplegada: eventos más chicos como en el mes, selección de bloques cada 30 minutos, franja desde las 08:00 con líneas más marcadas a las 8, 12 y 20; antes: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -2476,7 +2476,10 @@ const TIPOS_PAGO_CONSULTA = [
   { valor:'particular',     nombre:'Particular',         color:'var(--stripe-particular)' },
   { valor:'fonasa_directo', nombre:'FONASA directo',     color:'var(--stripe-fonasa)' },
   { valor:'fonasa_el',      nombre:'FONASA Entre Lazos', color:'var(--stripe-entrelazos)' },
+  { valor:'particular_el',  nombre:'Particular Entre Lazos', color:'var(--stripe-entrelazos)' }, // monto variable, pasa por Entre Lazos (boleta con 10%)
 ];
+// Los dos tipos de pago de Sesión de ingreso que pasan por Entre Lazos.
+const esTipoPagoConsultaEntreLazos = (t) => t === 'fonasa_el' || t === 'particular_el';
 
 // Tipos de evento de fábrica. Los propios (creados en Configuración)
 // se suman a estos; algunos se pueden "quitar" (ver etiquetasActivas).
@@ -5473,7 +5476,7 @@ async function guardarFichaEventoInterno(){
 
     {
       const idIngresoPrevio = consultaEnEdicionId !== null ? idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'consulta', consultaId: consultaEnEdicionId })) : null;
-      if(sesionNecesitaMedioPago(idIngresoPrevio, tipoPagoEventoConsultaSeleccionado === 'fonasa_el', estadoSesionEventoSeleccionado)){ preguntarMedioPagoSesion(nombre); return; }
+      if(sesionNecesitaMedioPago(idIngresoPrevio, esTipoPagoConsultaEntreLazos(tipoPagoEventoConsultaSeleccionado), estadoSesionEventoSeleccionado)){ preguntarMedioPagoSesion(nombre); return; }
     }
     const medioElegidoConsulta = medioPagoSesionElegido;
     let consultaGuardada;
@@ -5493,7 +5496,7 @@ async function guardarFichaEventoInterno(){
       }
     }
     if(consultaGuardada){
-      const esEntreLazos = tipoPagoEventoConsultaSeleccionado === 'fonasa_el';
+      const esEntreLazos = esTipoPagoConsultaEntreLazos(tipoPagoEventoConsultaSeleccionado);
       const tipoIngresoConsulta = tipoPagoEventoConsultaSeleccionado === 'fonasa_directo' ? 'fonasa_directo' : 'particular';
       const idIngreso = idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'consulta', consultaId: consultaGuardada.id }));
       const cambioEstado = estadoAnteriorConsulta !== estadoSesionEventoSeleccionado;
@@ -6077,7 +6080,7 @@ async function enviarAccionAgendaConReintentos(accion, datos, intento){
 // mismo esquema determinista) que hay que eliminar junto con él.
 function idsIngresoAEliminar(entidad, esConsulta){
   if(esConsulta){
-    if(entidad.tipoPago === 'fonasa_el') return [];
+    if(esTipoPagoConsultaEntreLazos(entidad.tipoPago)) return [];
     if(!ESTADOS_QUE_GENERAN_INGRESO.includes(entidad.estadoSesion)) return [];
     return [idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'consulta', consultaId: entidad.id }))];
   }
@@ -6560,6 +6563,7 @@ function clasificarInstanciaIngreso(inst){
     const c = consultasUnicas.find(x => x.id === inst.consultaId); if(!c) return null;
     if(c.tipoPago === 'particular')     return { tipo:'particular',     montoBruto: c.monto, esEntreLazos:false, nombre: c.nombre };
     if(c.tipoPago === 'fonasa_directo') return { tipo:'fonasa_directo', montoBruto: c.monto, esEntreLazos:false, nombre: c.nombre };
+    if(c.tipoPago === 'particular_el')  return { tipo:'entrelazos',     montoBruto: c.monto, esEntreLazos:true,  nombre: c.nombre };
     if(c.tipoPago === 'fonasa_el')      return { tipo:'entrelazos',     montoBruto: c.monto, esEntreLazos:true,  nombre: c.nombre };
     return null;
   }
