@@ -2442,9 +2442,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.56';
+const VERSION_APP = '2.57';
 const VERSION_FECHA = '7 oct 2026';
-const VERSION_DESCRIPCION = 'Sesión de ingreso: nuevo tipo de pago Particular Entre Lazos (monto variable, pasa por la boleta de Entre Lazos); Agenda: los eventos sin duración se acortan siempre que otro empieza antes de que terminen (quedan apilados, no lado a lado); marco rojo y apilado también entre eventos que no son Atenciones; semana desplegada: eventos más chicos como en el mes, selección de bloques cada 30 minutos, franja desde las 08:00 con líneas más marcadas a las 8, 12 y 20; antes: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
+const VERSION_DESCRIPCION = 'Boleta Entre Lazos: cada sesión queda registrada en el mes de la boleta (cuando se cobra) y no en el mes de la sesión, también las ya emitidas; Sesión de ingreso: nuevo tipo de pago Particular Entre Lazos (monto variable, pasa por la boleta de Entre Lazos); Agenda: los eventos sin duración se acortan siempre que otro empieza antes de que terminen (quedan apilados, no lado a lado); marco rojo y apilado también entre eventos que no son Atenciones; semana desplegada: eventos más chicos como en el mes, selección de bloques cada 30 minutos, franja desde las 08:00 con líneas más marcadas a las 8, 12 y 20; antes: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -6706,7 +6706,9 @@ async function generarBoletaEntreLazos(){
   const fechaEmision = hoyISO();
   const totalBruto = pend.reduce((a,p) => a + p.info.montoBruto, 0);
   const totalNeto = pend.reduce((a,p) => a + calcularNeto(p.info.montoBruto, true), 0);
-  // Un movimiento POR SESIÓN (con su propio paciente/adulto y fecha),
+  // La fecha de cada movimiento es la de la boleta (cuando se cobra), no la
+  // de la sesión: así el dinero cuenta en el mes en que llega.
+  // Un movimiento POR SESIÓN (con su propio paciente/adulto),
   // no un solo bloque combinado: así "Movimientos del mes" muestra el
   // detalle de quién es cada una, en vez de "Boleta Entre Lazos (N)".
   // El id sale de la misma clave de la sesión (determinista), así un
@@ -6714,7 +6716,7 @@ async function generarBoletaEntreLazos(){
   pend.forEach(p => {
     const idIngresoEL = idIngresoDeterministico(p.clave);
     const montoNetoSesion = calcularNeto(p.info.montoBruto, true);
-    ingresos.push({ id: idIngresoEL, tipo:'entrelazos', origenClave: p.clave, fecha: p.instancia.fecha, montoBruto: p.info.montoBruto, montoNeto: montoNetoSesion, medioPago:'transferencia', descripcion: p.info.nombre, creado: Date.now() });
+    ingresos.push({ id: idIngresoEL, tipo:'entrelazos', origenClave: p.clave, fecha: fechaEmision, montoBruto: p.info.montoBruto, montoNeto: montoNetoSesion, medioPago:'transferencia', descripcion: p.info.nombre, creado: Date.now() });
   });
   // La memoria persistente se actualiza en el mismo momento, para que
   // estas sesiones no reaparezcan como pendientes aunque después se
@@ -6737,7 +6739,7 @@ async function generarBoletaEntreLazos(){
   pend.forEach(p => {
     const idIngresoEL = idIngresoDeterministico(p.clave);
     const montoNetoSesion = calcularNeto(p.info.montoBruto, true);
-    encolarAccionIngreso('crear_ingreso_manual', { id_ingreso: idIngresoEL, categoria_manual: 'entrelazos', descripcion: p.info.nombre, monto_bruto: p.info.montoBruto, monto_neto: montoNetoSesion, forma_pago: 'transferencia', fecha_evento: p.instancia.fecha });
+    encolarAccionIngreso('crear_ingreso_manual', { id_ingreso: idIngresoEL, categoria_manual: 'entrelazos', descripcion: p.info.nombre, monto_bruto: p.info.montoBruto, monto_neto: montoNetoSesion, forma_pago: 'transferencia', fecha_evento: fechaEmision });
   });
 }
 
@@ -8073,6 +8075,21 @@ async function aplicarSincronizacionCompleta(paquete){
       );
       if(candidatos.length === 1) candidatos[0].sesionesIncluidas = claves;
     });
+    // Ingresos de Entre Lazos creados antes de este cambio quedaron con la
+    // fecha de la sesión. Se pasan a la fecha de su boleta (las boletas más
+    // nuevas van al final, así ganan si una sesión aparece en dos).
+    const boletasOrdenadas = paquete.boletas.slice().sort((a,b) => String(a.fecha_emision || '').localeCompare(String(b.fecha_emision || '')));
+    for(const b of boletasOrdenadas){
+      const fechaBoleta = String(b.fecha_emision || '').slice(0,10);
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(fechaBoleta)) continue;
+      const claves = String(b.ids_eventos_incluidos || '').split(',').map(c => c.trim()).filter(Boolean);
+      for(const clave of claves){
+        const ing = ingresos.find(i => i.id === idIngresoDeterministico(clave));
+        if(!ing || ing.tipo !== 'entrelazos' || ing.fecha === fechaBoleta) continue;
+        ing.fecha = fechaBoleta;
+        await encolarAccionIngreso('crear_ingreso_manual', { id_ingreso: ing.id, categoria_manual: 'entrelazos', descripcion: ing.descripcion, monto_bruto: ing.montoBruto, monto_neto: ing.montoNeto, forma_pago: ing.medioPago || 'transferencia', fecha_evento: fechaBoleta });
+      }
+    }
     await guardarClavesFacturadas();
     await guardarIngresosEnAlmacenamiento();
   }
