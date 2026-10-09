@@ -2442,9 +2442,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.54';
+const VERSION_APP = '2.55';
 const VERSION_FECHA = '7 oct 2026';
-const VERSION_DESCRIPCION = 'Agenda: marco rojo y apilado también entre eventos que no son Atenciones; semana desplegada: eventos más chicos como en el mes, selección de bloques cada 30 minutos, franja desde las 08:00 con líneas más marcadas a las 8, 12 y 20; antes: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
+const VERSION_DESCRIPCION = 'Agenda: los eventos sin duración se acortan siempre que otro empieza antes de que terminen (quedan apilados, no lado a lado); marco rojo y apilado también entre eventos que no son Atenciones; semana desplegada: eventos más chicos como en el mes, selección de bloques cada 30 minutos, franja desde las 08:00 con líneas más marcadas a las 8, 12 y 20; antes: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -4476,7 +4476,7 @@ function renderizarPanelSemana(){
     const delDia = instancias
       .filter(x => x.fecha === fechaStr)
       .filter(x => !(x.tipoInstancia === 'evento' && idsMultidia.has(x.eventoId)))
-      .map(inst => { const r = rangoMinutosInstancia(inst); return Object.assign({}, inst, { inicioMin: r.inicio, finMin: r.fin }); });
+      .map(inst => { const r = rangoMinutosInstancia(inst); return Object.assign({}, inst, { inicioMin: r.inicio, finMin: r.fin, duracionAsumida: r.asumida }); });
     const sinHora = delDia.filter(x => x.sinHora);
     const conHora = delDia.filter(x => !x.sinHora);
     ajustarAtencionesConsecutivas(conHora);
@@ -4665,6 +4665,7 @@ function rangoMinutosInstancia(inst){
   const aMin = (hhmm) => { const [h,m] = (hhmm || '00:00').split(':').map(Number); return h*60 + (m||0); };
   const inicio = aMin(inst.hora);
   let fin = inicio + 60;
+  let asumida = true; // true = el evento no tiene duración propia, se asume 1 hora
   if(inst.tipoInstancia === 'evento'){
     const ev = eventosAgenda.find(e => e.id === inst.eventoId);
     if(ev && ev.hasDuration && (!ev.endDate || ev.endDate === ev.fecha)){
@@ -4672,10 +4673,10 @@ function rangoMinutosInstancia(inst){
       // de la de la serie (ver guardarEventoGenerico / endTimePorFecha).
       const horaFinOcurrencia = (ev.endTimePorFecha && Object.prototype.hasOwnProperty.call(ev.endTimePorFecha, inst.fecha))
         ? ev.endTimePorFecha[inst.fecha] : ev.endTime;
-      if(horaFinOcurrencia){ const f = aMin(horaFinOcurrencia); if(f > inicio) fin = f; }
+      if(horaFinOcurrencia){ const f = aMin(horaFinOcurrencia); if(f > inicio){ fin = f; asumida = false; } }
     }
   }
-  return { inicio, fin: Math.min(fin, 24*60) };
+  return { inicio, fin: Math.min(fin, 24*60), asumida };
 }
 
 // Atenciones: como nunca tienen hora de término propia (se asume
@@ -4694,14 +4695,16 @@ function ajustarAtencionesConsecutivas(lista){
     const actual = atenciones[i], siguiente = atenciones[i+1];
     if(siguiente.inicioMin < actual.finMin) actual.finMin = siguiente.inicioMin;
   }
-  // Todos los eventos: si el siguiente empieza 30 minutos o menos después
-  // (y no a la misma hora exacta), el primero se acorta hasta ahí para que
-  // queden uno arriba del otro y no lado a lado.
+  // Todos los eventos sin duración propia (la 1 hora es solo un supuesto):
+  // si el siguiente empieza antes de que termine (y no a la misma hora
+  // exacta), el primero se acorta hasta ahí para que queden uno arriba del
+  // otro y no lado a lado. Los que tienen duración puesta por el usuario
+  // no se tocan.
   const todos = lista.slice().sort((a,b) => a.inicioMin - b.inicioMin);
   for(let i = 0; i < todos.length - 1; i++){
     const actual = todos[i], siguiente = todos[i+1];
     const dif = siguiente.inicioMin - actual.inicioMin;
-    if(dif > 0 && dif <= 30 && siguiente.inicioMin < actual.finMin) actual.finMin = siguiente.inicioMin;
+    if(dif > 0 && actual.duracionAsumida && siguiente.inicioMin < actual.finMin) actual.finMin = siguiente.inicioMin;
   }
   // Marco rojo: dos Atenciones con 30 min o menos de diferencia; cualquier
   // otro par de eventos con menos de 30 min de diferencia.
