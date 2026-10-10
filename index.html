@@ -1087,6 +1087,9 @@ input{ font-family:inherit; }
 }
 .boton-filtro-mov.activo{ background:var(--texto-principal); color:var(--superficie); border-color:var(--texto-principal); }
 .boton-filtro-mov .puntito-activo{ position:absolute; top:-2px; right:-2px; width:9px; height:9px; border-radius:50%; background:#B23B3B; border:2px solid var(--bg-app); }
+.boton-quitar-todas{ font-size:11.5px; font-weight:650; color:var(--acento); font-family:'Quicksand',sans-serif; padding:2px 4px; touch-action:manipulation; }
+.bloque-sub-filtro-gasto + .bloque-sub-filtro-gasto{ margin-top:12px; }
+.gasto-total-filtrado{ font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--texto-principal); }
 .fila-dos-fechas{ display:flex; gap:8px; }
 .fila-dos-fechas .campo-modal{ flex:1; }
 .chips-filtro{ display:flex; flex-wrap:wrap; gap:7px; margin-top:8px; }
@@ -1402,6 +1405,7 @@ input{ font-family:inherit; }
   <div style="margin-top:8px;">
     <div class="registros-encabezado">
       <span class="gastos-etiqueta-seccion" style="flex:1;">Últimos registros</span>
+      <span class="gasto-total-filtrado monto-fuente" id="gastoTotalFiltrado" style="display:none;"></span>
       <button class="boton-filtro-mov" id="botonFiltroGasto" onclick="abrirFiltroGastos()" aria-label="Filtrar">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 4 20 4 14 12.5 14 19 10 21 10 12.5 4 4"/></svg>
         <span class="puntito-activo" id="puntitoFiltroGasto" style="display:none;"></span>
@@ -1448,6 +1452,10 @@ input{ font-family:inherit; }
     <div class="tarjeta-recibir-encabezado">
       <span class="tarjeta-recibir-titulo">Sesiones devengadas</span>
       <span class="tarjeta-recibir-monto monto-fuente" id="recibirTotalMonto"></span>
+      <button class="boton-filtro-mov" id="botonFiltroDevengadas" onclick="abrirFiltroDevengadas()" aria-label="Filtrar">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 4 20 4 14 12.5 14 19 10 21 10 12.5 4 4"/></svg>
+        <span class="puntito-activo" id="puntitoFiltroDevengadas" style="display:none;"></span>
+      </button>
       <button class="boton-ojo" id="botonOjoIngRecibir" onclick="alternarVisibilidadIngRecibir()"></button>
     </div>
     <div class="tarjeta-recibir-nota" id="recibirNota"></div>
@@ -1524,6 +1532,38 @@ input{ font-family:inherit; }
 </div>
 
 <!-- ============================================================
+     MODAL: FILTRAR SESIONES DEVENGADAS (Ingresos)
+     ============================================================ -->
+<div class="fondo-modal" id="fondoModalFiltroDevengadas" onclick="cerrarModalSiFondo(event, 'fondoModalFiltroDevengadas', cerrarFiltroDevengadas)">
+  <div class="hoja-modal">
+    <div class="encabezado-modal">
+      <h2>Filtrar sesiones devengadas</h2>
+      <button class="cerrar-modal" onclick="cerrarFiltroDevengadas()">✕</button>
+    </div>
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Tipo de sesión</span>
+      <div class="segmentado" id="segmentadoFiltroDevengadasCanal"></div>
+    </div>
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Fecha de la sesión</span>
+      <div class="fila-dos-fechas">
+        <div class="campo-modal" style="margin:0;">
+          <span class="etiqueta-campo">Desde</span>
+          <input type="date" id="filtroDevengadasDesde">
+        </div>
+        <div class="campo-modal" style="margin:0;">
+          <span class="etiqueta-campo">Hasta</span>
+          <input type="date" id="filtroDevengadasHasta">
+        </div>
+      </div>
+      <div class="nota-campo">Vacío en ambas = todas las fechas.</div>
+    </div>
+    <button class="boton-primario" onclick="aplicarFiltroDevengadas()">Aplicar filtros</button>
+    <button class="boton-secundario" onclick="limpiarFiltroDevengadas()">Quitar todos los filtros</button>
+  </div>
+</div>
+
+<!-- ============================================================
      MODAL: FILTRAR ÚLTIMOS REGISTROS (Gastos)
      ============================================================ -->
 <div class="fondo-modal" id="fondoModalFiltroGasto" onclick="cerrarModalSiFondo(event, 'fondoModalFiltroGasto', cerrarFiltroGastos)">
@@ -1547,9 +1587,14 @@ input{ font-family:inherit; }
       <div class="nota-campo">Vacío en ambas = todas las fechas.</div>
     </div>
     <div class="campo-modal">
-      <span class="etiqueta-campo">Categoría</span>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="etiqueta-campo" style="flex:1;">Categoría</span>
+        <button class="boton-quitar-todas" id="botonQuitarCategoriasFiltroGasto" onclick="quitarTodasCategoriasFiltroGasto()" style="display:none;">Quitar todas</button>
+      </div>
       <div class="chips-filtro" id="chipsFiltroGastoCategoria"></div>
+      <div class="nota-campo">Sin ninguna marcada se ven todas.</div>
     </div>
+    <div class="campo-modal" id="contSubcategoriasFiltroGasto" style="display:none;"></div>
     <div class="campo-modal">
       <span class="etiqueta-campo">Medio de pago</span>
       <div class="segmentado" id="segmentadoFiltroGastoMedio"></div>
@@ -2503,9 +2548,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.66';
+const VERSION_APP = '2.67';
 const VERSION_FECHA = '10 oct 2026';
-const VERSION_DESCRIPCION = 'Gastos: botón Pegar monto (ignora los puntos); Ingresos: flecha en cada sesión devengada que lleva a su día en la Agenda, columnas de igual ancho; ícono nuevo con sol y luna; antes: Ícono actualizado (dorado más brillante); Totales de ingresos: el neto se suma sin redondear cada sesión y se redondea una sola vez al final (Ingresos, Dashboard, boleta Entre Lazos); Ícono nuevo de la app (luna, sol y estrellas en burdeo y dorado); Ingresos: la ventana Entre Lazos pasa a llamarse Sesiones Entre Lazos pagadas; Ingresos: Movimientos del mes pasa a llamarse Ingresos del mes; filtros de Ingresos del mes (por fecha de pago o de sesión) y de Gastos (por fecha) con opción de orden; antes: Ícono propio de la app (pestaña del navegador y pantalla de inicio); Ingresos: etiqueta Particular / Entre Lazos en Sesiones devengadas, sesiones en 2 columnas en las tres ventanas, Movimientos con fecha de la sesión y del pago (sin el texto Efectivo/Transferencia; el dato sigue guardado y filtrable); Dashboard: efectivo del mes bajo Disponible; Gastos: filtro en Últimos registros; antes: Ingresos: las sesiones pagadas (particulares y FONASA) quedan registradas el día del pago y no el día de la sesión, también las ya existentes; Boleta Entre Lazos: cada sesión queda registrada en el mes de la boleta (cuando se cobra) y no en el mes de la sesión, también las ya emitidas; Sesión de ingreso: nuevo tipo de pago Particular Entre Lazos (monto variable, pasa por la boleta de Entre Lazos); Agenda: los eventos sin duración se acortan siempre que otro empieza antes de que terminen (quedan apilados, no lado a lado); marco rojo y apilado también entre eventos que no son Atenciones; semana desplegada: eventos más chicos como en el mes, selección de bloques cada 30 minutos, franja desde las 08:00 con líneas más marcadas a las 8, 12 y 20; antes: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
+const VERSION_DESCRIPCION = 'Ingresos: filtro en Sesiones devengadas (tipo y fecha); Gastos: en el filtro, Quitar todas las categorías, subcategorías al marcar una categoría y total gastado según el filtro arriba; antes: Gastos: botón Pegar monto (ignora los puntos); Ingresos: flecha en cada sesión devengada que lleva a su día en la Agenda, columnas de igual ancho; ícono nuevo con sol y luna; antes: Ícono actualizado (dorado más brillante); Totales de ingresos: el neto se suma sin redondear cada sesión y se redondea una sola vez al final (Ingresos, Dashboard, boleta Entre Lazos); Ícono nuevo de la app (luna, sol y estrellas en burdeo y dorado); Ingresos: la ventana Entre Lazos pasa a llamarse Sesiones Entre Lazos pagadas; Ingresos: Movimientos del mes pasa a llamarse Ingresos del mes; filtros de Ingresos del mes (por fecha de pago o de sesión) y de Gastos (por fecha) con opción de orden; antes: Ícono propio de la app (pestaña del navegador y pantalla de inicio); Ingresos: etiqueta Particular / Entre Lazos en Sesiones devengadas, sesiones en 2 columnas en las tres ventanas, Movimientos con fecha de la sesión y del pago (sin el texto Efectivo/Transferencia; el dato sigue guardado y filtrable); Dashboard: efectivo del mes bajo Disponible; Gastos: filtro en Últimos registros; antes: Ingresos: las sesiones pagadas (particulares y FONASA) quedan registradas el día del pago y no el día de la sesión, también las ya existentes; Boleta Entre Lazos: cada sesión queda registrada en el mes de la boleta (cuando se cobra) y no en el mes de la sesión, también las ya emitidas; Sesión de ingreso: nuevo tipo de pago Particular Entre Lazos (monto variable, pasa por la boleta de Entre Lazos); Agenda: los eventos sin duración se acortan siempre que otro empieza antes de que terminen (quedan apilados, no lado a lado); marco rojo y apilado también entre eventos que no son Atenciones; semana desplegada: eventos más chicos como en el mes, selección de bloques cada 30 minutos, franja desde las 08:00 con líneas más marcadas a las 8, 12 y 20; antes: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -6434,20 +6479,36 @@ async function guardarNuevoGasto(){
 function obtenerCategoriaGastoPorCodigo(codigo){ return categoriasGastoTodas().find(c => c.codigo === codigo) || { color:'var(--texto-terciario)', nombre:codigo }; }
 // Filtro de "Últimos registros": fechas, categorías (multi-selección; todas por defecto)
 // y medio de pago. Igual que el de Movimientos del mes en Ingresos.
-let filtroGastos = { desde:'', hasta:'', categorias: null, medioPago:'todos', orden:'registro' }; // categorias null = todas
-function codigosTodasCategoriasGasto(){ return categoriasGastoTodas().map(c => c.codigo); }
+// Sin ninguna categoría marcada = todas las categorías. Al marcar una, se puede afinar por subcategoría.
+const FILTRO_GASTOS_VACIO = () => ({ desde:'', hasta:'', categorias: new Set(), subcategorias: new Set(), medioPago:'todos', orden:'registro' });
+let filtroGastos = FILTRO_GASTOS_VACIO();
+function claveSubFiltroGasto(codigo, nombre){ return codigo + '|' + nombre; }
 function filtroGastosActivo(){
   const f = filtroGastos;
-  return !!f.desde || !!f.hasta || (f.categorias !== null && f.categorias.size < codigosTodasCategoriasGasto().length) || f.medioPago !== 'todos' || f.orden !== 'registro';
+  return !!f.desde || !!f.hasta || f.categorias.size > 0 || f.medioPago !== 'todos' || f.orden !== 'registro';
+}
+function gastoPasaFiltro(r){
+  const f = filtroGastos;
+  if(f.desde && r.fecha < f.desde) return false;
+  if(f.hasta && r.fecha > f.hasta) return false;
+  if(f.categorias.size > 0 && !f.categorias.has(r.categoria)) return false;
+  if(f.medioPago !== 'todos' && r.medioPago !== f.medioPago) return false;
+  // Si de esa categoría se marcaron subcategorías, el gasto debe ser de alguna de ellas.
+  const subsMarcadas = subcategoriasDe(r.categoria).filter(n => f.subcategorias.has(claveSubFiltroGasto(r.categoria, n)));
+  if(subsMarcadas.length > 0 && !subsMarcadas.includes(r.subcategoria)) return false;
+  return true;
 }
 function abrirFiltroGastos(){
   document.getElementById('filtroGastoDesde').value = filtroGastos.desde;
   document.getElementById('filtroGastoHasta').value = filtroGastos.hasta;
-  if(filtroGastos.categorias === null) filtroGastos.categorias = new Set(codigosTodasCategoriasGasto());
   pintarChipsFiltroGastoCategoria(); pintarSegmentadoFiltroGastoMedio(); pintarSegmentadoOrdenGasto();
   document.getElementById('fondoModalFiltroGasto').classList.add('abierto');
 }
 function cerrarFiltroGastos(){ document.getElementById('fondoModalFiltroGasto').classList.remove('abierto'); }
+function quitarTodasCategoriasFiltroGasto(){
+  filtroGastos.categorias.clear(); filtroGastos.subcategorias.clear();
+  pintarChipsFiltroGastoCategoria();
+}
 function pintarChipsFiltroGastoCategoria(){
   const c = document.getElementById('chipsFiltroGastoCategoria'); c.innerHTML = '';
   categoriasGastoTodas().forEach(cat => {
@@ -6455,11 +6516,35 @@ function pintarChipsFiltroGastoCategoria(){
     b.className = 'chip-filtro-origen' + (filtroGastos.categorias.has(cat.codigo) ? ' seleccionado' : '');
     b.textContent = cat.nombre;
     b.onclick = () => {
-      if(filtroGastos.categorias.has(cat.codigo)) filtroGastos.categorias.delete(cat.codigo); else filtroGastos.categorias.add(cat.codigo);
+      if(filtroGastos.categorias.has(cat.codigo)){
+        filtroGastos.categorias.delete(cat.codigo);
+        subcategoriasDe(cat.codigo).forEach(n => filtroGastos.subcategorias.delete(claveSubFiltroGasto(cat.codigo, n)));
+      }else filtroGastos.categorias.add(cat.codigo);
       pintarChipsFiltroGastoCategoria();
     };
     c.appendChild(b);
   });
+  document.getElementById('botonQuitarCategoriasFiltroGasto').style.display = filtroGastos.categorias.size > 0 ? 'inline-block' : 'none';
+  // Subcategorías: solo de las categorías marcadas que tengan.
+  const cont = document.getElementById('contSubcategoriasFiltroGasto'); cont.innerHTML = '';
+  let hay = false;
+  categoriasGastoTodas().filter(cat => filtroGastos.categorias.has(cat.codigo)).forEach(cat => {
+    const subs = subcategoriasDe(cat.codigo); if(subs.length === 0) return;
+    hay = true;
+    const bloque = document.createElement('div'); bloque.className = 'bloque-sub-filtro-gasto';
+    bloque.innerHTML = `<span class="etiqueta-campo">Subcategoría de ${escaparHTML(cat.nombre)}</span>`;
+    const chips = document.createElement('div'); chips.className = 'chips-filtro';
+    subs.forEach(n => {
+      const clave = claveSubFiltroGasto(cat.codigo, n);
+      const b = document.createElement('button');
+      b.className = 'chip-filtro-origen' + (filtroGastos.subcategorias.has(clave) ? ' seleccionado' : '');
+      b.textContent = n;
+      b.onclick = () => { if(filtroGastos.subcategorias.has(clave)) filtroGastos.subcategorias.delete(clave); else filtroGastos.subcategorias.add(clave); pintarChipsFiltroGastoCategoria(); };
+      chips.appendChild(b);
+    });
+    bloque.appendChild(chips); cont.appendChild(bloque);
+  });
+  cont.style.display = hay ? 'block' : 'none';
 }
 function pintarSegmentadoFiltroGastoMedio(){
   const c = document.getElementById('segmentadoFiltroGastoMedio'); c.innerHTML = '';
@@ -6489,7 +6574,7 @@ function aplicarFiltroGastos(){
   renderizarListaGastos();
 }
 function limpiarFiltroGastos(){
-  filtroGastos = { desde:'', hasta:'', categorias: null, medioPago:'todos', orden:'registro' };
+  filtroGastos = FILTRO_GASTOS_VACIO();
   cerrarFiltroGastos();
   renderizarListaGastos();
 }
@@ -6500,16 +6585,15 @@ function renderizarListaGastos(){
   const filtroActivoG = filtroGastosActivo();
   document.getElementById('botonFiltroGasto').classList.toggle('activo', filtroActivoG);
   document.getElementById('puntitoFiltroGasto').style.display = filtroActivoG ? 'block' : 'none';
-  const ordenados = [...registrosGasto].sort((a,b) => {
+  const filtradosGasto = registrosGasto.filter(gastoPasaFiltro);
+  const totalFiltro = document.getElementById('gastoTotalFiltrado');
+  totalFiltro.style.display = filtroActivoG ? 'inline' : 'none';
+  totalFiltro.textContent = formatearCLP(filtradosGasto.reduce((a,r) => a + r.monto, 0));
+  const ordenados = [...filtradosGasto].sort((a,b) => {
     if(filtroGastos.orden === 'fecha_desc') return b.fecha.localeCompare(a.fecha) || (b.creado - a.creado);
     if(filtroGastos.orden === 'fecha_asc') return a.fecha.localeCompare(b.fecha) || (a.creado - b.creado);
     return b.creado - a.creado;
-  }).filter(r =>
-    (!filtroGastos.desde || r.fecha >= filtroGastos.desde) &&
-    (!filtroGastos.hasta || r.fecha <= filtroGastos.hasta) &&
-    (filtroGastos.categorias === null || filtroGastos.categorias.has(r.categoria)) &&
-    (filtroGastos.medioPago === 'todos' || r.medioPago === filtroGastos.medioPago)
-  );
+  });
   if(ordenados.length === 0){ lista.innerHTML = '<div class="vacio">' + (filtroActivoG ? 'Ningún gasto coincide con el filtro.' : 'Todavía no hay gastos registrados.') + '</div>'; botonVerTodos.style.display = 'none'; return; }
   const aMostrar = mostrarTodosGasto ? ordenados : ordenados.slice(0,5);
   aMostrar.forEach(reg => {
@@ -6845,6 +6929,38 @@ function irAAgendaDesdeIngreso(clave){
   irAPantalla('agenda');
   irAEventoDesdeBusqueda(item.inst);
 }
+// Filtro de "Sesiones devengadas": tipo (Particular / Entre Lazos) y fecha de la sesión.
+let filtroDevengadas = { desde:'', hasta:'', canal:'todos' };
+function filtroDevengadasActivo(){ return !!filtroDevengadas.desde || !!filtroDevengadas.hasta || filtroDevengadas.canal !== 'todos'; }
+function abrirFiltroDevengadas(){
+  document.getElementById('filtroDevengadasDesde').value = filtroDevengadas.desde;
+  document.getElementById('filtroDevengadasHasta').value = filtroDevengadas.hasta;
+  pintarSegmentadoFiltroDevengadas();
+  document.getElementById('fondoModalFiltroDevengadas').classList.add('abierto');
+}
+function cerrarFiltroDevengadas(){ document.getElementById('fondoModalFiltroDevengadas').classList.remove('abierto'); }
+function pintarSegmentadoFiltroDevengadas(){
+  const c = document.getElementById('segmentadoFiltroDevengadasCanal'); c.innerHTML = '';
+  [['todos','Todas'],['particular','Particular'],['entrelazos','Entre Lazos']].forEach(([valor,nombre]) => {
+    const b = document.createElement('button');
+    b.className = filtroDevengadas.canal === valor ? 'seleccionado' : '';
+    b.textContent = nombre;
+    b.onclick = () => { filtroDevengadas.canal = valor; pintarSegmentadoFiltroDevengadas(); };
+    c.appendChild(b);
+  });
+}
+function aplicarFiltroDevengadas(){
+  filtroDevengadas.desde = document.getElementById('filtroDevengadasDesde').value || '';
+  filtroDevengadas.hasta = document.getElementById('filtroDevengadasHasta').value || '';
+  cerrarFiltroDevengadas();
+  if(filtroDevengadasActivo()) desplegarPendientesPago = true;
+  renderizarVistaIngresos();
+}
+function limpiarFiltroDevengadas(){
+  filtroDevengadas = { desde:'', hasta:'', canal:'todos' };
+  cerrarFiltroDevengadas();
+  renderizarVistaIngresos();
+}
 function abrirModalConfirmarPago(clave){
   const item = obtenerPendientesPago().find(i => i.clave === clave); if(!item) return;
   pendienteEnConfirmacion = item;
@@ -7173,13 +7289,19 @@ async function renderizarVistaIngresos(){
   // el mes actual gracias al punto anterior), así que se ocultan enteras.
   document.getElementById('tarjetaRecibir').style.display = esMesActualIngresos ? 'block' : 'none';
   document.getElementById('tarjetaLazos').style.display = esMesActualIngresos ? 'block' : 'none';
-  const pendientesPago = esMesActualIngresos ? obtenerPendientesPago() : obtenerPendientesPago().filter(i => i.fecha >= inicioMes && i.fecha <= finMes);
+  const filtroDevActivo = filtroDevengadasActivo();
+  document.getElementById('botonFiltroDevengadas').classList.toggle('activo', filtroDevActivo);
+  document.getElementById('puntitoFiltroDevengadas').style.display = filtroDevActivo ? 'block' : 'none';
+  const pendientesPago = (esMesActualIngresos ? obtenerPendientesPago() : obtenerPendientesPago().filter(i => i.fecha >= inicioMes && i.fecha <= finMes)).filter(i =>
+    (!filtroDevengadas.desde || i.fecha >= filtroDevengadas.desde) &&
+    (!filtroDevengadas.hasta || i.fecha <= filtroDevengadas.hasta) &&
+    (filtroDevengadas.canal === 'todos' || (filtroDevengadas.canal === 'entrelazos') === !!i.esEntreLazos));
   pintarBotonOjo('botonOjoIngRecibir', vIngRecibir);
   const totalRecibir = pendientesPago.reduce((a,i)=>a+i.montoBruto,0);
   document.getElementById('recibirTotalMonto').textContent = textoMontoOculto(totalRecibir, vIngRecibir);
   document.getElementById('recibirNota').textContent = pendientesPago.length === 0
-    ? 'No hay sesiones sin pagar en este mes.'
-    : `${pendientesPago.length} ${pendientesPago.length===1?'sesión':'sesiones'} sin pagar · montos sin descuento`;
+    ? (filtroDevActivo ? 'Ninguna sesión coincide con el filtro.' : 'No hay sesiones sin pagar en este mes.')
+    : `${pendientesPago.length} ${pendientesPago.length===1?'sesión':'sesiones'} sin pagar${filtroDevActivo ? ' (filtrado)' : ''} · montos sin descuento`;
   const botonPend = document.getElementById('botonDesplegarPendientesPago');
   const seccionPend = document.getElementById('seccionPendientesPago');
   if(pendientesPago.length === 0){
