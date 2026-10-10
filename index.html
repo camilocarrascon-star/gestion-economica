@@ -452,6 +452,31 @@ input{ font-family:inherit; }
 .botones-medio-pago-sesion button:active{ transform:scale(0.98); background:var(--bg-app); }
 /* El modal de la pregunta va encima de la ficha del evento */
 #fondoModalMedioPagoSesion{ z-index:60; }
+#fondoModalAhorroObjetivo{ z-index:65; }
+
+/* ============================================================
+   BOLETAS (sesiones pagadas con boleta de honorarios)
+   ============================================================ */
+.boleta-emitida-item{ background:var(--superficie); border:1px solid var(--borde-suave); border-radius:12px; padding:10px 12px; display:flex; flex-direction:column; gap:3px; }
+.boleta-emitida-cabecera{ display:flex; justify-content:space-between; gap:8px; align-items:baseline; }
+.boleta-emitida-titulo{ font-size:13px; font-weight:700; color:var(--texto-principal); font-family:'Quicksand',sans-serif; }
+.boleta-emitida-monto{ font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--texto-principal); }
+.boleta-emitida-sesion{ font-size:11px; font-weight:600; color:var(--texto-secundario); display:flex; justify-content:space-between; gap:8px; }
+.boleta-emitida-anular{ align-self:flex-end; margin-top:4px; font-size:11px; font-weight:650; color:#9B4A4A; background:var(--borde-suave); border-radius:8px; padding:5px 10px; touch-action:manipulation; }
+.boletas-lista-emitidas{ display:grid; gap:8px; margin-top:8px; }
+.boletas-selector-mes{ display:flex; align-items:center; justify-content:center; gap:10px; margin:8px 0 2px; }
+.boletas-selector-mes span{ font-size:13px; font-weight:700; color:var(--texto-principal); font-family:'Quicksand',sans-serif; min-width:110px; text-align:center; }
+.fila-config-boletas{ width:100%; display:flex; align-items:center; justify-content:space-between; padding:6px 0; touch-action:manipulation; }
+.fila-config-boletas span:first-child{ font-size:15px; font-weight:750; color:var(--texto-principal); font-family:'Quicksand',sans-serif; }
+
+/* Ventana de decisión Sí / No (sesión ya pagada; cambio de tarifa con sesiones devengadas) */
+#fondoModalDecision{ z-index:70; }
+.decision-lista{ max-height:34vh; overflow-y:auto; margin:0 0 12px; border:1px solid var(--borde-suave); border-radius:12px; }
+.decision-fila{ display:flex; justify-content:space-between; gap:10px; padding:9px 12px; font-size:13px; border-bottom:1px solid var(--borde-suave); }
+.decision-fila:last-child{ border-bottom:none; }
+.decision-fila .izq{ color:var(--texto-principal); font-weight:650; }
+.decision-fila .der{ color:var(--texto-secundario); text-align:right; white-space:nowrap; }
+.decision-pregunta{ font-size:14.5px; font-weight:700; color:var(--texto-principal); text-align:center; margin:4px 0 12px; }
 
 /* ============================================================
    9. MODALES (hoja deslizante desde abajo)
@@ -1648,7 +1673,7 @@ input{ font-family:inherit; }
      ============================================================ -->
 <div class="contenedor" id="pantallaObjetivos" style="display:none;">
   <div class="pantalla-encabezado">
-    <h1>Objetivos de ahorro</h1>
+    <h1>Ahorros</h1>
     <div class="relleno"></div>
     <button class="boton-ojo" id="botonOjoObjetivos" onclick="alternarVisibilidadObjetivos()"></button>
   </div>
@@ -1658,6 +1683,49 @@ input{ font-family:inherit; }
   </div>
   <div id="bannerSyncObjetivos" style="display:none; margin:0 16px 4px; padding:10px 12px; border-radius:12px; background:#FBF3E2; border:1px solid #EBDCBC; font-size:12px; color:#8B6516; align-items:center; gap:8px;"></div>
   <div class="lista-scroll" id="listaObjetivos"></div>
+</div>
+
+<!-- ============================================================
+     PANTALLA: BOLETAS (se entra desde Configuración)
+     ============================================================ -->
+<div class="contenedor" id="pantallaBoletas" style="display:none;">
+  <div class="pantalla-encabezado">
+    <button class="boton-icono" onclick="irAPantalla('ingresos')" aria-label="Volver">‹</button>
+    <h1>Boletas</h1>
+    <div class="relleno"></div>
+  </div>
+  <div id="bannerSyncBoletas" style="display:none; margin-bottom:4px; padding:10px 12px; border-radius:12px; background:#FBF3E2; border:1px solid #EBDCBC; font-size:12px; color:#8B6516; align-items:center; gap:8px;"></div>
+
+  <div class="tarjeta-lazos" id="tarjetaBoletasPendientes">
+    <div class="tarjeta-lazos-encabezado">
+      <span class="tarjeta-lazos-titulo">Sesiones pagadas sin boleta</span>
+      <span class="tarjeta-lazos-monto-encabezado monto-fuente" id="boletasPendMonto"></span>
+      <button class="boton-ojo" id="botonOjoBoletasPend" onclick="alternarVisibilidadBoletasPend()"></button>
+    </div>
+    <div class="tarjeta-lazos-nota" id="boletasPendNota"></div>
+    <button class="boton-ver-todos-gasto" id="botonDesplegarBoletasPend" style="margin-top:8px; width:100%; display:none;" onclick="alternarDesplegarBoletasPend()"></button>
+    <div id="seccionBoletasPend" style="display:none;"></div>
+  </div>
+
+  <div class="tarjeta-movimientos" style="margin-top:12px;">
+    <div class="movimientos-encabezado">
+      <span class="movimientos-titulo">Boletas emitidas del mes</span>
+      <span class="movimientos-monto-encabezado monto-fuente" id="boletasMesMonto"></span>
+      <button class="boton-filtro-mov" id="botonFiltroBoletas" onclick="abrirFiltroBoletas()" aria-label="Filtrar">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 4 20 4 14 12.5 14 19 10 21 10 12.5 4 4"/></svg>
+        <span class="puntito-activo" id="puntitoFiltroBoletas" style="display:none;"></span>
+      </button>
+      <button class="boton-ojo" id="botonOjoBoletasMes" onclick="alternarVisibilidadBoletasMes()"></button>
+    </div>
+    <div class="boletas-selector-mes">
+      <button class="boton-icono" onclick="cambiarMesBoletas(-1)" aria-label="Mes anterior">‹</button>
+      <span id="tituloMesBoletas"></span>
+      <button class="boton-icono" onclick="cambiarMesBoletas(1)" aria-label="Mes siguiente">›</button>
+    </div>
+    <div class="movimientos-nota" id="boletasMesNota"></div>
+    <button class="boton-ver-todos-gasto" id="botonVerBoletasMes" style="margin-top:8px; width:100%; display:none;" onclick="alternarVerBoletasMes()"></button>
+    <div class="boletas-lista-emitidas" id="listaBoletasMes" style="display:none;"></div>
+  </div>
 </div>
 
 <!-- ============================================================
@@ -1744,7 +1812,7 @@ input{ font-family:inherit; }
   <div class="overlay-menu-mas" id="overlayMenuMas" onclick="cerrarMenuMas()"></div>
   <div class="menu-mas" id="menuMas" style="display:none;">
     <button onclick="irAPantalla('pacientes')">Pacientes</button>
-    <button onclick="irAPantalla('objetivos')">Objetivos</button>
+    <button onclick="irAPantalla('objetivos')">Ahorros</button>
     <button onclick="irAPantalla('dashboard')">Dashboard</button>
     <button class="boton-config-menu" onclick="cerrarMenuMas(); abrirConfiguracion()" aria-label="Configuración">
       <span class="icono-config-menu">
@@ -1832,6 +1900,13 @@ input{ font-family:inherit; }
     <div id="bannerSyncConfig" style="display:none; margin-bottom:12px; padding:10px 12px; border-radius:12px; background:#FBF3E2; border:1px solid #EBDCBC; font-size:12px; color:#8B6516; align-items:center; gap:8px;"></div>
 
     <div class="tarjeta-version-config" id="tarjetaVersionConfig"></div>
+
+    <!-- ================= 0. Boletas (abre su propia pantalla) ================= -->
+    <button class="fila-config-boletas" onclick="abrirBoletasDesdeConfig()">
+      <span>Boletas</span>
+      <span class="chevron-seccion-config" style="transform:rotate(-90deg);">⌄</span>
+    </button>
+    <div class="separador-seccion-config"></div>
 
     <!-- ================= 1. Valores y Comisiones de Pacientes ================= -->
     <div class="seccion-config">
@@ -2413,6 +2488,7 @@ input{ font-family:inherit; }
       <span class="gastos-etiqueta-seccion">Subcategoría</span>
       <div class="grid-pagos-gasto" id="modalGastoGridSubcategorias"></div>
     </div>
+    <div class="nota-ahorro-gasto" id="modalGastoNotaAhorro" style="display:none;"></div>
     <div style="height:16px;"></div>
 
     <div class="gastos-etiqueta-seccion">Medio de pago</div>
@@ -2475,6 +2551,84 @@ input{ font-family:inherit; }
       <button type="button" onclick="elegirMedioPagoSesion('transferencia')">Transferencia</button>
     </div>
     <button class="boton-secundario" onclick="cancelarMedioPagoSesion()">Volver a la sesión</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: BOLETA EMITIDA (marca las sesiones seleccionadas)
+     ============================================================ -->
+<div class="fondo-modal" id="fondoModalBoletaEmitida" onclick="cerrarModalSiFondo(event, 'fondoModalBoletaEmitida', cerrarModalBoletaEmitida)">
+  <div class="hoja-modal">
+    <div class="encabezado-modal">
+      <h2>Boleta emitida</h2>
+      <button class="cerrar-modal" onclick="cerrarModalBoletaEmitida()">✕</button>
+    </div>
+    <p class="nota-campo" id="textoBoletaEmitida" style="margin:0 0 12px;"></p>
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Fecha de emisión</span>
+      <input type="date" id="boletaEmitidaFecha">
+    </div>
+    <div class="campo-modal">
+      <span class="etiqueta-campo">N° de boleta (opcional)</span>
+      <input type="text" id="boletaEmitidaNumero" inputmode="numeric" maxlength="20">
+    </div>
+    <div class="aviso-formulario" id="avisoBoletaEmitida"></div>
+    <button class="boton-primario" onclick="guardarBoletaEmitida()">Marcar boleta emitida</button>
+    <button class="boton-secundario" onclick="cerrarModalBoletaEmitida()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: FILTRAR BOLETAS EMITIDAS
+     ============================================================ -->
+<div class="fondo-modal" id="fondoModalFiltroBoletas" onclick="cerrarModalSiFondo(event, 'fondoModalFiltroBoletas', cerrarFiltroBoletas)">
+  <div class="hoja-modal">
+    <div class="encabezado-modal">
+      <h2>Filtrar boletas</h2>
+      <button class="cerrar-modal" onclick="cerrarFiltroBoletas()">✕</button>
+    </div>
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Fecha de emisión</span>
+      <div class="fila-dos-fechas">
+        <div class="campo-modal" style="margin:0;">
+          <span class="etiqueta-campo">Desde</span>
+          <input type="date" id="filtroBoletasDesde">
+        </div>
+        <div class="campo-modal" style="margin:0;">
+          <span class="etiqueta-campo">Hasta</span>
+          <input type="date" id="filtroBoletasHasta">
+        </div>
+      </div>
+      <div class="nota-campo">Vacío en ambas = el mes que estás mirando.</div>
+    </div>
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Paciente o N° de boleta</span>
+      <input type="text" id="filtroBoletasTexto" placeholder="Buscar…">
+    </div>
+    <button class="boton-primario" onclick="aplicarFiltroBoletas()">Aplicar filtros</button>
+    <button class="boton-secundario" onclick="limpiarFiltroBoletas()">Quitar todos los filtros</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL GENÉRICO DE DECISIÓN (Sí / No / Cancelar)
+     Se usa cuando se modifica una sesión ya pagada y cuando se
+     cambia la tarifa de un paciente con sesiones devengadas.
+     ============================================================ -->
+<div class="fondo-modal" id="fondoModalDecision" onclick="cerrarModalSiFondo(event, 'fondoModalDecision', () => responderDecision(null))">
+  <div class="hoja-modal">
+    <div class="encabezado-modal">
+      <h2 id="decisionTitulo"></h2>
+      <button class="cerrar-modal" onclick="responderDecision(null)">✕</button>
+    </div>
+    <p class="nota-campo" id="decisionTexto" style="margin:0 0 12px;"></p>
+    <div class="decision-lista" id="decisionLista"></div>
+    <div class="decision-pregunta" id="decisionPregunta"></div>
+    <div class="fila-confirmacion">
+      <button class="boton-confirmar-no" id="decisionBotonNo" onclick="responderDecision('no')">No</button>
+      <button class="boton-confirmar-si" id="decisionBotonSi" onclick="responderDecision('si')">Sí</button>
+    </div>
+    <button class="boton-secundario" style="margin-top:10px;" onclick="responderDecision(null)">Cancelar</button>
   </div>
 </div>
 
@@ -2583,9 +2737,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.69';
+const VERSION_APP = '2.73';
 const VERSION_FECHA = '10 oct 2026';
-const VERSION_DESCRIPCION = 'Ingresos: se pueden editar los ingresos manuales y Rucalaf; Gastos: el vínculo gasto-aporte de Ahorro queda en la planilla (no se pierde al borrar datos locales); antes: Filtros: Quitar todas en Ingresos del mes y en la lupa de la Agenda; Configuración muestra solo la versión; Gastos: al elegir la subcategoría Ahorro se elige (o se crea) el objetivo de ahorro y el gasto se suma como aporte; antes: Ingresos: filtro en Sesiones devengadas (tipo y fecha); Gastos: en el filtro, Quitar todas las categorías, subcategorías al marcar una categoría y total gastado según el filtro arriba; antes: Gastos: botón Pegar monto (ignora los puntos); Ingresos: flecha en cada sesión devengada que lleva a su día en la Agenda, columnas de igual ancho; ícono nuevo con sol y luna; antes: Ícono actualizado (dorado más brillante); Totales de ingresos: el neto se suma sin redondear cada sesión y se redondea una sola vez al final (Ingresos, Dashboard, boleta Entre Lazos); Ícono nuevo de la app (luna, sol y estrellas en burdeo y dorado); Ingresos: la ventana Entre Lazos pasa a llamarse Sesiones Entre Lazos pagadas; Ingresos: Movimientos del mes pasa a llamarse Ingresos del mes; filtros de Ingresos del mes (por fecha de pago o de sesión) y de Gastos (por fecha) con opción de orden; antes: Ícono propio de la app (pestaña del navegador y pantalla de inicio); Ingresos: etiqueta Particular / Entre Lazos en Sesiones devengadas, sesiones en 2 columnas en las tres ventanas, Movimientos con fecha de la sesión y del pago (sin el texto Efectivo/Transferencia; el dato sigue guardado y filtrable); Dashboard: efectivo del mes bajo Disponible; Gastos: filtro en Últimos registros; antes: Ingresos: las sesiones pagadas (particulares y FONASA) quedan registradas el día del pago y no el día de la sesión, también las ya existentes; Boleta Entre Lazos: cada sesión queda registrada en el mes de la boleta (cuando se cobra) y no en el mes de la sesión, también las ya emitidas; Sesión de ingreso: nuevo tipo de pago Particular Entre Lazos (monto variable, pasa por la boleta de Entre Lazos); Agenda: los eventos sin duración se acortan siempre que otro empieza antes de que terminen (quedan apilados, no lado a lado); marco rojo y apilado también entre eventos que no son Atenciones; semana desplegada: eventos más chicos como en el mes, selección de bloques cada 30 minutos, franja desde las 08:00 con líneas más marcadas a las 8, 12 y 20; antes: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
+const VERSION_DESCRIPCION = 'Configuración: al cambiar el monto FONASA, el porcentaje de impuesto o la comisión de Entre Lazos se muestran las sesiones afectadas (devengadas y Entre Lazos pagadas sin boleta) y se pregunta si se les aplica el valor nuevo (si dices No, conservan el anterior, también guardado en la planilla); antes: Configuración: al cambiar la comisión de Entre Lazos se muestran las sesiones afectadas (devengadas y pagadas sin boleta) y se pregunta si se les aplica la comisión nueva (si dices No, conservan la anterior, también guardado en la planilla); antes: Nuevo módulo Boletas (se abre desde Configuración): sesiones particulares ya pagadas sin boleta, selección, ir a la sesión en la Agenda, Boleta emitida y visor de boletas del mes con filtro; Objetivos pasa a llamarse Ahorros; antes: Agenda: al mover una sesión ya pagada, su ingreso se traslada a la sesión movida; Sesiones pagadas: cambiar la fecha o el paciente de una sesión pagada actualiza su ingreso (también en la planilla) sin duplicarlo; al omitir, mover o cambiar el día o la duración de una serie con sesiones ya pagadas aparece la advertencia y la pregunta ¿Quieres eliminar el ingreso?; Pacientes: al cambiar la tarifa de un paciente con sesiones devengadas se muestra cuáles cambian y se pregunta si se les aplica la tarifa nueva (si dices No, conservan su monto); Gastos: al editar un gasto y pasarlo a la subcategoría Ahorro se elige el objetivo y se suma; el monto congelado de sesiones devengadas se recupera desde la planilla; el teclado del computador ignora siempre el punto; al sacar un gasto de la subcategoría Ahorro se resta del objetivo de ahorro (con aviso) y el cambio de fecha también se refleja; antes: Ingresos: se pueden editar los ingresos manuales y Rucalaf; Gastos: el vínculo gasto-aporte de Ahorro queda en la planilla (no se pierde al borrar datos locales); antes: Filtros: Quitar todas en Ingresos del mes y en la lupa de la Agenda; Configuración muestra solo la versión; Gastos: al elegir la subcategoría Ahorro se elige (o se crea) el objetivo de ahorro y el gasto se suma como aporte; antes: Ingresos: filtro en Sesiones devengadas (tipo y fecha); Gastos: en el filtro, Quitar todas las categorías, subcategorías al marcar una categoría y total gastado según el filtro arriba; antes: Gastos: botón Pegar monto (ignora los puntos); Ingresos: flecha en cada sesión devengada que lleva a su día en la Agenda, columnas de igual ancho; ícono nuevo con sol y luna; antes: Ícono actualizado (dorado más brillante); Totales de ingresos: el neto se suma sin redondear cada sesión y se redondea una sola vez al final (Ingresos, Dashboard, boleta Entre Lazos); Ícono nuevo de la app (luna, sol y estrellas en burdeo y dorado); Ingresos: la ventana Entre Lazos pasa a llamarse Sesiones Entre Lazos pagadas; Ingresos: Movimientos del mes pasa a llamarse Ingresos del mes; filtros de Ingresos del mes (por fecha de pago o de sesión) y de Gastos (por fecha) con opción de orden; antes: Ícono propio de la app (pestaña del navegador y pantalla de inicio); Ingresos: etiqueta Particular / Entre Lazos en Sesiones devengadas, sesiones en 2 columnas en las tres ventanas, Movimientos con fecha de la sesión y del pago (sin el texto Efectivo/Transferencia; el dato sigue guardado y filtrable); Dashboard: efectivo del mes bajo Disponible; Gastos: filtro en Últimos registros; antes: Ingresos: las sesiones pagadas (particulares y FONASA) quedan registradas el día del pago y no el día de la sesión, también las ya existentes; Boleta Entre Lazos: cada sesión queda registrada en el mes de la boleta (cuando se cobra) y no en el mes de la sesión, también las ya emitidas; Sesión de ingreso: nuevo tipo de pago Particular Entre Lazos (monto variable, pasa por la boleta de Entre Lazos); Agenda: los eventos sin duración se acortan siempre que otro empieza antes de que terminen (quedan apilados, no lado a lado); marco rojo y apilado también entre eventos que no son Atenciones; semana desplegada: eventos más chicos como en el mes, selección de bloques cada 30 minutos, franja desde las 08:00 con líneas más marcadas a las 8, 12 y 20; antes: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -2599,10 +2753,11 @@ const CLAVE_GASTOS = 'gastos-registros';
 // que la memoria de "esto ya lo facturé" sobreviva a una recuperación
 // desde Sheets (los ingresos recuperados no traen esa lista consigo).
 const CLAVE_BOLETAS = 'boletas-claves-facturadas';
+const CLAVE_BOLETAS_PARTICULARES = 'boletas-particulares';
 
 const COLOR_TAB = {
   pacientes:'#7C2F3E', agenda:'#4F6B5C', gastos:'#B4653A',
-  ingresos:'#6B7A45', objetivos:'#A9741B', dashboard:'#6E4B2A'
+  ingresos:'#6B7A45', objetivos:'#A9741B', dashboard:'#6E4B2A', boletas:'#8B6516'
 };
 
 const CANALES = [
@@ -3012,10 +3167,10 @@ function textoMontoOculto(monto, visible){ return visible ? formatearCLP(monto) 
 /* ============================================================
    3. NAVEGACIÓN ENTRE PANTALLAS
    ============================================================ */
-const PANTALLAS = ['pacientes','agenda','gastos','ingresos','objetivos','dashboard'];
+const PANTALLAS = ['pacientes','agenda','gastos','ingresos','objetivos','dashboard','boletas'];
 const FAB_POR_PANTALLA = { pacientes:'botonNuevoPaciente', agenda:'botonNuevoEvento', ingresos:'botonNuevoIngreso', objetivos:'botonNuevoObjetivo' };
 
-const PANTALLAS_SECUNDARIAS = ['pacientes','objetivos','dashboard'];
+const PANTALLAS_SECUNDARIAS = ['pacientes','objetivos','dashboard','boletas'];
 
 const COLOR_TEXTO_NAV_ACTIVO = '#FFF8EC';
 
@@ -3045,6 +3200,7 @@ function irAPantalla(nombre){
   if(nombre === 'agenda') irAHoyAgenda(); // siempre se abre en hoy
   else if(nombre === 'ingresos') renderizarVistaIngresos();
   else if(nombre === 'objetivos') renderizarVistaObjetivos();
+  else if(nombre === 'boletas') renderizarVistaBoletas();
   else if(nombre === 'dashboard'){ reiniciarMesDashboard(); renderizarDashboard(); }
 }
 
@@ -3213,6 +3369,21 @@ function abrirFichaEdicion(id){
   }else actualizarCampoMonto();
   document.getElementById('fondoModalFicha').classList.add('abierto');
 }
+// Punto 4: aplica la respuesta del usuario a las sesiones devengadas.
+// "Sí": se descongelan y pasan a la tarifa nueva. "No": se congelan con el
+// monto que tenían (no les afecta el cambio). En ambos casos se avisa a la
+// planilla (monto_congelado) con el estado que ya tenían.
+function aplicarDecisionSesionesDevengadas(items, aplicarNueva, montoNuevo, seraEL, eraEL){
+  items.forEach(it => {
+    const ev = eventosAgenda.find(e => e.id === it.inst.eventoId); if(!ev) return;
+    ev.montoBrutoCongeladoPorFecha = ev.montoBrutoCongeladoPorFecha || {};
+    const estado = ev.recurrencia === 'ninguna' ? ev.estadoSesion : (ev.estadosPorFecha || {})[it.inst.fecha];
+    if(aplicarNueva) delete ev.montoBrutoCongeladoPorFecha[it.inst.fecha];
+    else ev.montoBrutoCongeladoPorFecha[it.inst.fecha] = it.montoBruto;
+    const montoInfo = aplicarNueva ? { montoBruto: montoNuevo, esEntreLazos: seraEL, comisionEL: it.comisionEL, impuestoPct: it.impuestoPct } : { montoBruto: it.montoBruto, esEntreLazos: eraEL, comisionEL: it.comisionEL, impuestoPct: it.impuestoPct };
+    encolarActualizarEstadoSesion(ev, ev.recurrencia === 'ninguna' ? null : it.inst.fecha, estado, montoInfo, null, (ev.adultosPorFecha && ev.adultosPorFecha[it.inst.fecha]) || []);
+  });
+}
 async function guardarFicha(){
   const nombre = document.getElementById('campoNombre').value.trim();
   ocultarAvisoFormulario('avisoFichaPaciente');
@@ -3240,6 +3411,30 @@ async function guardarFicha(){
     const p = pacientes.find(x => x.id === idEnEdicion);
     if(p){
       const montoAnterior = p.montoHabitual;
+      // Punto 4 (v2.70): si cambia la tarifa y el paciente tiene sesiones
+      // devengadas (realizadas o ausentes sin pagar), se muestra cuáles
+      // cambiarían y se pregunta si se les aplica la tarifa nueva.
+      const montoEfectivoAnterior = p.tipoPago === 'fonasa' ? obtenerMontoFonasaSegunCanal(p.canal) : p.montoHabitual;
+      const eraEL = p.canal === 'entrelazos', seraEL = canalSeleccionado === 'entrelazos';
+      let afectadasDevengadas = [];
+      let decisionDevengadas = null;
+      if(montoEfectivoAnterior !== monto || eraEL !== seraEL){
+        afectadasDevengadas = obtenerPendientesPago().filter(it => {
+          if(it.inst.tipoInstancia !== 'evento') return false;
+          const ev = eventosAgenda.find(e => e.id === it.inst.eventoId);
+          return ev && ev.pacienteId === p.id && it.montoNeto !== calcularNeto(monto, seraEL, it.comisionEL, it.impuestoPct);
+        });
+        if(afectadasDevengadas.length){
+          decisionDevengadas = await preguntarDecision({
+            titulo: 'Se modificará el pago de sesiones devengadas',
+            texto: 'Este paciente tiene sesiones devengadas (sin pagar). Estas serían las sesiones que cambian de monto (monto actual → monto nuevo):',
+            filas: afectadasDevengadas.map(it => ({ izq: `${formatearFechaMovimiento(it.fecha)} · ${it.nombre}`, der: `${formatearCLP(it.montoNeto)} → ${formatearCLP(calcularNeto(monto, seraEL, it.comisionEL, it.impuestoPct))}` })),
+            pregunta: '¿Quieres modificar el pago de sesiones devengadas?',
+            textoSi: 'Sí, modificar', textoNo: 'No, mantener'
+          });
+          if(decisionDevengadas === null) return;
+        }
+      }
       p.nombreCompleto = nombre; p.canal = canalSeleccionado; p.tipoPago = tipoPagoSeleccionado; p.montoHabitual = monto;
       p.esMenor = esMenorSeleccionado; p.adultosResponsables = adultosResponsablesLimpios;
       p.colaSync = p.colaSync || [];
@@ -3250,6 +3445,11 @@ async function guardarFicha(){
         p.colaSync.push({ accion:'nueva_tarifa_paciente', datosBase: { monto: monto, vigente_desde: hoyISO() } });
       }
       pacienteGuardado = p;
+      if(afectadasDevengadas.length){
+        aplicarDecisionSesionesDevengadas(afectadasDevengadas, decisionDevengadas === 'si', monto, seraEL, eraEL);
+        await guardarEventosEnAlmacenamiento();
+        eventosAgenda.forEach(ev => { if(ev.pacienteId === p.id) procesarColaEntidadAgenda(ev, guardarEventosEnAlmacenamiento); });
+      }
     }
   }
 
@@ -3757,6 +3957,47 @@ async function confirmarGuardarValores(){
   if(!cambiosValoresPendientesConfirmar) return;
   const { montoFonasa, montoFonasaEL, impuesto, comisionEL } = cambiosValoresPendientesConfirmar;
   const hoy = hoyISO();
+  // Si cambia el monto FONASA, el porcentaje de impuesto o la comisión de Entre Lazos,
+  // se muestran las sesiones que cambiarían (devengadas y Entre Lazos pagadas sin
+  // boleta) y se pregunta si se les aplica el valor nuevo.
+  const anteriores = { fonasa: configuracion.montoFonasa, fonasaEL: configuracion.montoFonasaEL, impuesto: configuracion.porcentajeImpuesto, comision: configuracion.porcentajeComisionEL };
+  let afectadas = [], decision = null;
+  if(montoFonasa !== anteriores.fonasa || montoFonasaEL !== anteriores.fonasaEL || impuesto !== anteriores.impuesto || comisionEL !== anteriores.comision){
+    const candidatas = [
+      ...obtenerPendientesPago().map(it => ({ inst: it.inst, bruto: it.montoBruto, esEL: it.esEntreLazos, nombre: it.nombre, fecha: it.fecha, comisionActual: it.comisionEL, impuestoActual: it.impuestoPct, netoActual: it.montoNeto, etiqueta: 'devengada' })),
+      ...obtenerPendientesEntreLazos().map(p => ({ inst: p.instancia, bruto: p.info.montoBruto, esEL: true, nombre: p.info.nombre, fecha: p.instancia.fecha, comisionActual: p.info.comisionEL, impuestoActual: p.info.impuestoPct, netoActual: calcularNeto(p.info.montoBruto, true, p.info.comisionEL, p.info.impuestoPct), etiqueta: 'sin boleta' }))
+    ];
+    candidatas.forEach(it => {
+      let nuevoBruto = it.bruto, cambiaBruto = false;
+      if(it.inst.tipoInstancia !== 'consulta'){
+        const ev = eventosAgenda.find(e => e.id === it.inst.eventoId);
+        const pac = ev && pacientes.find(x => x.id === ev.pacienteId);
+        if(pac && pac.tipoPago === 'fonasa'){
+          const esELpac = pac.canal === 'entrelazos';
+          const nuevoMonto = esELpac ? montoFonasaEL : montoFonasa, viejoMonto = esELpac ? anteriores.fonasaEL : anteriores.fonasa;
+          if(nuevoMonto !== viejoMonto){ nuevoBruto = nuevoMonto; cambiaBruto = true; }
+        }
+      }
+      it.nuevoBruto = nuevoBruto; it.cambiaBruto = cambiaBruto;
+      it.cambiaCom = it.esEL && comisionEL !== anteriores.comision;
+      it.cambiaImp = impuesto !== anteriores.impuesto;
+      it.comisionUsada = it.cambiaCom ? comisionEL : it.comisionActual;
+      it.impuestoUsado = it.cambiaImp ? impuesto : it.impuestoActual;
+      it.netoNuevo = calcularNeto(nuevoBruto, it.esEL, it.comisionUsada, it.impuestoUsado);
+    });
+    afectadas = candidatas.filter(it => it.netoNuevo !== it.netoActual);
+    afectadas.sort((a,b) => a.fecha.localeCompare(b.fecha));
+    if(afectadas.length){
+      decision = await preguntarDecision({
+        titulo: 'Se modificará el pago de sesiones',
+        texto: 'Cambian valores generales (monto FONASA, impuesto o comisión de Entre Lazos). Estas sesiones (devengadas o Entre Lazos pagadas sin boleta) cambiarían de monto (monto actual → monto nuevo):',
+        filas: afectadas.map(it => ({ izq: `${formatearFechaMovimiento(it.fecha)} · ${it.nombre} (${it.etiqueta})`, der: `${formatearCLP(it.netoActual)} → ${formatearCLP(it.netoNuevo)}` })),
+        pregunta: '¿Quieres modificar el pago de estas sesiones?',
+        textoSi: 'Sí, modificar', textoNo: 'No, mantener'
+      });
+      if(decision === null) return;
+    }
+  }
   const cambios = [];
   if(montoFonasa !== configuracion.montoFonasa) cambios.push({ tipo:'fonasa_directo', monto_o_porcentaje: montoFonasa, vigente_desde: hoy });
   if(montoFonasaEL !== configuracion.montoFonasaEL) cambios.push({ tipo:'fonasa_entrelazos', monto_o_porcentaje: montoFonasaEL, vigente_desde: hoy });
@@ -3773,6 +4014,47 @@ async function confirmarGuardarValores(){
   document.getElementById('botonGuardarValores').style.display = 'block';
   cerrarConfiguracion(); await guardarConfiguracionEnAlmacenamiento();
   if(cambios.length > 0) procesarColaConfiguracion();
+  if(afectadas.length) await aplicarDecisionValoresGlobales(afectadas, decision === 'si', anteriores);
+}
+// Aplica la respuesta sobre los valores generales (monto FONASA, impuesto, comisión de
+// Entre Lazos). "Sí": las sesiones usan el valor nuevo. "No": quedan congeladas con el
+// valor de antes (solo en lo que cambió). En ambos casos se avisa a la planilla
+// (monto_congelado) con el estado que ya tenían.
+async function aplicarDecisionValoresGlobales(items, aplicarNueva, anteriores){
+  const eventosTocados = new Set(), consultasTocadas = new Set();
+  items.forEach(it => {
+    const esConsulta = it.inst.tipoInstancia === 'consulta';
+    const ent = esConsulta ? consultasUnicas.find(c => c.id === it.inst.consultaId) : eventosAgenda.find(e => e.id === it.inst.eventoId);
+    if(!ent) return;
+    const f = it.inst.fecha;
+    // Un valor congelado: en la consulta es un campo; en el evento, un mapa por fecha.
+    const leer = (campoC, campoE) => esConsulta ? ent[campoC] : (ent[campoE] || {})[f];
+    const poner = (campoC, campoE, v) => {
+      if(esConsulta){ if(v === undefined) delete ent[campoC]; else ent[campoC] = v; }
+      else{ ent[campoE] = ent[campoE] || {}; if(v === undefined) delete ent[campoE][f]; else ent[campoE][f] = v; }
+    };
+    const decidir = (cambia, campoC, campoE, valorAnterior) => {
+      if(!cambia) return;
+      if(aplicarNueva) poner(campoC, campoE, undefined);
+      else if(typeof leer(campoC, campoE) !== 'number') poner(campoC, campoE, valorAnterior);
+    };
+    if(!esConsulta) decidir(it.cambiaBruto, null, 'montoBrutoCongeladoPorFecha', it.bruto);
+    decidir(it.cambiaCom, 'comisionELCongelada', 'comisionELCongeladaPorFecha', it.comisionActual !== undefined ? it.comisionActual : anteriores.comision);
+    decidir(it.cambiaImp, 'impuestoCongelado', 'impuestoCongeladoPorFecha', it.impuestoActual !== undefined ? it.impuestoActual : anteriores.impuesto);
+    const estado = esConsulta ? ent.estadoSesion : (ent.recurrencia === 'ninguna' ? ent.estadoSesion : (ent.estadosPorFecha || {})[f]);
+    const montoInfo = {
+      montoBruto: (!aplicarNueva && it.cambiaBruto) ? it.bruto : it.nuevoBruto,
+      esEntreLazos: it.esEL,
+      comisionEL: leer('comisionELCongelada', 'comisionELCongeladaPorFecha'),
+      impuestoPct: leer('impuestoCongelado', 'impuestoCongeladoPorFecha')
+    };
+    if(esConsulta){ encolarActualizarEstadoSesion(ent, null, estado, montoInfo, null); consultasTocadas.add(ent); }
+    else{ encolarActualizarEstadoSesion(ent, ent.recurrencia === 'ninguna' ? null : f, estado, montoInfo, null, (ent.adultosPorFecha && ent.adultosPorFecha[f]) || []); eventosTocados.add(ent); }
+  });
+  await guardarEventosEnAlmacenamiento(); await guardarConsultasEnAlmacenamiento();
+  eventosTocados.forEach(e => procesarColaEntidadAgenda(e, guardarEventosEnAlmacenamiento));
+  consultasTocadas.forEach(c => procesarColaEntidadAgenda(c, guardarConsultasEnAlmacenamiento));
+  if(document.getElementById('pantallaIngresos').style.display !== 'none') renderizarVistaIngresos();
 }
 
 // Misma mecánica de cola con reintentos que Pacientes/Agenda/Gastos,
@@ -4205,12 +4487,12 @@ function encolarActualizarEstadoSesion(entidad, fechaOcurrencia, estado, montoIn
   if(adultosPresentes !== undefined) datosBase.adultos_presentes = (adultosPresentes || []).join(' | ');
   let generaIngreso = false;
   if(montoInfo && !montoInfo.esEntreLazos && ESTADOS_QUE_GENERAN_INGRESO.includes(estado)){
-    const montoNeto = calcularNeto(montoInfo.montoBruto, false);
+    const montoNeto = calcularNeto(montoInfo.montoBruto, false, undefined, montoInfo.impuestoPct);
     datosBase.monto_congelado = montoNeto;
     datosBase.generar_ingreso = { fecha_evento: fechaIngresoDeSesion(entidad, fechaEvento), id_ingreso: idIngreso, monto_bruto: montoInfo.montoBruto, monto_neto: montoNeto, forma_pago: montoInfo.formaPago || '', categoria_manual: montoInfo.tipo || '', descripcion: montoInfo.nombre || '' };
     generaIngreso = true;
   }else if(montoInfo){
-    datosBase.monto_congelado = calcularNeto(montoInfo.montoBruto, montoInfo.esEntreLazos);
+    datosBase.monto_congelado = calcularNeto(montoInfo.montoBruto, montoInfo.esEntreLazos, montoInfo.comisionEL, montoInfo.impuestoPct);
   }
   entidad.colaSync = entidad.colaSync || [];
   entidad.colaSync.push({ accion:'actualizar_estado_sesion', datosBase, fechaOcurrencia: fechaOcurrencia || null, generaIngreso });
@@ -5657,7 +5939,7 @@ async function guardarFichaEventoInterno(){
       // pero el monto se corrigió. Editar solo el nombre, por ejemplo,
       // ya no vuelve a generar un ingreso.
       if(cambioEstado || cambioMontoEnPagada || (medioElegidoConsulta && siguePagada)){
-        encolarActualizarEstadoSesion(consultaGuardada, null, estadoSesionEventoSeleccionado, { montoBruto: monto, esEntreLazos, tipo: tipoIngresoConsulta, nombre, formaPago: medioElegidoConsulta || (ingresos.find(i => i.id === idIngreso) || {}).medioPago || '' }, idIngreso);
+        encolarActualizarEstadoSesion(consultaGuardada, null, estadoSesionEventoSeleccionado, { montoBruto: monto, esEntreLazos, impuestoPct: consultaGuardada.impuestoCongelado, tipo: tipoIngresoConsulta, nombre, formaPago: medioElegidoConsulta || (ingresos.find(i => i.id === idIngreso) || {}).medioPago || '' }, idIngreso);
       }
       // Si dejó de estar pagada (y antes sí lo estaba, y no era Entre
       // Lazos), el ingreso que ya existía en la planilla queda huérfano
@@ -5671,7 +5953,7 @@ async function guardarFichaEventoInterno(){
       // sesión deja de estar pagada.
       if(!esEntreLazos){
         if(siguePagada){
-          sincronizarIngresoLocalDeSesion(idIngreso, { tipo: tipoIngresoConsulta, claveOrigen: obtenerClaveOrigen({ tipoInstancia:'consulta', consultaId: consultaGuardada.id }), fecha: fechaIngresoDeSesion(consultaGuardada, fecha), montoBruto: monto, montoNeto: calcularNeto(monto, false), nombre, medioPago: medioElegidoConsulta });
+          sincronizarIngresoLocalDeSesion(idIngreso, { tipo: tipoIngresoConsulta, claveOrigen: obtenerClaveOrigen({ tipoInstancia:'consulta', consultaId: consultaGuardada.id }), fecha: fechaIngresoDeSesion(consultaGuardada, fecha), montoBruto: monto, montoNeto: calcularNeto(monto, false, undefined, consultaGuardada.impuestoCongelado), nombre, medioPago: medioElegidoConsulta });
         }else{
           sincronizarIngresoLocalDeSesion(idIngreso, null);
         }
@@ -5720,7 +6002,7 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
     if(infoPaciente && seAplicaEstado){
       let idIngresoPrevio = null;
       if(eventoPrevio){
-        const fechaClave = recurrenciaEventoSeleccionada === 'ninguna' ? (eventoPrevio.recurrencia !== 'ninguna' ? eventoPrevio.fecha : fecha) : fechaOcurrenciaEnEdicion;
+        const fechaClave = recurrenciaEventoSeleccionada === 'ninguna' ? eventoPrevio.fecha : fechaOcurrenciaEnEdicion;
         idIngresoPrevio = idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: eventoPrevio.id, fecha: fechaClave }));
       }
       if(sesionNecesitaMedioPago(idIngresoPrevio, infoPaciente.esEntreLazos, estadoSesionEventoSeleccionado)){ preguntarMedioPagoSesion(infoPaciente.nombre); return; }
@@ -5728,8 +6010,23 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
   }
   const medioElegidoEvento = medioPagoSesionElegido;
 
+  // Punto 2 (v2.70): si se cambia la fecha de una sesión suelta que ya
+  // estaba en una boleta de Entre Lazos, no se permite: la sesión
+  // quedaría con otra clave y podría entrar en una segunda boleta.
+  if(eventoEnEdicionId !== null){
+    const evPrev = eventosAgenda.find(x => x.id === eventoEnEdicionId);
+    if(evPrev && evPrev.recurrencia === 'ninguna' && recurrenciaEventoSeleccionada === 'ninguna' && evPrev.fecha !== fecha
+       && clavesFacturadasDesdeServidor.has(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evPrev.id, fecha: evPrev.fecha }))){
+      mostrarAvisoFormulario('avisoFichaEvento', 'Esta sesión ya está en una boleta de Entre Lazos, así que no se puede cambiar su fecha.', 'eventoFecha');
+      return;
+    }
+  }
+
   let evento;
   let fechaOcurrenciaAfectada = null;
+  let fechaAnteriorSesionSuelta = null;
+  let idIngresoAnteriorSesionSuelta = null;
+  let pacienteAnteriorEvento = null;
   let estadoAnteriorEvento = null;
   let adultosAnterioresParaComparar = null;
   if(eventoEnEdicionId === null){
@@ -5748,6 +6045,7 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
   }else{
     evento = eventosAgenda.find(x => x.id === eventoEnEdicionId);
     if(evento){
+      pacienteAnteriorEvento = evento.pacienteId || null;
       evento.etiqueta = etiquetaEventoSeleccionada; evento.nombre = nombre; evento.pacienteId = pacienteId;
       // Si el evento YA era recurrente antes de este guardado, su fecha de
       // inicio (el ancla de toda la serie) nunca se toca desde acá — el campo
@@ -5755,6 +6053,23 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
       // abrirFichaEventoEdicion), pero esta protección vive también aquí, en
       // el dato mismo, no solo en la pantalla.
       const eraRecurrente = evento.recurrencia !== 'ninguna';
+      if(!eraRecurrente && evento.fecha !== fecha){
+        fechaAnteriorSesionSuelta = evento.fecha;
+        idIngresoAnteriorSesionSuelta = idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaAnteriorSesionSuelta }));
+        // La fecha de pago viaja con la sesión (no se pierde ni se renueva).
+        evento.marcadoPagadoPorFecha = evento.marcadoPagadoPorFecha || {};
+        if(evento.marcadoPagadoPorFecha[fechaAnteriorSesionSuelta]){
+          evento.marcadoPagadoPorFecha[fecha] = evento.marcadoPagadoPorFecha[fechaAnteriorSesionSuelta];
+          delete evento.marcadoPagadoPorFecha[fechaAnteriorSesionSuelta];
+        }
+        // Lo mismo con los adultos presentes y el monto congelado de esa sesión.
+        ['adultosPorFecha','montoBrutoCongeladoPorFecha','comisionELCongeladaPorFecha','impuestoCongeladoPorFecha'].forEach(campo => {
+          if(evento[campo] && evento[campo][fechaAnteriorSesionSuelta] !== undefined){
+            evento[campo][fecha] = evento[campo][fechaAnteriorSesionSuelta];
+            delete evento[campo][fechaAnteriorSesionSuelta];
+          }
+        });
+      }
       if(!eraRecurrente) evento.fecha = fecha;
       evento.hora = hora; evento.recurrencia = recurrenciaEventoSeleccionada;
       // "Cuántos días dura" es, igual que la fecha de inicio, una
@@ -5810,9 +6125,20 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
   if(evento && etiquetaEventoSeleccionada === 'atenciones' && pacienteId && estadoSesionEventoSeleccionado){
     const montoInfo = calcularMontoBrutoParaPaciente(pacienteId);
     const fechaClaveOrigen = evento.recurrencia === 'ninguna' ? evento.fecha : fechaOcurrenciaAfectada;
+    // Punto 4: si esta sesión tiene el monto congelado (de antes de un cambio de tarifa del mismo paciente), se respeta.
+    if(montoInfo && evento.pacienteId === pacienteId && evento.montoBrutoCongeladoPorFecha && typeof evento.montoBrutoCongeladoPorFecha[fechaClaveOrigen] === 'number'){
+      montoInfo.montoBruto = evento.montoBrutoCongeladoPorFecha[fechaClaveOrigen];
+    }
+    if(montoInfo && evento.pacienteId === pacienteId && evento.comisionELCongeladaPorFecha && typeof evento.comisionELCongeladaPorFecha[fechaClaveOrigen] === 'number'){
+      montoInfo.comisionEL = evento.comisionELCongeladaPorFecha[fechaClaveOrigen];
+    }
+    if(montoInfo && evento.pacienteId === pacienteId && evento.impuestoCongeladoPorFecha && typeof evento.impuestoCongeladoPorFecha[fechaClaveOrigen] === 'number'){
+      montoInfo.impuestoPct = evento.impuestoCongeladoPorFecha[fechaClaveOrigen];
+    }
     const idIngreso = idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaClaveOrigen }));
     const siguePagada = ESTADOS_QUE_GENERAN_INGRESO.includes(estadoSesionEventoSeleccionado);
-    if(montoInfo) montoInfo.formaPago = medioElegidoEvento || (ingresos.find(i => i.id === idIngreso) || {}).medioPago || '';
+    const ingresoAnteriorSuelta = idIngresoAnteriorSesionSuelta ? ingresos.find(i => i.id === idIngresoAnteriorSesionSuelta) : null;
+    if(montoInfo) montoInfo.formaPago = medioElegidoEvento || (ingresos.find(i => i.id === idIngreso) || {}).medioPago || (ingresoAnteriorSuelta && ingresoAnteriorSuelta.medioPago) || '';
     // Fecha en que se marcó pagada esta sesión puntual (distinta de la
     // fecha de la sesión misma). Se fija la primera vez; si se
     // desmarca y se vuelve a marcar más tarde, se renueva.
@@ -5833,7 +6159,18 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
     // cambió (o si recién se eligió el medio de pago, o si cambiaron
     // los adultos presentes). Corregir otro dato de la ficha que no
     // sea ninguno de estos no vuelve a generar un ingreso.
-    if(estadoAnteriorEvento !== estadoSesionEventoSeleccionado || (medioElegidoEvento && siguePagada) || cambioAdultos){
+    const cambioFechaSuelta = !!idIngresoAnteriorSesionSuelta;
+    // Punto 5 (v2.70): si se cambió el paciente de una sesión que sigue
+    // pagada, el ingreso también se corrige en la planilla (mismo id, se
+    // actualiza la misma fila con el nombre y monto del paciente nuevo).
+    const cambioPacienteEnPagada = pacienteAnteriorEvento !== null && pacienteAnteriorEvento !== pacienteId && siguePagada;
+    if(estadoAnteriorEvento !== estadoSesionEventoSeleccionado || (medioElegidoEvento && siguePagada) || cambioAdultos || cambioFechaSuelta || cambioPacienteEnPagada){
+      // Punto 2: la fila de Sesiones con la fecha vieja se deja vacía ANTES de
+      // guardar la nueva, para que la planilla no devuelva dos estados.
+      if(cambioFechaSuelta){
+        evento.colaSync = evento.colaSync || [];
+        evento.colaSync.push({ accion:'actualizar_estado_sesion', datosBase:{ id_evento: evento.id, fecha_evento: fechaAnteriorSesionSuelta, estado_sesion:'', monto_congelado:'', adultos_presentes:'', fecha_pago:'' }, fechaOcurrencia:null, generaIngreso:false });
+      }
       encolarActualizarEstadoSesion(evento, evento.recurrencia === 'ninguna' ? null : fechaOcurrenciaAfectada, estadoSesionEventoSeleccionado, montoInfo, idIngreso, seleccionAdultosActual);
       // Si esa fecha dejó de estar pagada (y no era Entre Lazos), el
       // ingreso que ya existía en la planilla queda huérfano si no se
@@ -5847,12 +6184,27 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
     // guardado, y se borra si esa fecha deja de estar pagada.
     if(montoInfo && !montoInfo.esEntreLazos){
       if(siguePagada){
-        sincronizarIngresoLocalDeSesion(idIngreso, { tipo: montoInfo.tipo, claveOrigen: obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaClaveOrigen }), fecha: fechaIngresoDeSesion(evento, fechaClaveOrigen), montoBruto: montoInfo.montoBruto, montoNeto: calcularNeto(montoInfo.montoBruto, false), nombre: montoInfo.nombre || '', medioPago: medioElegidoEvento });
+        sincronizarIngresoLocalDeSesion(idIngreso, { tipo: montoInfo.tipo, claveOrigen: obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaClaveOrigen }), fecha: fechaIngresoDeSesion(evento, fechaClaveOrigen), montoBruto: montoInfo.montoBruto, montoNeto: calcularNeto(montoInfo.montoBruto, false, undefined, montoInfo.impuestoPct), nombre: montoInfo.nombre || '', medioPago: medioElegidoEvento || (ingresoAnteriorSuelta && ingresoAnteriorSuelta.medioPago) || '' });
       }else{
         sincronizarIngresoLocalDeSesion(idIngreso, null);
       }
       await guardarIngresosEnAlmacenamiento();
+    }else if(montoInfo && montoInfo.esEntreLazos && cambioPacienteEnPagada && ingresos.some(i => i.id === idIngreso)){
+      // El paciente nuevo es de Entre Lazos: su ingreso sale por la boleta,
+      // así que el ingreso individual que tenía la sesión se retira.
+      sincronizarIngresoLocalDeSesion(idIngreso, null);
+      encolarEliminarIngresoDeSesion(evento, idIngreso);
+      await guardarIngresosEnAlmacenamiento();
     }
+  }
+
+  // Punto 2: si se cambió la fecha de una sesión suelta que estaba pagada,
+  // el ingreso con el id de la fecha vieja se borra (aquí y en la planilla)
+  // para que no quede duplicado junto al nuevo.
+  if(evento && idIngresoAnteriorSesionSuelta && ingresos.some(i => i.id === idIngresoAnteriorSesionSuelta)){
+    sincronizarIngresoLocalDeSesion(idIngresoAnteriorSesionSuelta, null);
+    encolarEliminarIngresoDeSesion(evento, idIngresoAnteriorSesionSuelta);
+    await guardarIngresosEnAlmacenamiento();
   }
 
   // Eventos que no son Atenciones: si cambió la marca de realizado de
@@ -5898,6 +6250,10 @@ function cancelarOmitirFecha(){
 async function confirmarOmitirFecha(){
   const evento = eventosAgenda.find(x => x.id === eventoEnEdicionId);
   if(evento && fechaOcurrenciaEnEdicion){
+    // Punto 3: si esa fecha ya está pagada, se advierte y se pregunta si se elimina el ingreso.
+    const decisionPago = await consultarSesionesPagadas(evento, [fechaOcurrenciaEnEdicion], 'omitir esta fecha');
+    if(!decisionPago.continuar) return;
+    if(decisionPago.eliminar) await eliminarIngresoYEstadoDeFechas(evento, decisionPago.fechas);
     evento.fechasExcluidas = evento.fechasExcluidas || [];
     if(!evento.fechasExcluidas.includes(fechaOcurrenciaEnEdicion)) evento.fechasExcluidas.push(fechaOcurrenciaEnEdicion);
     evento.colaSync = evento.colaSync || [];
@@ -5927,6 +6283,82 @@ async function confirmarOmitirFecha(){
 let eventoEnMovimiento = null;
 let fechaOcurrenciaEnMovimiento = null;
 
+// ------------------------------------------------------------
+// Ventana de decisión genérica. Devuelve una promesa que se resuelve con
+// 'si', 'no' o null (si se cancela / se cierra la ventana).
+// opciones: { titulo, texto, filas:[{izq, der}], pregunta, textoSi, textoNo }
+// ------------------------------------------------------------
+let resolverDecision = null;
+function preguntarDecision(opciones){
+  return new Promise(resolve => {
+    resolverDecision = resolve;
+    document.getElementById('decisionTitulo').textContent = opciones.titulo || '';
+    document.getElementById('decisionTexto').textContent = opciones.texto || '';
+    const lista = document.getElementById('decisionLista');
+    lista.innerHTML = (opciones.filas || []).map(f => `<div class="decision-fila"><span class="izq">${escaparHTML(f.izq || '')}</span><span class="der">${escaparHTML(f.der || '')}</span></div>`).join('');
+    lista.style.display = (opciones.filas && opciones.filas.length) ? 'block' : 'none';
+    document.getElementById('decisionPregunta').textContent = opciones.pregunta || '';
+    document.getElementById('decisionBotonSi').textContent = opciones.textoSi || 'Sí';
+    document.getElementById('decisionBotonNo').textContent = opciones.textoNo || 'No';
+    document.getElementById('fondoModalDecision').classList.add('abierto');
+  });
+}
+function responderDecision(respuesta){
+  document.getElementById('fondoModalDecision').classList.remove('abierto');
+  const r = resolverDecision; resolverDecision = null;
+  if(r) r(respuesta);
+}
+
+// Punto 3 (v2.70): sesiones de una serie que ya están pagadas (estado que
+// genera ingreso) dentro de una lista de fechas. Las de Entre Lazos que ya
+// están en una boleta emitida no se tocan (su ingreso es el de la boleta).
+function fechasPagadasEnSerie(evento, fechas){
+  if(evento.etiqueta !== 'atenciones') return [];
+  return (fechas || []).filter(f => {
+    const est = (evento.estadosPorFecha || {})[f];
+    if(!ESTADOS_QUE_GENERAN_INGRESO.includes(est)) return false;
+    return !clavesFacturadasDesdeServidor.has(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: f }));
+  });
+}
+function filasSesionesPagadas(evento, fechas){
+  return fechas.slice().sort().map(f => {
+    const ing = ingresos.find(i => i.id === idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: f })));
+    return { izq: `${formatearFechaMovimiento(f)} · ${obtenerNombreEvento(evento, f)}`, der: ing ? formatearCLP(ing.montoNeto) : 'Pagada' };
+  });
+}
+// Pregunta "¿Quieres eliminar el ingreso?" si alguna de las fechas está
+// pagada. Devuelve { continuar, eliminar, fechas }.
+async function consultarSesionesPagadas(evento, fechas, textoAccion){
+  const pagadas = fechasPagadasEnSerie(evento, fechas);
+  if(!pagadas.length) return { continuar:true, eliminar:false, fechas:[] };
+  const r = await preguntarDecision({
+    titulo: 'Sesión ya pagada',
+    texto: (pagadas.length === 1 ? 'Estás modificando una sesión que ya fue pagada' : 'Estás modificando sesiones que ya fueron pagadas') + (textoAccion ? ` (${textoAccion}).` : '.'),
+    filas: filasSesionesPagadas(evento, pagadas),
+    pregunta: pagadas.length === 1 ? '¿Quieres eliminar el ingreso?' : '¿Quieres eliminar los ingresos?',
+    textoSi: 'Sí, eliminar', textoNo: 'No, conservar'
+  });
+  if(r === null) return { continuar:false, eliminar:false, fechas:pagadas };
+  return { continuar:true, eliminar: r === 'si', fechas:pagadas };
+}
+// Elimina el ingreso (aquí y en la planilla) de cada fecha y deja la sesión
+// sin estado (ni realizada ni ausentada). Solo modifica los datos; quien
+// llama guarda y sincroniza después.
+async function eliminarIngresoYEstadoDeFechas(evento, fechas){
+  evento.colaSync = evento.colaSync || [];
+  fechas.forEach(f => {
+    const idIng = idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: f }));
+    if(ingresos.some(i => i.id === idIng)){
+      ingresos = ingresos.filter(i => i.id !== idIng);
+      encolarEliminarIngresoDeSesion(evento, idIng);
+    }
+    if(evento.estadosPorFecha) delete evento.estadosPorFecha[f];
+    if(evento.marcadoPagadoPorFecha) delete evento.marcadoPagadoPorFecha[f];
+    encolarActualizarEstadoSesion(evento, f, null, null, null, (evento.adultosPorFecha && evento.adultosPorFecha[f]) || []);
+  });
+  await guardarIngresosEnAlmacenamiento();
+}
+
 // moverModoGlobal: false = solo esta fecha (comportamiento de siempre,
 // crea un evento suelto). true = "Cambiar día de la serie desde
 // aquí": desde esta fecha en adelante, toda la serie pasa a repetirse
@@ -5943,10 +6375,6 @@ let moverModoGlobal = false;
 function abrirModalMoverSesion(esGlobal){
   const evento = eventosAgenda.find(x => x.id === eventoEnEdicionId);
   if(!evento || !fechaOcurrenciaEnEdicion) return;
-  if(ESTADOS_QUE_GENERAN_INGRESO.includes(estadoSesionEventoSeleccionado)){
-    mostrarAvisoFormulario('avisoFichaEvento', 'Esta sesión ya está pagada. Para moverla, primero quita el estado de pago, muévela y vuelve a marcarla en el nuevo día.', null);
-    return;
-  }
   moverModoGlobal = !!esGlobal;
   eventoEnMovimiento = evento; fechaOcurrenciaEnMovimiento = fechaOcurrenciaEnEdicion;
   const esSesion = evento.etiqueta === 'atenciones';
@@ -5993,10 +6421,21 @@ async function guardarMoverSesion(){
   // Se usa el estado que está seleccionado en pantalla en este momento
   // (no el guardado), para que "mover" refleje siempre lo que el
   // usuario está viendo, no una versión desactualizada.
-  const estadoAMover = estadoSesionEventoSeleccionado;
+  let estadoAMover = estadoSesionEventoSeleccionado;
   if(estadoAMover && estadoAMover.startsWith('realizada') && nuevaFecha > hoyISO()){
     mostrarAvisoFormulario('avisoMoverSesion', 'Una sesión realizada no se puede mover a una fecha futura. Primero cambia su estado.', 'moverSesionFecha');
     return;
+  }
+  // Si la sesión que se mueve ya estaba pagada, su ingreso se traslada a la
+  // sesión movida: se borra el ingreso de la fecha vieja y se crea uno igual
+  // (mismo monto, medio y fecha de pago) para la sesión nueva.
+  const fechasPagadasMover = fechasPagadasEnSerie(evento, [fechaVieja]);
+  const ingresoViejo = fechasPagadasMover.length ? ingresos.find(i => i.id === idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaVieja }))) : null;
+  const fechaPagoViejo = fechasPagadasMover.length ? ((evento.marcadoPagadoPorFecha || {})[fechaVieja] || null) : null;
+  const adultosViejo = (evento.adultosPorFecha && evento.adultosPorFecha[fechaVieja]) ? [...evento.adultosPorFecha[fechaVieja]] : [];
+  if(fechasPagadasMover.length){
+    estadoAMover = evento.estadosPorFecha[fechaVieja];
+    await eliminarIngresoYEstadoDeFechas(evento, fechasPagadasMover);
   }
 
   // 1) Omite la fecha vieja de la serie — igual mecanismo que "Omitir esta fecha".
@@ -6022,7 +6461,14 @@ async function guardarMoverSesion(){
   if(estadoAMover){
     const montoInfo = (nuevoEvento.etiqueta === 'atenciones' && nuevoEvento.pacienteId) ? calcularMontoBrutoParaPaciente(nuevoEvento.pacienteId) : null;
     const idIngresoNuevo = idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: nuevoEvento.id, fecha: nuevaFecha }));
-    encolarActualizarEstadoSesion(nuevoEvento, null, estadoAMover, montoInfo, idIngresoNuevo);
+    if(adultosViejo.length) nuevoEvento.adultosPorFecha[nuevaFecha] = adultosViejo;
+    if(montoInfo && ingresoViejo){ montoInfo.montoBruto = ingresoViejo.montoBruto; montoInfo.formaPago = ingresoViejo.medioPago || ''; }
+    if(fechaPagoViejo && ESTADOS_QUE_GENERAN_INGRESO.includes(estadoAMover)) nuevoEvento.marcadoPagadoPorFecha[nuevaFecha] = fechaPagoViejo;
+    encolarActualizarEstadoSesion(nuevoEvento, null, estadoAMover, montoInfo, idIngresoNuevo, adultosViejo);
+    if(montoInfo && ingresoViejo && !montoInfo.esEntreLazos && ESTADOS_QUE_GENERAN_INGRESO.includes(estadoAMover)){
+      sincronizarIngresoLocalDeSesion(idIngresoNuevo, { tipo: montoInfo.tipo, claveOrigen: obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: nuevoEvento.id, fecha: nuevaFecha }), fecha: fechaIngresoDeSesion(nuevoEvento, nuevaFecha), montoBruto: montoInfo.montoBruto, montoNeto: ingresoViejo.montoNeto, nombre: ingresoViejo.descripcion || montoInfo.nombre, medioPago: ingresoViejo.medioPago });
+      await guardarIngresosEnAlmacenamiento();
+    }
   }
   eventosAgenda.push(nuevoEvento);
 
@@ -6044,6 +6490,10 @@ async function confirmarCambioSerieDesdeAqui(nuevaFecha, nuevaHora){
   // horizonte de la propia recurrencia) de la serie vieja: se omiten
   // todas, una por una, igual que "Omitir esta fecha".
   const futuras = generarOcurrencias(evento, fechaCorte, rangoAnalisisFin());
+  // Punto 3: sesiones futuras ya pagadas (pago adelantado, etc.)
+  const decisionPago = await consultarSesionesPagadas(evento, futuras, 'cambiar el día de la serie');
+  if(!decisionPago.continuar) return;
+  if(decisionPago.eliminar) await eliminarIngresoYEstadoDeFechas(evento, decisionPago.fechas);
   evento.fechasExcluidas = evento.fechasExcluidas || [];
   evento.colaSync = evento.colaSync || [];
   futuras.forEach(f => {
@@ -6153,6 +6603,10 @@ async function confirmarCambiarDuracionSerie(){
   // 1) Repeticiones futuras de la serie vieja (desde fechaCorte): se
   // omiten todas, una por una — igual que "Cambiar día de la serie".
   const futuras = generarOcurrencias(evento, fechaCorte, rangoAnalisisFin());
+  // Punto 3: sesiones futuras ya pagadas
+  const decisionPago = await consultarSesionesPagadas(evento, futuras, 'cambiar la duración de la serie');
+  if(!decisionPago.continuar) return;
+  if(decisionPago.eliminar) await eliminarIngresoYEstadoDeFechas(evento, decisionPago.fechas);
   evento.fechasExcluidas = evento.fechasExcluidas || [];
   evento.colaSync = evento.colaSync || [];
   futuras.forEach(f => {
@@ -6325,7 +6779,10 @@ function manejarTecladoFisicoGasto(evento){
   if(/^[0-9]$/.test(tecla)){ teclaGasto(tecla); evento.preventDefault(); return; }
   if(tecla === 'Backspace'){ borrarGasto(); evento.preventDefault(); return; }
   if(tecla === 'Delete' || tecla === 'c' || tecla === 'C'){ limpiarTodoGasto(); evento.preventDefault(); return; }
-  if(tecla === '.' || tecla === ','){ teclaGasto('.'); evento.preventDefault(); return; }
+  // Punto 8 (v2.70): el punto se ignora siempre (en Chile separa miles, no decimales: "12.500" = 12500).
+  if(tecla === '.'){ evento.preventDefault(); return; }
+  // La coma sigue siendo el decimal (igual que el botón "," de la pantalla).
+  if(tecla === ','){ teclaGasto('.'); evento.preventDefault(); return; }
   if(tecla === '+'){ teclaGasto('+'); evento.preventDefault(); return; }
   if(tecla === '-'){ teclaGasto('−'); evento.preventDefault(); return; }
   if(tecla === '*'){ teclaGasto('×'); evento.preventDefault(); return; }
@@ -6475,19 +6932,22 @@ function actualizarNotaAhorroGasto(){
   nota.innerHTML = obj ? `<span>Se suma al objetivo: ${escaparHTML(obj.nombre)}</span><button onclick="abrirSelectorObjetivoAhorro()">Cambiar</button>`
                        : `<span>Falta elegir el objetivo de ahorro.</span><button onclick="abrirSelectorObjetivoAhorro()">Elegir</button>`;
 }
-function abrirSelectorObjetivoAhorro(){
+let selectorAhorroParaModal = false;   // true cuando el selector se abrió desde "Editar gasto"
+let objetivoAhorroModal = null;        // objetivo elegido al pasar un gasto existente a Ahorro
+function abrirSelectorObjetivoAhorro(desdeModal){
+  selectorAhorroParaModal = desdeModal === true;
   const lista = document.getElementById('listaObjetivosAhorro'); lista.innerHTML = '';
   objetivos.filter(o => o.estado !== 'archivado').forEach(o => {
     const b = document.createElement('button'); b.className = 'boton-objetivo-ahorro';
     b.innerHTML = `<span>${escaparHTML(o.nombre)}</span><span class="acumulado-obj">${formatearCLP(o.acumulado||0)} ahorrados</span>`;
-    b.onclick = () => { objetivoAhorroGasto = o.id; cerrarSelectorObjetivoAhorro(); actualizarNotaAhorroGasto(); };
+    b.onclick = () => { if(selectorAhorroParaModal) objetivoAhorroModal = o.id; else objetivoAhorroGasto = o.id; cerrarSelectorObjetivoAhorro(); actualizarNotaAhorroGasto(); };
     lista.appendChild(b);
   });
   document.getElementById('formCrearObjetivoAhorro').style.display = 'none';
   document.getElementById('botonCrearObjetivoAhorro').style.display = 'block';
   document.getElementById('fondoModalAhorroObjetivo').classList.add('abierto');
 }
-function cerrarSelectorObjetivoAhorro(){ document.getElementById('fondoModalAhorroObjetivo').classList.remove('abierto'); actualizarNotaAhorroGasto(); }
+function cerrarSelectorObjetivoAhorro(){ document.getElementById('fondoModalAhorroObjetivo').classList.remove('abierto'); actualizarNotaAhorroGasto(); actualizarNotaAhorroModalGasto(); }
 function mostrarCrearObjetivoAhorro(){
   document.getElementById('botonCrearObjetivoAhorro').style.display = 'none';
   document.getElementById('formCrearObjetivoAhorro').style.display = 'block';
@@ -6504,7 +6964,7 @@ async function crearObjetivoDesdeAhorro(){
   const obj = { id: generarId(), nombre, tipo:'meta_manual', fijo:false, estado:'activo', acumulado:0, aportes:[], metaManual: meta, fechaObjetivo:null, creadoEnServidor:false, pendienteSync:false, colaSync:[] };
   obj.colaSync.push({ accion:'crear_objetivo', datosBase: construirDatosObjetivoBase(obj) });
   objetivos.push(obj);
-  objetivoAhorroGasto = obj.id;
+  if(selectorAhorroParaModal) objetivoAhorroModal = obj.id; else objetivoAhorroGasto = obj.id;
   cerrarSelectorObjetivoAhorro();
   await guardarObjetivosEnAlmacenamiento();
   renderizarVistaObjetivos();
@@ -6535,17 +6995,18 @@ async function sumarGastoAObjetivo(registro, objetivoId){
   procesarColaObjetivo(obj);
 }
 // Quita (o ajusta) el aporte ligado a un gasto que se eliminó o cambió de monto.
-async function ajustarAporteDeGasto(registro, nuevoMonto){
+async function ajustarAporteDeGasto(registro, nuevoMonto, nuevaFecha){
   const hallado = buscarAporteDeGasto(registro); if(!hallado) return;
   const obj = hallado.obj, mov = hallado.mov;
   obj.colaSync = obj.colaSync || [];
   if(nuevoMonto === null){
     obj.aportes = obj.aportes.filter(a => a.id !== mov.id);
-    obj.acumulado = (obj.acumulado||0) - mov.monto;
+    obj.acumulado = Math.max(0, (obj.acumulado||0) - mov.monto);
     obj.colaSync.push({ accion:'eliminar_aporte_objetivo', datosBase: { id_aporte: mov.id } });
-  }else if(nuevoMonto !== mov.monto){
-    obj.acumulado = (obj.acumulado||0) - mov.monto + nuevoMonto;
+  }else if(nuevoMonto !== mov.monto || (nuevaFecha && nuevaFecha !== mov.fecha)){
+    obj.acumulado = Math.max(0, (obj.acumulado||0) - mov.monto + nuevoMonto);
     mov.monto = nuevoMonto;
+    if(nuevaFecha) mov.fecha = nuevaFecha;
     obj.colaSync.push({ accion:'editar_aporte_objetivo', datosBase: { id_aporte: mov.id, monto: mov.monto, fecha_evento: mov.fecha } });
   }else return;
   await guardarObjetivosEnAlmacenamiento(); renderizarVistaObjetivos();
@@ -6773,6 +7234,7 @@ let categoriaModalGasto = null; let pagoModalGasto = null; let subcategoriaModal
 function editarRegistroGasto(id){
   idMenuAbiertoGasto = null;
   const registro = registrosGasto.find(r => r.id === id); if(!registro) return;
+  objetivoAhorroModal = null;
   idGastoEnEdicion = id; categoriaModalGasto = registro.categoria; pagoModalGasto = registro.medioPago; subcategoriaModalGasto = registro.subcategoria || null;
   document.getElementById('modalGastoMonto').value = registro.monto;
   document.getElementById('modalGastoFecha').value = registro.fecha;
@@ -6780,17 +7242,44 @@ function editarRegistroGasto(id){
   pintarCategoriasGasto('modalGastoGridCategorias', categoriaModalGasto, seleccionarCategoriaModalGasto);
   pintarSubcategoriasGasto('modalGastoGridSubcategorias', categoriaModalGasto, subcategoriaModalGasto, seleccionarSubcategoriaModalGasto);
   pintarPagosGasto('modalGastoGridPagos', pagoModalGasto, seleccionarPagoModalGasto);
+  actualizarNotaAhorroModalGasto();
   document.getElementById('fondoModalGasto').classList.add('abierto');
   renderizarListaGastos();
+}
+// Ahorro (v2.70): si el gasto que se edita estaba sumado a un objetivo de ahorro y
+// ya no queda con la subcategoría Ahorro, el aporte se resta del objetivo al guardar.
+function actualizarNotaAhorroModalGasto(){
+  const nota = document.getElementById('modalGastoNotaAhorro'); if(!nota) return;
+  const registro = registrosGasto.find(r => r.id === idGastoEnEdicion);
+  const hallado = registro ? buscarAporteDeGasto(registro) : null;
+  const esAhorroAhora = esSubcategoriaAhorro(subcategoriaModalGasto);
+  if(hallado && !esAhorroAhora){
+    nota.style.display = 'flex';
+    nota.textContent = `Se restará el gasto del objetivo de Ahorro (${hallado.obj.nombre}).`;
+    return;
+  }
+  // Gasto que pasa a la subcategoría Ahorro: se elige el objetivo donde se suma.
+  if(registro && !hallado && esAhorroAhora && !esSubcategoriaAhorro(registro.subcategoria)){
+    const obj = objetivos.find(o => o.id === objetivoAhorroModal);
+    nota.style.display = 'flex';
+    nota.innerHTML = obj ? `<span>Se sumará al objetivo: ${escaparHTML(obj.nombre)}</span><button onclick="abrirSelectorObjetivoAhorro(true)">Cambiar</button>`
+                         : `<span>Falta elegir el objetivo de ahorro.</span><button onclick="abrirSelectorObjetivoAhorro(true)">Elegir</button>`;
+    return;
+  }
+  nota.style.display = 'none'; nota.textContent = '';
 }
 function seleccionarCategoriaModalGasto(codigo){
   if(categoriaModalGasto !== codigo) subcategoriaModalGasto = null;
   categoriaModalGasto = codigo;
+  actualizarNotaAhorroModalGasto();
   pintarCategoriasGasto('modalGastoGridCategorias', categoriaModalGasto, seleccionarCategoriaModalGasto);
   pintarSubcategoriasGasto('modalGastoGridSubcategorias', categoriaModalGasto, subcategoriaModalGasto, seleccionarSubcategoriaModalGasto);
 }
 function seleccionarSubcategoriaModalGasto(nombre){
   subcategoriaModalGasto = nombre;
+  actualizarNotaAhorroModalGasto();
+  { const reg = registrosGasto.find(r => r.id === idGastoEnEdicion);
+    if(reg && esSubcategoriaAhorro(nombre) && !buscarAporteDeGasto(reg) && !esSubcategoriaAhorro(reg.subcategoria) && !objetivoAhorroModal) abrirSelectorObjetivoAhorro(true); }
   pintarSubcategoriasGasto('modalGastoGridSubcategorias', categoriaModalGasto, subcategoriaModalGasto, seleccionarSubcategoriaModalGasto);
 }
 function seleccionarPagoModalGasto(medio){ pagoModalGasto = medio; pintarPagosGasto('modalGastoGridPagos', pagoModalGasto, seleccionarPagoModalGasto); }
@@ -6804,11 +7293,21 @@ async function guardarEdicionGasto(){
   // una; pero si cambia de categoría, o ya tenía una, se pide de nuevo.
   const exigeSub = subcategoriasDe(categoriaModalGasto).length && !subcategoriaModalGasto && (registro.subcategoria || registro.categoria !== categoriaModalGasto);
   if(exigeSub){ mostrarAvisoFormulario('avisoEdicionGasto', 'Falta la subcategoría.', 'modalGastoGridSubcategorias'); return; }
-  await ajustarAporteDeGasto(registro, monto);
+  const fechaNuevaGasto = document.getElementById('modalGastoFecha').value;
+  const pasaAAhorro = !buscarAporteDeGasto(registro) && esSubcategoriaAhorro(subcategoriaModalGasto) && !esSubcategoriaAhorro(registro.subcategoria);
+  if(pasaAAhorro && !objetivoAhorroModal){ mostrarAvisoFormulario('avisoEdicionGasto', 'Falta elegir el objetivo de ahorro.', 'modalGastoNotaAhorro'); return; }
+  if(buscarAporteDeGasto(registro) && !esSubcategoriaAhorro(subcategoriaModalGasto)){
+    // Ya no es un gasto de Ahorro: se resta del objetivo y se corta el vínculo.
+    await ajustarAporteDeGasto(registro, null);
+    registro.objetivoId = null; registro.aporteId = null;
+  }else{
+    await ajustarAporteDeGasto(registro, monto, fechaNuevaGasto);
+  }
   registro.monto = monto; registro.categoria = categoriaModalGasto; registro.subcategoria = subcategoriaModalGasto || ''; registro.medioPago = pagoModalGasto;
   registro.fecha = document.getElementById('modalGastoFecha').value; registro.descripcion = document.getElementById('modalGastoDescripcion').value.trim();
   registro.colaSync = registro.colaSync || [];
   registro.colaSync.push({ accion:'editar_gasto', datosBase: construirDatosGastoBase(registro) });
+  if(pasaAAhorro){ await sumarGastoAObjetivo(registro, objetivoAhorroModal); objetivoAhorroModal = null; }
   cerrarModalGasto(); renderizarListaGastos(); await guardarGastosEnAlmacenamiento();
   procesarColaGasto(registro);
 }
@@ -6925,7 +7424,7 @@ function sincronizarIngresoLocalDeSesion(idIngreso, datos){
   }
   if(existente){
     existente.montoBruto = datos.montoBruto; existente.montoNeto = datos.montoNeto;
-    existente.descripcion = datos.nombre; existente.fecha = datos.fecha;
+    existente.descripcion = datos.nombre; existente.fecha = datos.fecha; if(datos.tipo) existente.tipo = datos.tipo;
     if(datos.medioPago) existente.medioPago = datos.medioPago;
   }else{
     ingresos.push({ id: idIngreso, tipo: datos.tipo, origenClave: datos.claveOrigen, fecha: datos.fecha, montoBruto: datos.montoBruto, montoNeto: datos.montoNeto, medioPago: datos.medioPago || null, descripcion: datos.nombre, creado: Date.now() });
@@ -6933,10 +7432,15 @@ function sincronizarIngresoLocalDeSesion(idIngreso, datos){
 }
 // Neto SIN redondear: sirve para sumar muchas sesiones y redondear una sola vez al final
 // (en vez de redondear cada sesión y luego sumar, que acumula diferencias de pesos).
-function calcularNetoExacto(montoBruto, esEntreLazos){
+// "comisionEL" es opcional: una sesión que quedó congelada con la comisión de antes
+// de un cambio usa esa; si no viene, se usa la comisión vigente.
+function comisionELParaCalculo(comisionEL){ return (typeof comisionEL === 'number') ? comisionEL : configuracion.porcentajeComisionEL; }
+// Lo mismo para el 15,25%: una sesión congelada con el porcentaje de antes usa ese.
+function impuestoParaCalculo(impuestoPct){ return (typeof impuestoPct === 'number') ? impuestoPct : configuracion.porcentajeImpuesto; }
+function calcularNetoExacto(montoBruto, esEntreLazos, comisionEL, impuestoPct){
   let monto = montoBruto;
-  if(esEntreLazos) monto = monto * (1 - (configuracion.porcentajeComisionEL/100));
-  return monto * (1 - (configuracion.porcentajeImpuesto/100));
+  if(esEntreLazos) monto = monto * (1 - (comisionELParaCalculo(comisionEL)/100));
+  return monto * (1 - (impuestoParaCalculo(impuestoPct)/100));
 }
 // Neto de un ingreso ya guardado, sin redondear. Si el porcentaje vigente ya no calza con
 // lo guardado (se cambió la configuración después), se respeta el monto guardado.
@@ -6948,10 +7452,10 @@ function netoExactoDeIngreso(i){
   return i.montoNeto;
 }
 function sumarNetosRedondeandoUnaVez(lista){ return Math.round(lista.reduce((a,i) => a + netoExactoDeIngreso(i), 0)); }
-function calcularNeto(montoBruto, esEntreLazos){
+function calcularNeto(montoBruto, esEntreLazos, comisionEL, impuestoPct){
   let monto = montoBruto;
-  if(esEntreLazos) monto = monto * (1 - (configuracion.porcentajeComisionEL/100));
-  monto = monto * (1 - (configuracion.porcentajeImpuesto/100));
+  if(esEntreLazos) monto = monto * (1 - (comisionELParaCalculo(comisionEL)/100));
+  monto = monto * (1 - (impuestoParaCalculo(impuestoPct)/100));
   return Math.round(monto);
 }
 // Fecha en que la sesión quedó marcada como pagada (distinta de la
@@ -6967,22 +7471,37 @@ function obtenerFechaPagoInstancia(inst){
   return (evento && evento.marcadoPagadoPorFecha && evento.marcadoPagadoPorFecha[inst.fecha]) || null;
 }
 function clasificarInstanciaIngreso(inst){
+  const info = clasificarInstanciaIngresoBase(inst); if(!info) return info;
+  if(inst.tipoInstancia === 'consulta'){
+    const c = consultasUnicas.find(x => x.id === inst.consultaId);
+    if(c && typeof c.impuestoCongelado === 'number') info.impuestoPct = c.impuestoCongelado;
+  }else{
+    const ev = eventosAgenda.find(e => e.id === inst.eventoId);
+    const v = ev && (ev.impuestoCongeladoPorFecha || {})[inst.fecha];
+    if(typeof v === 'number') info.impuestoPct = v;
+  }
+  return info;
+}
+function clasificarInstanciaIngresoBase(inst){
   if(inst.tipoInstancia === 'consulta'){
     const c = consultasUnicas.find(x => x.id === inst.consultaId); if(!c) return null;
     if(c.tipoPago === 'particular')     return { tipo:'particular',     montoBruto: c.monto, esEntreLazos:false, nombre: c.nombre };
     if(c.tipoPago === 'fonasa_directo') return { tipo:'fonasa_directo', montoBruto: c.monto, esEntreLazos:false, nombre: c.nombre };
-    if(c.tipoPago === 'particular_el')  return { tipo:'entrelazos',     montoBruto: c.monto, esEntreLazos:true,  nombre: c.nombre };
-    if(c.tipoPago === 'fonasa_el')      return { tipo:'entrelazos',     montoBruto: c.monto, esEntreLazos:true,  nombre: c.nombre };
+    if(c.tipoPago === 'particular_el')  return { tipo:'entrelazos',     montoBruto: c.monto, esEntreLazos:true,  nombre: c.nombre, comisionEL: c.comisionELCongelada };
+    if(c.tipoPago === 'fonasa_el')      return { tipo:'entrelazos',     montoBruto: c.monto, esEntreLazos:true,  nombre: c.nombre, comisionEL: c.comisionELCongelada };
     return null;
   }
   const evento = eventosAgenda.find(e => e.id === inst.eventoId); if(!evento || !evento.pacienteId) return null;
   const paciente = pacientes.find(p => p.id === evento.pacienteId); if(!paciente) return null;
-  const montoBruto = paciente.tipoPago === 'fonasa' ? obtenerMontoFonasaSegunCanal(paciente.canal) : paciente.montoHabitual;
+  // Punto 4: si la sesión quedó "congelada" con el monto de antes de un cambio
+  // de tarifa, se usa ese monto y no el de hoy.
+  const montoCongelado = (evento.montoBrutoCongeladoPorFecha || {})[inst.fecha];
+  const montoBruto = (typeof montoCongelado === 'number') ? montoCongelado : (paciente.tipoPago === 'fonasa' ? obtenerMontoFonasaSegunCanal(paciente.canal) : paciente.montoHabitual);
   // Mismo nombre que se ve en la Agenda para esta fecha puntual: si se
   // marcó con qué adulto responsable fue la sesión, aparece "Adulto;
   // Paciente" también acá, no solo el nombre del paciente.
   const nombreMostrado = obtenerNombreEvento(evento, inst.fecha);
-  if(paciente.canal === 'entrelazos') return { tipo:'entrelazos', montoBruto, esEntreLazos:true, nombre: nombreMostrado };
+  if(paciente.canal === 'entrelazos') return { tipo:'entrelazos', montoBruto, esEntreLazos:true, nombre: nombreMostrado, comisionEL: (evento.comisionELCongeladaPorFecha || {})[inst.fecha] };
   return { tipo: (paciente.tipoPago === 'fonasa' ? 'fonasa_directo' : 'particular'), montoBruto, esEntreLazos:false, nombre: nombreMostrado };
 }
 function obtenerSesionesPagadasHastaHoy(){
@@ -7012,7 +7531,7 @@ function obtenerPendientesPago(){
     .filter(inst => inst.etiqueta === 'atenciones' && ['realizada_devengada','ausencia_devengada'].includes(inst.estadoSesion))
     .forEach(inst => {
       const info = clasificarInstanciaIngreso(inst); if(!info) return;
-      items.push({ clave: 'dev:'+obtenerClaveOrigen(inst), origen:'devengada', inst, nombre: info.nombre, fecha: inst.fecha, esEntreLazos: info.esEntreLazos, montoBruto: info.montoBruto, montoNeto: calcularNeto(info.montoBruto, info.esEntreLazos), clavePaciente: inst.tipoInstancia === 'consulta' ? ('consulta:'+inst.consultaId) : info.nombre });
+      items.push({ clave: 'dev:'+obtenerClaveOrigen(inst), origen:'devengada', inst, nombre: info.nombre, fecha: inst.fecha, esEntreLazos: info.esEntreLazos, montoBruto: info.montoBruto, comisionEL: info.comisionEL, impuestoPct: info.impuestoPct, montoNeto: calcularNeto(info.montoBruto, info.esEntreLazos, info.comisionEL, info.impuestoPct), clavePaciente: inst.tipoInstancia === 'consulta' ? ('consulta:'+inst.consultaId) : info.nombre });
     });
   items.sort((a,b) => a.fecha.localeCompare(b.fecha));
   return items;
@@ -7031,13 +7550,13 @@ async function confirmarPagoDesdeIngresos(inst, medioPago){
   const nuevoEstado = nuevoEstadoPercibido(inst.estadoSesion); if(!nuevoEstado) return;
   const info = clasificarInstanciaIngreso(inst); if(!info) return;
   const idIngreso = idIngresoDeterministico(obtenerClaveOrigen(inst));
-  const montoInfo = { montoBruto: info.montoBruto, esEntreLazos: info.esEntreLazos, tipo: info.tipo, nombre: info.nombre, formaPago: medioPago || '' };
+  const montoInfo = { montoBruto: info.montoBruto, esEntreLazos: info.esEntreLazos, comisionEL: info.comisionEL, impuestoPct: info.impuestoPct, tipo: info.tipo, nombre: info.nombre, formaPago: medioPago || '' };
 
   if(inst.tipoInstancia === 'consulta'){
     const c = consultasUnicas.find(x => x.id === inst.consultaId); if(!c) return;
     c.estadoSesion = nuevoEstado; c.fechaPago = hoyISO();
     encolarActualizarEstadoSesion(c, null, nuevoEstado, montoInfo, idIngreso);
-    if(!info.esEntreLazos) sincronizarIngresoLocalDeSesion(idIngreso, { tipo: info.tipo, claveOrigen: obtenerClaveOrigen(inst), fecha: fechaIngresoDeSesion(c, inst.fecha), montoBruto: info.montoBruto, montoNeto: calcularNeto(info.montoBruto, false), nombre: info.nombre, medioPago });
+    if(!info.esEntreLazos) sincronizarIngresoLocalDeSesion(idIngreso, { tipo: info.tipo, claveOrigen: obtenerClaveOrigen(inst), fecha: fechaIngresoDeSesion(c, inst.fecha), montoBruto: info.montoBruto, montoNeto: calcularNeto(info.montoBruto, false, undefined, info.impuestoPct), nombre: info.nombre, medioPago });
     await guardarConsultasEnAlmacenamiento();
     procesarColaEntidadAgenda(c, guardarConsultasEnAlmacenamiento);
   }else{
@@ -7046,7 +7565,7 @@ async function confirmarPagoDesdeIngresos(inst, medioPago){
     else{ evento.estadosPorFecha = evento.estadosPorFecha || {}; evento.estadosPorFecha[inst.fecha] = nuevoEstado; }
     evento.marcadoPagadoPorFecha = evento.marcadoPagadoPorFecha || {}; evento.marcadoPagadoPorFecha[inst.fecha] = hoyISO();
     encolarActualizarEstadoSesion(evento, evento.recurrencia === 'ninguna' ? null : inst.fecha, nuevoEstado, montoInfo, idIngreso, (evento.adultosPorFecha && evento.adultosPorFecha[inst.fecha]) || []);
-    if(!info.esEntreLazos) sincronizarIngresoLocalDeSesion(idIngreso, { tipo: info.tipo, claveOrigen: obtenerClaveOrigen(inst), fecha: fechaIngresoDeSesion(evento, inst.fecha), montoBruto: info.montoBruto, montoNeto: calcularNeto(info.montoBruto, false), nombre: info.nombre, medioPago });
+    if(!info.esEntreLazos) sincronizarIngresoLocalDeSesion(idIngreso, { tipo: info.tipo, claveOrigen: obtenerClaveOrigen(inst), fecha: fechaIngresoDeSesion(evento, inst.fecha), montoBruto: info.montoBruto, montoNeto: calcularNeto(info.montoBruto, false, undefined, info.impuestoPct), nombre: info.nombre, medioPago });
     await guardarEventosEnAlmacenamiento();
     procesarColaEntidadAgenda(evento, guardarEventosEnAlmacenamiento);
   }
@@ -7151,7 +7670,7 @@ async function generarBoletaEntreLazos(){
   if(pend.length === 0){ confirmandoBoleta = false; renderizarVistaIngresos(); return; }
   const fechaEmision = hoyISO();
   const totalBruto = pend.reduce((a,p) => a + p.info.montoBruto, 0);
-  const totalNeto = Math.round(pend.reduce((a,p) => a + calcularNetoExacto(p.info.montoBruto, true), 0));
+  const totalNeto = Math.round(pend.reduce((a,p) => a + calcularNetoExacto(p.info.montoBruto, true, p.info.comisionEL, p.info.impuestoPct), 0));
   // La fecha de cada movimiento es la de la boleta (cuando se cobra), no la
   // de la sesión: así el dinero cuenta en el mes en que llega.
   // Un movimiento POR SESIÓN (con su propio paciente/adulto),
@@ -7161,7 +7680,7 @@ async function generarBoletaEntreLazos(){
   // reintento no la duplica.
   pend.forEach(p => {
     const idIngresoEL = idIngresoDeterministico(p.clave);
-    const montoNetoSesion = calcularNeto(p.info.montoBruto, true);
+    const montoNetoSesion = calcularNeto(p.info.montoBruto, true, p.info.comisionEL, p.info.impuestoPct);
     ingresos.push({ id: idIngresoEL, tipo:'entrelazos', origenClave: p.clave, fecha: fechaEmision, montoBruto: p.info.montoBruto, montoNeto: montoNetoSesion, medioPago:'transferencia', descripcion: p.info.nombre, creado: Date.now() });
   });
   // La memoria persistente se actualiza en el mismo momento, para que
@@ -7184,7 +7703,7 @@ async function generarBoletaEntreLazos(){
   // Y un ingreso por sesión, también hacia la planilla.
   pend.forEach(p => {
     const idIngresoEL = idIngresoDeterministico(p.clave);
-    const montoNetoSesion = calcularNeto(p.info.montoBruto, true);
+    const montoNetoSesion = calcularNeto(p.info.montoBruto, true, p.info.comisionEL, p.info.impuestoPct);
     encolarAccionIngreso('crear_ingreso_manual', { id_ingreso: idIngresoEL, categoria_manual: 'entrelazos', descripcion: p.info.nombre, monto_bruto: p.info.montoBruto, monto_neto: montoNetoSesion, forma_pago: 'transferencia', fecha_evento: fechaEmision });
   });
 }
@@ -7254,6 +7773,14 @@ async function procesarColaIngresosInterno(intento){
   }
 }
 function actualizarBannerSyncIngresos(){
+  const bannerB = document.getElementById('bannerSyncBoletas');
+  if(bannerB){
+    if(colaIngresos.length === 0) bannerB.style.display = 'none';
+    else{
+      bannerB.style.display = 'flex';
+      bannerB.innerHTML = `<span style="flex:1;">⚠️ ${colaIngresos.length} movimiento${colaIngresos.length===1?'':'s'} sin sincronizar con Sheets. Están guardados en el celular, solo falta enviarlos.</span><button onclick="reintentarSyncIngresosPendientes()" style="flex:none; border:1px solid #E3D4B4; background:var(--superficie); border-radius:8px; padding:5px 11px; font-size:11px; font-weight:650; color:#8B6516; touch-action:manipulation;">Reintentar</button>`;
+    }
+  }
   const banner = document.getElementById('bannerSyncIngresos');
   if(!banner) return;
   const pendientes = colaIngresos.length;
@@ -8448,12 +8975,12 @@ async function renderizarDashboard(){
   //    pacientes), con el descuento de boleta y, si es Entre Lazos, la
   //    comisión ya restados.
   const devengadas = obtenerPendientesPago();
-  const totalDevengadas = Math.round(devengadas.reduce((a,i) => a + calcularNetoExacto(i.montoBruto, i.esEntreLazos), 0));
+  const totalDevengadas = Math.round(devengadas.reduce((a,i) => a + calcularNetoExacto(i.montoBruto, i.esEntreLazos, i.comisionEL, i.impuestoPct), 0));
   const pacientesConDeuda = new Set(devengadas.map(i => i.clavePaciente)).size;
   // 2) Sesiones Entre Lazos ya pagadas a Entre Lazos que todavía no
   //    entran en una boleta (el dinero aún no llega a la cuenta).
   const pendientesEL = obtenerPendientesEntreLazos();
-  const totalEL = Math.round(pendientesEL.reduce((a,p) => a + calcularNetoExacto(p.info.montoBruto, true), 0));
+  const totalEL = Math.round(pendientesEL.reduce((a,p) => a + calcularNetoExacto(p.info.montoBruto, true, p.info.comisionEL, p.info.impuestoPct), 0));
 
   pintarBotonOjo('dashBotonOjoPendiente', vDashPendiente);
   document.getElementById('dashMontoPendiente').textContent = textoMontoOculto(totalDevengadas, vDashPendiente);
@@ -8525,6 +9052,54 @@ async function enviarTodoLoPendiente(){
 // protección real (que no se borre algo de este aparato que
 // todavía no se mandó) es un mecanismo aparte, sincronizarTodo() más
 // abajo, que sigue intacto.
+// Punto 4: la planilla guarda en Sesiones.monto_congelado el monto NETO que tenía
+// una sesión devengada. Si ese monto ya no coincide con la tarifa de hoy, la sesión
+// quedó "congelada" con la tarifa anterior: se recupera el monto bruto que lo produce
+// (probando valores cercanos, porque el neto está redondeado). Devuelve null si no
+// hay nada que congelar o no se puede reconstruir con certeza.
+function congeladoDesdeSesion(ent, ses, esConsulta){
+  const esDevengada = ['realizada_devengada','ausencia_devengada'].includes(ses.estado_sesion);
+  const esPercibida = ['realizada_percibida','ausencia_percibida','no_realizada_pagada'].includes(ses.estado_sesion);
+  const neto = Number(ses.monto_congelado); if(!neto || neto <= 0) return null;
+  let esEL, brutoHoy, brutoEvento = !esConsulta;
+  if(esConsulta){
+    esEL = ent.tipoPago === 'particular_el' || ent.tipoPago === 'fonasa_el'; brutoHoy = ent.monto;
+  }else{
+    const pac = pacientes.find(p => p.id === ent.pacienteId); if(!pac) return null;
+    esEL = pac.canal === 'entrelazos';
+    brutoHoy = pac.tipoPago === 'fonasa' ? obtenerMontoFonasaSegunCanal(pac.canal) : pac.montoHabitual;
+  }
+  // Devengadas: cualquiera. Pagadas: solo las de Entre Lazos (las demás ya tienen su ingreso).
+  if(!(esDevengada || (esPercibida && esEL))) return null;
+  if(calcularNeto(brutoHoy, esEL) === neto) return null;
+  // 1) ¿Cambió la comisión de Entre Lazos? (solo porcentajes "redondos": múltiplos de 0,5)
+  if(esEL){
+    const c = (1 - neto / (brutoHoy * (1 - configuracion.porcentajeImpuesto/100))) * 100;
+    const cand = Math.round(c * 2) / 2;
+    if(cand >= 0 && cand < 100 && calcularNeto(brutoHoy, true, cand) === neto) return { comision: cand };
+  }
+  // 1b) ¿Cambió el porcentaje de impuesto? (solo múltiplos de 0,25)
+  {
+    const base = brutoHoy * (esEL ? (1 - configuracion.porcentajeComisionEL/100) : 1);
+    if(base > 0){
+      const t = (1 - neto / base) * 100;
+      const cand = Math.round(t * 4) / 4;
+      if(cand >= 0 && cand < 60 && calcularNeto(brutoHoy, esEL, undefined, cand) === neto) return { impuesto: cand };
+    }
+  }
+  // 2) ¿Cambió el monto de la sesión? (solo devengadas de pacientes)
+  if(esDevengada && brutoEvento){
+    const factor = (esEL ? (1 - configuracion.porcentajeComisionEL/100) : 1) * (1 - configuracion.porcentajeImpuesto/100);
+    if(!factor) return null;
+    const base = Math.round(neto / factor);
+    for(let d = 0; d <= 3; d++){
+      for(const b of (d === 0 ? [base] : [base - d, base + d])){
+        if(b > 0 && calcularNeto(b, esEL) === neto) return { bruto: b };
+      }
+    }
+  }
+  return null;
+}
 async function aplicarSincronizacionCompleta(paquete){
   if(Array.isArray(paquete.pacientes)){
     pacientes = paquete.pacientes.map(mapearPacienteDesdeServidor).filter(p => p.id);
@@ -8544,7 +9119,14 @@ async function aplicarSincronizacionCompleta(paquete){
       if(!ses || !ses.id_evento) return;
       const adultos = ses.adultos_presentes ? String(ses.adultos_presentes).split('|').map(n => n.trim()).filter(Boolean) : [];
       const consulta = nuevasConsultas.find(c => c.id === ses.id_evento);
-      if(consulta){ if(ses.estado_sesion) consulta.estadoSesion = ses.estado_sesion; if(ses.fecha_pago) consulta.fechaPago = ses.fecha_pago; return; }
+      if(consulta){
+        if(ses.estado_sesion) consulta.estadoSesion = ses.estado_sesion;
+        if(ses.fecha_pago) consulta.fechaPago = ses.fecha_pago;
+        const cong = ses.estado_sesion ? congeladoDesdeSesion(consulta, ses, true) : null;
+        if(cong && cong.comision !== undefined) consulta.comisionELCongelada = cong.comision;
+        if(cong && cong.impuesto !== undefined) consulta.impuestoCongelado = cong.impuesto;
+        return;
+      }
       const evento = nuevosEventos.find(e => e.id === ses.id_evento);
       if(!evento) return;
       if(ses.fecha_evento && ses.fecha_pago){
@@ -8567,10 +9149,29 @@ async function aplicarSincronizacionCompleta(paquete){
         evento.endTimePorFecha[ses.fecha_evento] = ses.hora_fin;
       }
       if(!ses.estado_sesion) return;
+      if(evento.pacienteId && ses.fecha_evento){
+        const cong = congeladoDesdeSesion(evento, ses, false);
+        if(cong && cong.bruto !== undefined){ evento.montoBrutoCongeladoPorFecha = evento.montoBrutoCongeladoPorFecha || {}; evento.montoBrutoCongeladoPorFecha[ses.fecha_evento] = cong.bruto; }
+        if(cong && cong.comision !== undefined){ evento.comisionELCongeladaPorFecha = evento.comisionELCongeladaPorFecha || {}; evento.comisionELCongeladaPorFecha[ses.fecha_evento] = cong.comision; }
+        if(cong && cong.impuesto !== undefined){ evento.impuestoCongeladoPorFecha = evento.impuestoCongeladoPorFecha || {}; evento.impuestoCongeladoPorFecha[ses.fecha_evento] = cong.impuesto; }
+      }
       if(evento.recurrencia === 'ninguna'){ evento.estadoSesion = ses.estado_sesion; return; }
       if(!ses.fecha_evento) return;
       evento.estadosPorFecha = evento.estadosPorFecha || {};
       evento.estadosPorFecha[ses.fecha_evento] = ses.estado_sesion;
+    });
+    // Punto 4: los montos congelados viven en este aparato; se conservan al
+    // reemplazar la agenda con lo que trae la planilla.
+    nuevosEventos.forEach(ne => {
+      const previo = eventosAgenda.find(e => e.id === ne.id);
+      if(previo && previo.montoBrutoCongeladoPorFecha && Object.keys(previo.montoBrutoCongeladoPorFecha).length) ne.montoBrutoCongeladoPorFecha = Object.assign({}, ne.montoBrutoCongeladoPorFecha || {}, previo.montoBrutoCongeladoPorFecha);
+      if(previo && previo.comisionELCongeladaPorFecha && Object.keys(previo.comisionELCongeladaPorFecha).length) ne.comisionELCongeladaPorFecha = Object.assign({}, ne.comisionELCongeladaPorFecha || {}, previo.comisionELCongeladaPorFecha);
+      if(previo && previo.impuestoCongeladoPorFecha && Object.keys(previo.impuestoCongeladoPorFecha).length) ne.impuestoCongeladoPorFecha = Object.assign({}, ne.impuestoCongeladoPorFecha || {}, previo.impuestoCongeladoPorFecha);
+    });
+    nuevasConsultas.forEach(nc => {
+      const previa = consultasUnicas.find(c => c.id === nc.id);
+      if(previa && typeof previa.comisionELCongelada === 'number') nc.comisionELCongelada = previa.comisionELCongelada;
+      if(previa && typeof previa.impuestoCongelado === 'number') nc.impuestoCongelado = previa.impuestoCongelado;
     });
     eventosAgenda = nuevosEventos;
     consultasUnicas = nuevasConsultas;
@@ -8643,6 +9244,14 @@ async function aplicarSincronizacionCompleta(paquete){
     await guardarObjetivosEnAlmacenamiento();
   }
 
+  // Boletas de sesiones particulares (módulo Boletas). Si la planilla todavía no
+  // tiene esa pestaña, el paquete no trae la lista y lo local no se toca.
+  if(Array.isArray(paquete.boletasParticulares)){
+    boletasParticulares = paquete.boletasParticulares.filter(f => f.id_boleta_particular).map(mapearBoletaParticularDesdeServidor);
+    await guardarBoletasParticulares();
+    if(document.getElementById('pantallaBoletas') && document.getElementById('pantallaBoletas').style.display !== 'none') renderizarVistaBoletas();
+  }
+
   const vigentes = paquete.configGlobal;
   if(vigentes && typeof vigentes === 'object'){
     if(vigentes.fonasa_directo) configuracion.montoFonasa = Number(vigentes.fonasa_directo.monto_o_porcentaje) || 0;
@@ -8679,6 +9288,239 @@ async function sincronizarTodo(){
 }
 
 /* ============================================================
+   MÓDULO BOLETAS (boletas de honorarios de sesiones particulares)
+   ------------------------------------------------------------
+   Lista las sesiones YA PAGADAS de pacientes con tipo de pago
+   Particular (canal directo o Entre Lazos) que todavía no tienen
+   boleta. Se marcan las que entraron en una boleta y se pulsa
+   "Boleta emitida": queda un registro (fecha, N° y las sesiones con
+   su monto de ese día) que se guarda en la pestaña
+   BoletasParticulares de la planilla. Las sesiones devengadas y las
+   ausencias justificadas no aparecen (no hay pago).
+   ============================================================ */
+let boletasParticulares = [];
+async function cargarBoletasParticulares(){
+  try{ const r = await window.storage.get(CLAVE_BOLETAS_PARTICULARES, false); boletasParticulares = (r && r.value) ? JSON.parse(r.value) : []; }
+  catch(e){ boletasParticulares = []; }
+  if(!Array.isArray(boletasParticulares)) boletasParticulares = [];
+}
+async function guardarBoletasParticulares(){
+  try{ const r = await window.storage.set(CLAVE_BOLETAS_PARTICULARES, JSON.stringify(boletasParticulares), false); if(!r) mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }
+  catch(e){ mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }
+}
+function mapearBoletaParticularDesdeServidor(f){
+  let detalle = [];
+  try{ const d = JSON.parse(f.detalle || '[]'); if(Array.isArray(d)) detalle = d; }catch(e){ detalle = []; }
+  const claves = String(f.ids_sesiones || '').split(',').map(c => c.trim()).filter(Boolean);
+  return {
+    id: f.id_boleta_particular,
+    fecha: String(f.fecha_emision || '').slice(0,10),
+    numero: String(f.numero_boleta === undefined || f.numero_boleta === null ? '' : f.numero_boleta),
+    claves: claves.length ? claves : detalle.map(d => d.clave).filter(Boolean),
+    montoBruto: Number(f.monto_bruto_total) || 0,
+    detalle,
+    creado: Date.parse(String(f.fecha_registro || '').replace(' ', 'T')) || Date.now()
+  };
+}
+function abrirBoletasDesdeConfig(){ cerrarConfiguracion(); irAPantalla('boletas'); }
+
+let vBoletasPend = false, vBoletasMes = false;
+let desplegarBoletasPend = false, desplegarBoletasMes = false;
+let seleccionBoletaPart = new Set();
+let mesBoletasMostrado = new Date().getMonth(), anioBoletasMostrado = new Date().getFullYear();
+let filtroBoletas = { desde:'', hasta:'', texto:'' };
+function alternarVisibilidadBoletasPend(){ vBoletasPend = !vBoletasPend; renderizarVistaBoletas(); }
+function alternarVisibilidadBoletasMes(){ vBoletasMes = !vBoletasMes; renderizarVistaBoletas(); }
+function alternarDesplegarBoletasPend(){ desplegarBoletasPend = !desplegarBoletasPend; renderizarVistaBoletas(); }
+function alternarVerBoletasMes(){ desplegarBoletasMes = !desplegarBoletasMes; renderizarVistaBoletas(); }
+function cambiarMesBoletas(delta){
+  mesBoletasMostrado += delta;
+  if(mesBoletasMostrado > 11){ mesBoletasMostrado = 0; anioBoletasMostrado++; }
+  if(mesBoletasMostrado < 0){ mesBoletasMostrado = 11; anioBoletasMostrado--; }
+  renderizarVistaBoletas();
+}
+function filtroBoletasActivo(){ return !!filtroBoletas.desde || !!filtroBoletas.hasta || !!filtroBoletas.texto; }
+
+// ¿La sesión es de un paciente (o consulta) con tipo de pago Particular?
+function sesionEsPagoParticular(inst){
+  if(inst.tipoInstancia === 'consulta'){
+    const c = consultasUnicas.find(x => x.id === inst.consultaId);
+    return !!c && (c.tipoPago === 'particular' || c.tipoPago === 'particular_el');
+  }
+  const ev = eventosAgenda.find(e => e.id === inst.eventoId);
+  const pac = ev && ev.pacienteId ? pacientes.find(p => p.id === ev.pacienteId) : null;
+  return !!pac && pac.tipoPago === 'particular';
+}
+function obtenerSesionesParaBoleta(){
+  const yaConBoleta = new Set();
+  boletasParticulares.forEach(b => (b.claves || []).forEach(c => yaConBoleta.add(c)));
+  const res = [];
+  obtenerSesionesPagadasHastaHoy().forEach(inst => {
+    const clave = obtenerClaveOrigen(inst);
+    if(yaConBoleta.has(clave)) return;
+    if(!sesionEsPagoParticular(inst)) return;
+    const info = clasificarInstanciaIngreso(inst); if(!info) return;
+    res.push({ instancia: inst, clave, info, fechaPago: obtenerFechaPagoInstancia(inst) });
+  });
+  res.sort((a,b) => a.instancia.fecha.localeCompare(b.instancia.fecha));
+  return res;
+}
+function alternarSeleccionBoletaPart(clave){
+  if(seleccionBoletaPart.has(clave)) seleccionBoletaPart.delete(clave); else seleccionBoletaPart.add(clave);
+  renderizarVistaBoletas();
+}
+function irAAgendaDesdeBoleta(clave){
+  const item = obtenerSesionesParaBoleta().find(i => i.clave === clave); if(!item) return;
+  irAPantalla('agenda');
+  irAEventoDesdeBusqueda(item.instancia);
+}
+function renderizarVistaBoletas(){
+  if(!document.getElementById('pantallaBoletas')) return;
+  // ---- Sesiones pagadas sin boleta
+  const pend = obtenerSesionesParaBoleta();
+  const clavesPend = new Set(pend.map(p => p.clave));
+  [...seleccionBoletaPart].forEach(c => { if(!clavesPend.has(c)) seleccionBoletaPart.delete(c); });
+  pintarBotonOjo('botonOjoBoletasPend', vBoletasPend);
+  const totalPend = pend.reduce((a,p) => a + p.info.montoBruto, 0);
+  document.getElementById('boletasPendMonto').textContent = textoMontoOculto(totalPend, vBoletasPend);
+  document.getElementById('boletasPendNota').textContent = pend.length === 0 ? 'No hay sesiones pagadas sin boleta.' : `${pend.length} ${pend.length===1?'sesión pagada':'sesiones pagadas'} sin boleta · montos sin descuento`;
+  const botonPend = document.getElementById('botonDesplegarBoletasPend');
+  const seccionPend = document.getElementById('seccionBoletasPend');
+  if(pend.length === 0){ botonPend.style.display = 'none'; seccionPend.style.display = 'none'; seccionPend.innerHTML = ''; }
+  else{
+    botonPend.style.display = 'block';
+    botonPend.textContent = desplegarBoletasPend ? 'Ocultar detalle' : `Ver detalle (${pend.length})`;
+    seccionPend.style.display = desplegarBoletasPend ? 'block' : 'none';
+    const sel = pend.filter(p => seleccionBoletaPart.has(p.clave));
+    const totalSel = sel.reduce((a,p) => a + p.info.montoBruto, 0);
+    seccionPend.innerHTML = '<div class="rejilla-sesiones">' + pend.map(p => `
+      <div class="fila-pendiente-pago">
+        <div class="cabecera-lazos">
+          <label style="position:relative; display:flex; touch-action:manipulation; padding-top:1px;">
+            <input type="checkbox" class="check-lazos" ${seleccionBoletaPart.has(p.clave) ? 'checked' : ''} onchange="alternarSeleccionBoletaPart('${p.clave}')">
+            <span class="casilla-lazos" aria-hidden="true"></span>
+          </label>
+          <span class="nombre">${escaparHTML(p.info.nombre || '')}</span>
+        </div>
+        <span class="monto monto-fuente">${textoMontoOculto(p.info.montoBruto, vBoletasPend)}</span>
+        <span class="fecha">Sesión: ${formatearFechaMovimiento(p.instancia.fecha)}</span>
+        <span class="fecha">Pago: ${p.fechaPago ? formatearFechaMovimiento(p.fechaPago) : '—'}</span>
+        <div class="fila-acciones-sesion">
+          <span class="etiqueta-canal-boleta" style="flex:1; font-size:10.5px; font-weight:700; color:var(--texto-secundario); align-self:center;">${p.info.esEntreLazos ? 'Entre Lazos' : 'Particular'}</span>
+          <button class="boton-ir-agenda" onclick="irAAgendaDesdeBoleta('${p.clave}')" aria-label="Ir a la sesión en la Agenda"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 5l7 7-7 7"/></svg></button>
+        </div>
+      </div>
+    `).join('') + `</div><button class="boton-generar-boleta" onclick="abrirModalBoletaEmitida()" ${sel.length === 0 ? 'disabled' : ''}>Boleta emitida${sel.length ? ` (${sel.length} · ${textoMontoOculto(totalSel, vBoletasPend)})` : ''}</button>`;
+  }
+
+  // ---- Boletas emitidas del mes
+  document.getElementById('tituloMesBoletas').textContent = `${NOMBRES_MES[mesBoletasMostrado]} ${anioBoletasMostrado}`;
+  const inicioMes = formatoISO(new Date(anioBoletasMostrado, mesBoletasMostrado, 1));
+  const finMes = formatoISO(new Date(anioBoletasMostrado, mesBoletasMostrado+1, 0));
+  const activo = filtroBoletasActivo();
+  document.getElementById('botonFiltroBoletas').classList.toggle('activo', activo);
+  document.getElementById('puntitoFiltroBoletas').style.display = activo ? 'block' : 'none';
+  const texto = normalizarTextoBusqueda(filtroBoletas.texto || '');
+  const delMes = boletasParticulares
+    // Con un rango de fechas en el filtro se mira ese rango; sin rango, el mes elegido.
+    .filter(b => (filtroBoletas.desde || filtroBoletas.hasta) ? ((!filtroBoletas.desde || b.fecha >= filtroBoletas.desde) && (!filtroBoletas.hasta || b.fecha <= filtroBoletas.hasta)) : (b.fecha >= inicioMes && b.fecha <= finMes))
+    .filter(b => !texto || normalizarTextoBusqueda(b.numero || '').includes(texto) || (b.detalle || []).some(d => normalizarTextoBusqueda(d.nombre || '').includes(texto)))
+    .sort((a,b) => b.fecha.localeCompare(a.fecha) || (b.creado||0) - (a.creado||0));
+  pintarBotonOjo('botonOjoBoletasMes', vBoletasMes);
+  const totalMes = delMes.reduce((a,b) => a + b.montoBruto, 0);
+  document.getElementById('boletasMesMonto').textContent = textoMontoOculto(totalMes, vBoletasMes);
+  document.getElementById('boletasMesNota').textContent = delMes.length === 0
+    ? (activo ? 'Ninguna boleta coincide con el filtro.' : 'No hay boletas emitidas este mes.')
+    : `${delMes.length} ${delMes.length===1?'boleta':'boletas'}${activo ? ' (filtrado)' : ''} · montos sin descuento`;
+  const botonMes = document.getElementById('botonVerBoletasMes');
+  const lista = document.getElementById('listaBoletasMes');
+  if(delMes.length === 0){ botonMes.style.display = 'none'; lista.style.display = 'none'; lista.innerHTML = ''; return; }
+  botonMes.style.display = 'block';
+  botonMes.textContent = desplegarBoletasMes ? 'Ocultar detalle' : `Ver detalle (${delMes.length})`;
+  lista.style.display = desplegarBoletasMes ? 'grid' : 'none';
+  lista.innerHTML = delMes.map(b => `
+    <div class="boleta-emitida-item">
+      <div class="boleta-emitida-cabecera">
+        <span class="boleta-emitida-titulo">${b.numero ? 'N° ' + escaparHTML(b.numero) : 'Sin número'} · ${formatearFechaMovimiento(b.fecha)}</span>
+        <span class="boleta-emitida-monto monto-fuente">${textoMontoOculto(b.montoBruto, vBoletasMes)}</span>
+      </div>
+      ${(b.detalle || []).map(d => `<div class="boleta-emitida-sesion"><span>${escaparHTML(d.nombre || '')} · ${d.fechaSesion ? formatearFechaMovimiento(d.fechaSesion) : ''}</span><span class="monto-fuente">${textoMontoOculto(d.monto || 0, vBoletasMes)}</span></div>`).join('')}
+      <button class="boleta-emitida-anular" onclick="anularBoletaEmitida('${b.id}')">Anular boleta</button>
+    </div>
+  `).join('');
+}
+
+// ---- Marcar boleta emitida
+function abrirModalBoletaEmitida(){
+  const sel = obtenerSesionesParaBoleta().filter(p => seleccionBoletaPart.has(p.clave));
+  if(!sel.length) return;
+  const total = sel.reduce((a,p) => a + p.info.montoBruto, 0);
+  document.getElementById('textoBoletaEmitida').textContent = `${sel.length} ${sel.length===1?'sesión':'sesiones'} · ${formatearCLP(total)} (monto sin descuento).`;
+  document.getElementById('boletaEmitidaFecha').value = hoyISO();
+  document.getElementById('boletaEmitidaNumero').value = '';
+  ocultarAvisoFormulario('avisoBoletaEmitida');
+  document.getElementById('fondoModalBoletaEmitida').classList.add('abierto');
+}
+function cerrarModalBoletaEmitida(){ document.getElementById('fondoModalBoletaEmitida').classList.remove('abierto'); }
+async function guardarBoletaEmitida(){
+  const fecha = document.getElementById('boletaEmitidaFecha').value;
+  const numero = document.getElementById('boletaEmitidaNumero').value.trim();
+  ocultarAvisoFormulario('avisoBoletaEmitida');
+  if(!fecha){ mostrarAvisoFormulario('avisoBoletaEmitida', 'Falta la fecha de emisión.', 'boletaEmitidaFecha'); return; }
+  const sel = obtenerSesionesParaBoleta().filter(p => seleccionBoletaPart.has(p.clave));
+  if(!sel.length){ cerrarModalBoletaEmitida(); renderizarVistaBoletas(); return; }
+  const detalle = sel.map(p => ({ clave: p.clave, nombre: p.info.nombre || '', monto: p.info.montoBruto, fechaSesion: p.instancia.fecha, fechaPago: p.fechaPago || '', canal: p.info.esEntreLazos ? 'entrelazos' : 'directo' }));
+  const total = detalle.reduce((a,d) => a + d.monto, 0);
+  const unico = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : generarId() + generarId();
+  const boleta = { id: 'BOP-' + unico.replace(/-/g,'').slice(0,8).toUpperCase(), fecha, numero, claves: detalle.map(d => d.clave), montoBruto: total, detalle, creado: Date.now() };
+  boletasParticulares.push(boleta);
+  seleccionBoletaPart.clear();
+  // La boleta se muestra en el mes de su fecha de emisión.
+  const f = fechaDesdeISO(fecha); mesBoletasMostrado = f.getMonth(); anioBoletasMostrado = f.getFullYear();
+  cerrarModalBoletaEmitida();
+  await guardarBoletasParticulares();
+  renderizarVistaBoletas();
+  await encolarAccionIngreso('emitir_boleta_particular', {
+    id_boleta_particular: boleta.id, fecha_emision: fecha, numero_boleta: numero,
+    cantidad_sesiones: detalle.length, monto_bruto_total: total,
+    ids_sesiones: boleta.claves.join(','), detalle: JSON.stringify(detalle)
+  });
+}
+async function anularBoletaEmitida(id){
+  const b = boletasParticulares.find(x => x.id === id); if(!b) return;
+  const r = await preguntarDecision({
+    titulo: 'Anular boleta',
+    texto: `${b.numero ? 'Boleta N° ' + b.numero : 'Boleta sin número'} del ${formatearFechaMovimiento(b.fecha)} (${b.claves.length} ${b.claves.length===1?'sesión':'sesiones'}). Sus sesiones volverán a quedar como pagadas sin boleta.`,
+    filas: [], pregunta: '¿Quieres anular esta boleta?', textoSi: 'Sí, anular', textoNo: 'No, conservar'
+  });
+  if(r !== 'si') return;
+  boletasParticulares = boletasParticulares.filter(x => x.id !== id);
+  await guardarBoletasParticulares();
+  renderizarVistaBoletas();
+  await encolarAccionIngreso('eliminar_boleta_particular', { id_boleta_particular: id });
+}
+
+// ---- Filtro de boletas emitidas
+function abrirFiltroBoletas(){
+  document.getElementById('filtroBoletasDesde').value = filtroBoletas.desde;
+  document.getElementById('filtroBoletasHasta').value = filtroBoletas.hasta;
+  document.getElementById('filtroBoletasTexto').value = filtroBoletas.texto;
+  document.getElementById('fondoModalFiltroBoletas').classList.add('abierto');
+}
+function cerrarFiltroBoletas(){ document.getElementById('fondoModalFiltroBoletas').classList.remove('abierto'); }
+function aplicarFiltroBoletas(){
+  filtroBoletas.desde = document.getElementById('filtroBoletasDesde').value || '';
+  filtroBoletas.hasta = document.getElementById('filtroBoletasHasta').value || '';
+  filtroBoletas.texto = document.getElementById('filtroBoletasTexto').value.trim();
+  if(filtroBoletasActivo()) desplegarBoletasMes = true;
+  cerrarFiltroBoletas(); renderizarVistaBoletas();
+}
+function limpiarFiltroBoletas(){
+  filtroBoletas = { desde:'', hasta:'', texto:'' };
+  cerrarFiltroBoletas(); renderizarVistaBoletas();
+}
+
+/* ============================================================
    13.6 BORRAR DATOS LOCALES DE ESTE APARATO
    ------------------------------------------------------------
    Vacía lo que este teléfono o computador tiene guardado en su
@@ -8709,7 +9551,7 @@ async function confirmarBorrarDatosLocales(){
   const boton = document.querySelector('#confirmacionBorrarDatosLocales .boton-confirmar-si');
   if(boton) boton.disabled = true;
   nota.textContent = 'Borrando…';
-  const claves = [CLAVE_PACIENTES, CLAVE_CONFIG, CLAVE_CONSULTAS, CLAVE_AGENDA, CLAVE_INGRESOS, CLAVE_OBJETIVOS, CLAVE_GASTOS, CLAVE_BOLETAS, CLAVE_COLA_INGRESOS];
+  const claves = [CLAVE_PACIENTES, CLAVE_CONFIG, CLAVE_CONSULTAS, CLAVE_AGENDA, CLAVE_INGRESOS, CLAVE_OBJETIVOS, CLAVE_GASTOS, CLAVE_BOLETAS, CLAVE_COLA_INGRESOS, CLAVE_BOLETAS_PARTICULARES];
   for(const clave of claves){
     await window.storage.set(clave, '', false);
   }
@@ -8758,7 +9600,7 @@ async function revisarVersionMasReciente(){
    14. INICIALIZACIÓN
    ============================================================ */
 async function iniciar(){
-  await Promise.all([cargarPacientes(), cargarConfiguracion(), cargarConsultasUnicas(), cargarEventosAgenda(), cargarIngresos(), cargarObjetivos(), cargarRegistrosGasto(), cargarClavesFacturadas(), cargarColaIngresos()]);
+  await Promise.all([cargarPacientes(), cargarConfiguracion(), cargarConsultasUnicas(), cargarEventosAgenda(), cargarIngresos(), cargarObjetivos(), cargarRegistrosGasto(), cargarClavesFacturadas(), cargarColaIngresos(), cargarBoletasParticulares()]);
 
   // Primer dibujo, con lo que ya hubiera guardado este teléfono de
   // antes (puede estar un poco viejo). Esto evita que la pantalla se
