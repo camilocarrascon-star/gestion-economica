@@ -2442,9 +2442,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.57';
+const VERSION_APP = '2.58';
 const VERSION_FECHA = '7 oct 2026';
-const VERSION_DESCRIPCION = 'Boleta Entre Lazos: cada sesión queda registrada en el mes de la boleta (cuando se cobra) y no en el mes de la sesión, también las ya emitidas; Sesión de ingreso: nuevo tipo de pago Particular Entre Lazos (monto variable, pasa por la boleta de Entre Lazos); Agenda: los eventos sin duración se acortan siempre que otro empieza antes de que terminen (quedan apilados, no lado a lado); marco rojo y apilado también entre eventos que no son Atenciones; semana desplegada: eventos más chicos como en el mes, selección de bloques cada 30 minutos, franja desde las 08:00 con líneas más marcadas a las 8, 12 y 20; antes: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
+const VERSION_DESCRIPCION = 'Ingresos: las sesiones pagadas (particulares y FONASA) quedan registradas el día del pago y no el día de la sesión, también las ya existentes; Boleta Entre Lazos: cada sesión queda registrada en el mes de la boleta (cuando se cobra) y no en el mes de la sesión, también las ya emitidas; Sesión de ingreso: nuevo tipo de pago Particular Entre Lazos (monto variable, pasa por la boleta de Entre Lazos); Agenda: los eventos sin duración se acortan siempre que otro empieza antes de que terminen (quedan apilados, no lado a lado); marco rojo y apilado también entre eventos que no son Atenciones; semana desplegada: eventos más chicos como en el mes, selección de bloques cada 30 minutos, franja desde las 08:00 con líneas más marcadas a las 8, 12 y 20; antes: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -4043,6 +4043,14 @@ function fechaPagoParaEnviar(entidad, fechaEvento, estado){
   const f = esConsulta ? entidad.fechaPago : (entidad.marcadoPagadoPorFecha || {})[fechaEvento];
   return f || '';
 }
+// Fecha con la que el ingreso de una sesión pagada cuenta en Ingresos: el día
+// del pago (no el de la sesión). Si no hay fecha de pago guardada (sesiones
+// pagadas antes de que se guardara), se usa la fecha de la sesión.
+function fechaIngresoDeSesion(entidad, fechaEvento){
+  const esConsulta = entidad.etiqueta === undefined && entidad.tipoPago !== undefined;
+  const f = esConsulta ? entidad.fechaPago : (entidad.marcadoPagadoPorFecha || {})[fechaEvento];
+  return f || fechaEvento || entidad.fecha;
+}
 function encolarActualizarEstadoSesion(entidad, fechaOcurrencia, estado, montoInfo, idIngreso, adultosPresentes){
   // Un estado nulo o vacío ya no se descarta: significa que el usuario
   // quitó la marca de la sesión, y eso también hay que mandarlo, porque
@@ -4058,7 +4066,7 @@ function encolarActualizarEstadoSesion(entidad, fechaOcurrencia, estado, montoIn
   if(montoInfo && !montoInfo.esEntreLazos && ESTADOS_QUE_GENERAN_INGRESO.includes(estado)){
     const montoNeto = calcularNeto(montoInfo.montoBruto, false);
     datosBase.monto_congelado = montoNeto;
-    datosBase.generar_ingreso = { id_ingreso: idIngreso, monto_bruto: montoInfo.montoBruto, monto_neto: montoNeto, forma_pago: montoInfo.formaPago || '', categoria_manual: montoInfo.tipo || '', descripcion: montoInfo.nombre || '' };
+    datosBase.generar_ingreso = { fecha_evento: fechaIngresoDeSesion(entidad, fechaEvento), id_ingreso: idIngreso, monto_bruto: montoInfo.montoBruto, monto_neto: montoNeto, forma_pago: montoInfo.formaPago || '', categoria_manual: montoInfo.tipo || '', descripcion: montoInfo.nombre || '' };
     generaIngreso = true;
   }else if(montoInfo){
     datosBase.monto_congelado = calcularNeto(montoInfo.montoBruto, montoInfo.esEntreLazos);
@@ -5522,7 +5530,7 @@ async function guardarFichaEventoInterno(){
       // sesión deja de estar pagada.
       if(!esEntreLazos){
         if(siguePagada){
-          sincronizarIngresoLocalDeSesion(idIngreso, { tipo: tipoIngresoConsulta, claveOrigen: obtenerClaveOrigen({ tipoInstancia:'consulta', consultaId: consultaGuardada.id }), fecha, montoBruto: monto, montoNeto: calcularNeto(monto, false), nombre, medioPago: medioElegidoConsulta });
+          sincronizarIngresoLocalDeSesion(idIngreso, { tipo: tipoIngresoConsulta, claveOrigen: obtenerClaveOrigen({ tipoInstancia:'consulta', consultaId: consultaGuardada.id }), fecha: fechaIngresoDeSesion(consultaGuardada, fecha), montoBruto: monto, montoNeto: calcularNeto(monto, false), nombre, medioPago: medioElegidoConsulta });
         }else{
           sincronizarIngresoLocalDeSesion(idIngreso, null);
         }
@@ -5698,7 +5706,7 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
     // guardado, y se borra si esa fecha deja de estar pagada.
     if(montoInfo && !montoInfo.esEntreLazos){
       if(siguePagada){
-        sincronizarIngresoLocalDeSesion(idIngreso, { tipo: montoInfo.tipo, claveOrigen: obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaClaveOrigen }), fecha: fechaClaveOrigen, montoBruto: montoInfo.montoBruto, montoNeto: calcularNeto(montoInfo.montoBruto, false), nombre: montoInfo.nombre || '', medioPago: medioElegidoEvento });
+        sincronizarIngresoLocalDeSesion(idIngreso, { tipo: montoInfo.tipo, claveOrigen: obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaClaveOrigen }), fecha: fechaIngresoDeSesion(evento, fechaClaveOrigen), montoBruto: montoInfo.montoBruto, montoNeto: calcularNeto(montoInfo.montoBruto, false), nombre: montoInfo.nombre || '', medioPago: medioElegidoEvento });
       }else{
         sincronizarIngresoLocalDeSesion(idIngreso, null);
       }
@@ -6629,7 +6637,7 @@ async function confirmarPagoDesdeIngresos(inst, medioPago){
     const c = consultasUnicas.find(x => x.id === inst.consultaId); if(!c) return;
     c.estadoSesion = nuevoEstado; c.fechaPago = hoyISO();
     encolarActualizarEstadoSesion(c, null, nuevoEstado, montoInfo, idIngreso);
-    if(!info.esEntreLazos) sincronizarIngresoLocalDeSesion(idIngreso, { tipo: info.tipo, claveOrigen: obtenerClaveOrigen(inst), fecha: inst.fecha, montoBruto: info.montoBruto, montoNeto: calcularNeto(info.montoBruto, false), nombre: info.nombre, medioPago });
+    if(!info.esEntreLazos) sincronizarIngresoLocalDeSesion(idIngreso, { tipo: info.tipo, claveOrigen: obtenerClaveOrigen(inst), fecha: fechaIngresoDeSesion(c, inst.fecha), montoBruto: info.montoBruto, montoNeto: calcularNeto(info.montoBruto, false), nombre: info.nombre, medioPago });
     await guardarConsultasEnAlmacenamiento();
     procesarColaEntidadAgenda(c, guardarConsultasEnAlmacenamiento);
   }else{
@@ -6638,7 +6646,7 @@ async function confirmarPagoDesdeIngresos(inst, medioPago){
     else{ evento.estadosPorFecha = evento.estadosPorFecha || {}; evento.estadosPorFecha[inst.fecha] = nuevoEstado; }
     evento.marcadoPagadoPorFecha = evento.marcadoPagadoPorFecha || {}; evento.marcadoPagadoPorFecha[inst.fecha] = hoyISO();
     encolarActualizarEstadoSesion(evento, evento.recurrencia === 'ninguna' ? null : inst.fecha, nuevoEstado, montoInfo, idIngreso, (evento.adultosPorFecha && evento.adultosPorFecha[inst.fecha]) || []);
-    if(!info.esEntreLazos) sincronizarIngresoLocalDeSesion(idIngreso, { tipo: info.tipo, claveOrigen: obtenerClaveOrigen(inst), fecha: inst.fecha, montoBruto: info.montoBruto, montoNeto: calcularNeto(info.montoBruto, false), nombre: info.nombre, medioPago });
+    if(!info.esEntreLazos) sincronizarIngresoLocalDeSesion(idIngreso, { tipo: info.tipo, claveOrigen: obtenerClaveOrigen(inst), fecha: fechaIngresoDeSesion(evento, inst.fecha), montoBruto: info.montoBruto, montoNeto: calcularNeto(info.montoBruto, false), nombre: info.nombre, medioPago });
     await guardarEventosEnAlmacenamiento();
     procesarColaEntidadAgenda(evento, guardarEventosEnAlmacenamiento);
   }
@@ -7058,9 +7066,8 @@ async function renderizarVistaIngresos(){
           <span class="nombre">${escaparHTML(i.descripcion || '')}</span>
           <div class="fila-meta">
             <span class="badge-fuente" style="background:color-mix(in srgb, ${COLOR_FUENTE_INGRESO[i.tipo]||'var(--fuente-manual)'} 15%, white); color:${COLOR_FUENTE_INGRESO[i.tipo]||'var(--fuente-manual)'}">${NOMBRES_FUENTE_INGRESO[i.tipo] || i.tipo}</span>
-            <span class="fecha">Sesión: ${formatearFechaMovimiento(i.fecha)}</span>
+            <span class="fecha">Pago: ${formatearFechaMovimiento(i.fecha)}</span>
           </div>
-          <span class="fecha-pago">Pago: ${formatearFechaMovimiento(formatoISO(new Date(i.creado)))}</span>
         </div>
         <div class="derecha">
           <span class="monto monto-fuente">${textoMontoOculto(i.montoBruto, vIngMov)}</span>
@@ -8092,6 +8099,23 @@ async function aplicarSincronizacionCompleta(paquete){
     }
     await guardarClavesFacturadas();
     await guardarIngresosEnAlmacenamiento();
+  }
+
+  // Ingresos de sesiones pagadas creados antes de este cambio quedaron con
+  // la fecha de la sesión. Se pasan al día del pago, si se conoce.
+  if(Array.isArray(paquete.ingresos)){
+    let huboCorreccion = false;
+    const instanciasPagadas = obtenerInstanciasEnRango(rangoAnalisisInicio(), rangoAnalisisFin())
+      .filter(inst => inst.etiqueta === 'atenciones' && ESTADOS_QUE_GENERAN_INGRESO.includes(inst.estadoSesion));
+    for(const inst of instanciasPagadas){
+      const fechaPago = obtenerFechaPagoInstancia(inst);
+      if(!fechaPago) continue;
+      const ing = ingresos.find(i => i.id === idIngresoDeterministico(obtenerClaveOrigen(inst)));
+      if(!ing || ing.tipo === 'entrelazos' || ing.fecha === fechaPago) continue;
+      ing.fecha = fechaPago; huboCorreccion = true;
+      await encolarAccionIngreso('editar_ingreso', { id_ingreso: ing.id, fecha_evento: fechaPago });
+    }
+    if(huboCorreccion) await guardarIngresosEnAlmacenamiento();
   }
 
   if(Array.isArray(paquete.gastos)){
