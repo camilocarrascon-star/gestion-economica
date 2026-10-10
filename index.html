@@ -1087,6 +1087,11 @@ input{ font-family:inherit; }
 }
 .boton-filtro-mov.activo{ background:var(--texto-principal); color:var(--superficie); border-color:var(--texto-principal); }
 .boton-filtro-mov .puntito-activo{ position:absolute; top:-2px; right:-2px; width:9px; height:9px; border-radius:50%; background:#B23B3B; border:2px solid var(--bg-app); }
+.nota-ahorro-gasto{ margin-top:8px; font-size:12.5px; font-weight:650; color:var(--acento); font-family:'Quicksand',sans-serif; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.nota-ahorro-gasto button{ border:1px solid var(--acento); border-radius:8px; padding:3px 9px; font-size:11.5px; font-weight:650; color:var(--acento); background:var(--superficie); touch-action:manipulation; }
+.lista-objetivos-ahorro{ display:flex; flex-direction:column; gap:7px; margin-bottom:10px; }
+.boton-objetivo-ahorro{ display:flex; justify-content:space-between; align-items:center; gap:10px; text-align:left; border:1px solid var(--borde); background:var(--superficie); border-radius:12px; padding:12px; font-size:14px; font-weight:650; color:var(--texto-principal); touch-action:manipulation; }
+.boton-objetivo-ahorro .acumulado-obj{ font-size:12px; font-weight:600; color:var(--texto-secundario); font-variant-numeric:tabular-nums; }
 .boton-quitar-todas{ font-size:11.5px; font-weight:650; color:var(--acento); font-family:'Quicksand',sans-serif; padding:2px 4px; touch-action:manipulation; }
 .bloque-sub-filtro-gasto + .bloque-sub-filtro-gasto{ margin-top:12px; }
 .gasto-total-filtrado{ font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--texto-principal); }
@@ -1380,6 +1385,7 @@ input{ font-family:inherit; }
     <div class="contenedor-subcategorias-gasto" id="gastoContSubcategorias">
       <span class="gastos-etiqueta-seccion">Subcategoría</span>
       <div class="grid-pagos-gasto" id="gastoGridSubcategorias"></div>
+      <div class="nota-ahorro-gasto" id="gastoNotaAhorro" style="display:none;"></div>
     </div>
   </div>
 
@@ -1514,7 +1520,10 @@ input{ font-family:inherit; }
       <div class="nota-campo">Vacío en ambas = todo el mes que estás mirando.</div>
     </div>
     <div class="campo-modal">
-      <span class="etiqueta-campo">Origen del monto</span>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="etiqueta-campo" style="flex:1;">Origen del monto</span>
+        <button class="boton-quitar-todas" onclick="quitarTodosOrigenesFiltroMov()">Quitar todas</button>
+      </div>
       <div class="chips-filtro" id="chipsFiltroOrigen"></div>
     </div>
     <div class="campo-modal">
@@ -1528,6 +1537,32 @@ input{ font-family:inherit; }
     </div>
     <button class="boton-primario" onclick="aplicarFiltroMovimientos()">Aplicar filtros</button>
     <button class="boton-secundario" onclick="limpiarFiltroMovimientos()">Quitar todos los filtros</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: ELEGIR OBJETIVO DE AHORRO (Gastos, subcategoría Ahorro)
+     ============================================================ -->
+<div class="fondo-modal" id="fondoModalAhorroObjetivo" onclick="cerrarModalSiFondo(event, 'fondoModalAhorroObjetivo', cerrarSelectorObjetivoAhorro)">
+  <div class="hoja-modal">
+    <div class="encabezado-modal">
+      <h2>¿A qué objetivo va este ahorro?</h2>
+      <button class="cerrar-modal" onclick="cerrarSelectorObjetivoAhorro()">✕</button>
+    </div>
+    <div class="lista-objetivos-ahorro" id="listaObjetivosAhorro"></div>
+    <button class="boton-secundario" id="botonCrearObjetivoAhorro" onclick="mostrarCrearObjetivoAhorro()">+ Crear objetivo</button>
+    <div id="formCrearObjetivoAhorro" style="display:none;">
+      <div class="campo-modal">
+        <span class="etiqueta-campo">Nombre del nuevo objetivo</span>
+        <input type="text" id="nuevoObjetivoAhorroNombre" placeholder="Ej: Viaje, notebook">
+      </div>
+      <div class="campo-modal">
+        <span class="etiqueta-campo">Meta en pesos (opcional)</span>
+        <input type="text" id="nuevoObjetivoAhorroMeta" inputmode="numeric" placeholder="$0">
+      </div>
+      <div class="aviso-formulario" id="avisoNuevoObjetivoAhorro"></div>
+      <button class="boton-primario" onclick="crearObjetivoDesdeAhorro()">Crear y usar este objetivo</button>
+    </div>
   </div>
 </div>
 
@@ -2412,7 +2447,7 @@ input{ font-family:inherit; }
     <div class="campo-modal">
       <div class="fila-titulo-filtro-agenda">
         <span class="etiqueta-campo">Tipo de evento</span>
-        <button class="boton-ver-todos-agenda" id="botonVerTodosTiposAgenda" onclick="verTodosTiposAgenda()">Ver todos</button>
+        <button class="boton-ver-todos-agenda" id="botonVerTodosTiposAgenda" onclick="verTodosTiposAgenda()">Quitar todas</button>
       </div>
       <div class="grid-etiquetas" id="gridFiltroEtiquetasAgenda"></div>
     </div>
@@ -2548,9 +2583,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.67';
+const VERSION_APP = '2.69';
 const VERSION_FECHA = '10 oct 2026';
-const VERSION_DESCRIPCION = 'Ingresos: filtro en Sesiones devengadas (tipo y fecha); Gastos: en el filtro, Quitar todas las categorías, subcategorías al marcar una categoría y total gastado según el filtro arriba; antes: Gastos: botón Pegar monto (ignora los puntos); Ingresos: flecha en cada sesión devengada que lleva a su día en la Agenda, columnas de igual ancho; ícono nuevo con sol y luna; antes: Ícono actualizado (dorado más brillante); Totales de ingresos: el neto se suma sin redondear cada sesión y se redondea una sola vez al final (Ingresos, Dashboard, boleta Entre Lazos); Ícono nuevo de la app (luna, sol y estrellas en burdeo y dorado); Ingresos: la ventana Entre Lazos pasa a llamarse Sesiones Entre Lazos pagadas; Ingresos: Movimientos del mes pasa a llamarse Ingresos del mes; filtros de Ingresos del mes (por fecha de pago o de sesión) y de Gastos (por fecha) con opción de orden; antes: Ícono propio de la app (pestaña del navegador y pantalla de inicio); Ingresos: etiqueta Particular / Entre Lazos en Sesiones devengadas, sesiones en 2 columnas en las tres ventanas, Movimientos con fecha de la sesión y del pago (sin el texto Efectivo/Transferencia; el dato sigue guardado y filtrable); Dashboard: efectivo del mes bajo Disponible; Gastos: filtro en Últimos registros; antes: Ingresos: las sesiones pagadas (particulares y FONASA) quedan registradas el día del pago y no el día de la sesión, también las ya existentes; Boleta Entre Lazos: cada sesión queda registrada en el mes de la boleta (cuando se cobra) y no en el mes de la sesión, también las ya emitidas; Sesión de ingreso: nuevo tipo de pago Particular Entre Lazos (monto variable, pasa por la boleta de Entre Lazos); Agenda: los eventos sin duración se acortan siempre que otro empieza antes de que terminen (quedan apilados, no lado a lado); marco rojo y apilado también entre eventos que no son Atenciones; semana desplegada: eventos más chicos como en el mes, selección de bloques cada 30 minutos, franja desde las 08:00 con líneas más marcadas a las 8, 12 y 20; antes: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
+const VERSION_DESCRIPCION = 'Ingresos: se pueden editar los ingresos manuales y Rucalaf; Gastos: el vínculo gasto-aporte de Ahorro queda en la planilla (no se pierde al borrar datos locales); antes: Filtros: Quitar todas en Ingresos del mes y en la lupa de la Agenda; Configuración muestra solo la versión; Gastos: al elegir la subcategoría Ahorro se elige (o se crea) el objetivo de ahorro y el gasto se suma como aporte; antes: Ingresos: filtro en Sesiones devengadas (tipo y fecha); Gastos: en el filtro, Quitar todas las categorías, subcategorías al marcar una categoría y total gastado según el filtro arriba; antes: Gastos: botón Pegar monto (ignora los puntos); Ingresos: flecha en cada sesión devengada que lleva a su día en la Agenda, columnas de igual ancho; ícono nuevo con sol y luna; antes: Ícono actualizado (dorado más brillante); Totales de ingresos: el neto se suma sin redondear cada sesión y se redondea una sola vez al final (Ingresos, Dashboard, boleta Entre Lazos); Ícono nuevo de la app (luna, sol y estrellas en burdeo y dorado); Ingresos: la ventana Entre Lazos pasa a llamarse Sesiones Entre Lazos pagadas; Ingresos: Movimientos del mes pasa a llamarse Ingresos del mes; filtros de Ingresos del mes (por fecha de pago o de sesión) y de Gastos (por fecha) con opción de orden; antes: Ícono propio de la app (pestaña del navegador y pantalla de inicio); Ingresos: etiqueta Particular / Entre Lazos en Sesiones devengadas, sesiones en 2 columnas en las tres ventanas, Movimientos con fecha de la sesión y del pago (sin el texto Efectivo/Transferencia; el dato sigue guardado y filtrable); Dashboard: efectivo del mes bajo Disponible; Gastos: filtro en Últimos registros; antes: Ingresos: las sesiones pagadas (particulares y FONASA) quedan registradas el día del pago y no el día de la sesión, también las ya existentes; Boleta Entre Lazos: cada sesión queda registrada en el mes de la boleta (cuando se cobra) y no en el mes de la sesión, también las ya emitidas; Sesión de ingreso: nuevo tipo de pago Particular Entre Lazos (monto variable, pasa por la boleta de Entre Lazos); Agenda: los eventos sin duración se acortan siempre que otro empieza antes de que terminen (quedan apilados, no lado a lado); marco rojo y apilado también entre eventos que no son Atenciones; semana desplegada: eventos más chicos como en el mes, selección de bloques cada 30 minutos, franja desde las 08:00 con líneas más marcadas a las 8, 12 y 20; antes: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -3546,7 +3581,7 @@ function alternarSeccionConfig(nombre){
 }
 function pintarTarjetaVersionConfig(){
   document.getElementById('tarjetaVersionConfig').innerHTML =
-    `<div class="numero">Versión ${VERSION_APP} · ${VERSION_FECHA}</div><div class="detalle">${VERSION_DESCRIPCION}</div>`;
+    `<div class="numero">Versión ${VERSION_APP}</div>`;
 }
 function abrirConfiguracion(){
   document.getElementById('configMontoFonasa').value = configuracion.montoFonasa ? configuracion.montoFonasa.toLocaleString('es-CL') : '';
@@ -6429,8 +6464,97 @@ function seleccionarCategoriaPrincipalGasto(codigo){
   pintarCategoriasGasto('gastoGridCategorias', categoriaSeleccionadaGasto, seleccionarCategoriaPrincipalGasto);
   pintarSubcategoriasGasto('gastoGridSubcategorias', categoriaSeleccionadaGasto, subcategoriaSeleccionadaGasto, seleccionarSubcategoriaPrincipalGasto);
 }
+// Subcategoría "Ahorro": el gasto se suma también a un objetivo del módulo de ahorro.
+let objetivoAhorroGasto = null;
+function esSubcategoriaAhorro(nombre){ return normalizarTextoBusqueda(nombre) === 'ahorro'; }
+function actualizarNotaAhorroGasto(){
+  const nota = document.getElementById('gastoNotaAhorro'); if(!nota) return;
+  if(!esSubcategoriaAhorro(subcategoriaSeleccionadaGasto)){ objetivoAhorroGasto = null; nota.style.display = 'none'; return; }
+  const obj = objetivos.find(o => o.id === objetivoAhorroGasto);
+  nota.style.display = 'flex';
+  nota.innerHTML = obj ? `<span>Se suma al objetivo: ${escaparHTML(obj.nombre)}</span><button onclick="abrirSelectorObjetivoAhorro()">Cambiar</button>`
+                       : `<span>Falta elegir el objetivo de ahorro.</span><button onclick="abrirSelectorObjetivoAhorro()">Elegir</button>`;
+}
+function abrirSelectorObjetivoAhorro(){
+  const lista = document.getElementById('listaObjetivosAhorro'); lista.innerHTML = '';
+  objetivos.filter(o => o.estado !== 'archivado').forEach(o => {
+    const b = document.createElement('button'); b.className = 'boton-objetivo-ahorro';
+    b.innerHTML = `<span>${escaparHTML(o.nombre)}</span><span class="acumulado-obj">${formatearCLP(o.acumulado||0)} ahorrados</span>`;
+    b.onclick = () => { objetivoAhorroGasto = o.id; cerrarSelectorObjetivoAhorro(); actualizarNotaAhorroGasto(); };
+    lista.appendChild(b);
+  });
+  document.getElementById('formCrearObjetivoAhorro').style.display = 'none';
+  document.getElementById('botonCrearObjetivoAhorro').style.display = 'block';
+  document.getElementById('fondoModalAhorroObjetivo').classList.add('abierto');
+}
+function cerrarSelectorObjetivoAhorro(){ document.getElementById('fondoModalAhorroObjetivo').classList.remove('abierto'); actualizarNotaAhorroGasto(); }
+function mostrarCrearObjetivoAhorro(){
+  document.getElementById('botonCrearObjetivoAhorro').style.display = 'none';
+  document.getElementById('formCrearObjetivoAhorro').style.display = 'block';
+  document.getElementById('nuevoObjetivoAhorroNombre').value = ''; document.getElementById('nuevoObjetivoAhorroMeta').value = '';
+  document.getElementById('nuevoObjetivoAhorroNombre').focus();
+}
+async function crearObjetivoDesdeAhorro(){
+  ocultarAvisoFormulario('avisoNuevoObjetivoAhorro');
+  const nombre = document.getElementById('nuevoObjetivoAhorroNombre').value.trim();
+  const metaTexto = document.getElementById('nuevoObjetivoAhorroMeta').value.trim();
+  const meta = metaTexto === '' ? 0 : limpiarMontoTexto(metaTexto);
+  if(!nombre){ mostrarAvisoFormulario('avisoNuevoObjetivoAhorro', 'Falta el nombre del objetivo.', 'nuevoObjetivoAhorroNombre'); return; }
+  if(meta === null || meta < 0){ mostrarAvisoFormulario('avisoNuevoObjetivoAhorro', 'La meta no es un monto válido.', 'nuevoObjetivoAhorroMeta'); return; }
+  const obj = { id: generarId(), nombre, tipo:'meta_manual', fijo:false, estado:'activo', acumulado:0, aportes:[], metaManual: meta, fechaObjetivo:null, creadoEnServidor:false, pendienteSync:false, colaSync:[] };
+  obj.colaSync.push({ accion:'crear_objetivo', datosBase: construirDatosObjetivoBase(obj) });
+  objetivos.push(obj);
+  objetivoAhorroGasto = obj.id;
+  cerrarSelectorObjetivoAhorro();
+  await guardarObjetivosEnAlmacenamiento();
+  renderizarVistaObjetivos();
+  procesarColaObjetivo(obj);
+}
+// Suma el gasto como aporte al objetivo y deja el vínculo en el gasto (solo en este aparato)
+// para que, si el gasto se edita o se elimina, el aporte siga el mismo camino.
+// El id del aporte se arma con el id del gasto ("APO-G-" + id del gasto).
+// Así el vínculo queda escrito en la planilla y se recupera solo en cualquier aparato.
+function idAporteDeGasto(registro){ return 'APO-G-' + registro.id; }
+function buscarAporteDeGasto(registro){
+  const idBuscado = idAporteDeGasto(registro);
+  for(const o of objetivos){
+    const mov = (o.aportes||[]).find(a => a.id === idBuscado || (registro.aporteId && a.id === registro.aporteId));
+    if(mov) return { obj:o, mov };
+  }
+  return null;
+}
+async function sumarGastoAObjetivo(registro, objetivoId){
+  const obj = objetivos.find(o => o.id === objetivoId); if(!obj) return;
+  const mov = { id: idAporteDeGasto(registro), monto: registro.monto, fecha: registro.fecha, creado: Date.now() };
+  obj.aportes = obj.aportes || []; obj.aportes.push(mov);
+  obj.acumulado = (obj.acumulado||0) + mov.monto;
+  obj.colaSync = obj.colaSync || [];
+  obj.colaSync.push({ accion:'registrar_aporte_objetivo', datosBase: { id_aporte: mov.id, monto: mov.monto, fecha_evento: mov.fecha } });
+  registro.objetivoId = obj.id; registro.aporteId = mov.id;
+  await guardarObjetivosEnAlmacenamiento(); renderizarVistaObjetivos();
+  procesarColaObjetivo(obj);
+}
+// Quita (o ajusta) el aporte ligado a un gasto que se eliminó o cambió de monto.
+async function ajustarAporteDeGasto(registro, nuevoMonto){
+  const hallado = buscarAporteDeGasto(registro); if(!hallado) return;
+  const obj = hallado.obj, mov = hallado.mov;
+  obj.colaSync = obj.colaSync || [];
+  if(nuevoMonto === null){
+    obj.aportes = obj.aportes.filter(a => a.id !== mov.id);
+    obj.acumulado = (obj.acumulado||0) - mov.monto;
+    obj.colaSync.push({ accion:'eliminar_aporte_objetivo', datosBase: { id_aporte: mov.id } });
+  }else if(nuevoMonto !== mov.monto){
+    obj.acumulado = (obj.acumulado||0) - mov.monto + nuevoMonto;
+    mov.monto = nuevoMonto;
+    obj.colaSync.push({ accion:'editar_aporte_objetivo', datosBase: { id_aporte: mov.id, monto: mov.monto, fecha_evento: mov.fecha } });
+  }else return;
+  await guardarObjetivosEnAlmacenamiento(); renderizarVistaObjetivos();
+  procesarColaObjetivo(obj);
+}
 function seleccionarSubcategoriaPrincipalGasto(nombre){
   subcategoriaSeleccionadaGasto = nombre;
+  if(esSubcategoriaAhorro(nombre)){ if(!objetivoAhorroGasto) abrirSelectorObjetivoAhorro(); } else objetivoAhorroGasto = null;
+  actualizarNotaAhorroGasto();
   pintarSubcategoriasGasto('gastoGridSubcategorias', categoriaSeleccionadaGasto, subcategoriaSeleccionadaGasto, seleccionarSubcategoriaPrincipalGasto);
 }
 function seleccionarPagoPrincipalGasto(medio){ pagoSeleccionadoGasto = medio; pintarPagosGasto('gastoGridPagos', pagoSeleccionadoGasto, seleccionarPagoPrincipalGasto); }
@@ -6460,10 +6584,13 @@ async function guardarNuevoGasto(){
   if(!categoriaSeleccionadaGasto){ faltanGasto.push('la categoría'); camposGasto.push('gastoGridCategorias'); }
   else if(subcategoriasDe(categoriaSeleccionadaGasto).length && !subcategoriaSeleccionadaGasto){ faltanGasto.push('la subcategoría'); camposGasto.push('gastoGridSubcategorias'); }
   if(!pagoSeleccionadoGasto){ faltanGasto.push('el medio de pago'); camposGasto.push('gastoGridPagos'); }
+  if(esSubcategoriaAhorro(subcategoriaSeleccionadaGasto) && !objetivoAhorroGasto){ faltanGasto.push('el objetivo de ahorro'); camposGasto.push('gastoNotaAhorro'); }
   if(faltanGasto.length){ mostrarAvisoFormulario('avisoNuevoGasto', 'Falta ' + unirFaltantes(faltanGasto) + '.', camposGasto); return; }
   const nuevoRegistro = { id: generarId(), fecha: document.getElementById('gastoCampoFecha').value, categoria: categoriaSeleccionadaGasto, subcategoria: subcategoriaSeleccionadaGasto || '', medioPago: pagoSeleccionadoGasto, monto, descripcion: document.getElementById('gastoCampoDescripcion').value.trim(), creado: Date.now(), pendienteSync:false, colaSync:[] };
   nuevoRegistro.colaSync.push({ accion:'crear_gasto', datosBase: construirDatosGastoBase(nuevoRegistro) });
   registrosGasto.push(nuevoRegistro);
+  const objetivoDelGasto = esSubcategoriaAhorro(nuevoRegistro.subcategoria) ? objetivoAhorroGasto : null;
+  objetivoAhorroGasto = null;
   expresionGasto = ''; categoriaSeleccionadaGasto = null; subcategoriaSeleccionadaGasto = null; pagoSeleccionadoGasto = null;
   document.getElementById('gastoCampoDescripcion').value = ''; document.getElementById('gastoCampoFecha').value = hoyISO();
   actualizarPantallaGasto();
@@ -6474,7 +6601,9 @@ async function guardarNuevoGasto(){
   await guardarGastosEnAlmacenamiento();
   // El guardado local ya terminó (igual que antes); la sincronización con
   // Sheets ocurre en segundo plano y no retrasa ni bloquea la pantalla.
+  if(objetivoDelGasto){ await sumarGastoAObjetivo(nuevoRegistro, objetivoDelGasto); await guardarGastosEnAlmacenamiento(); }
   procesarColaGasto(nuevoRegistro);
+  actualizarNotaAhorroGasto();
 }
 function obtenerCategoriaGastoPorCodigo(codigo){ return categoriasGastoTodas().find(c => c.codigo === codigo) || { color:'var(--texto-terciario)', nombre:codigo }; }
 // Filtro de "Últimos registros": fechas, categorías (multi-selección; todas por defecto)
@@ -6635,6 +6764,8 @@ function solicitarEliminarGasto(evento, id){ evento.stopPropagation(); idConfirm
 function cancelarEliminacionGasto(evento){ evento.stopPropagation(); idConfirmandoEliminarGasto = null; renderizarListaGastos(); }
 async function confirmarEliminacionGasto(evento, id){
   evento.stopPropagation(); idMenuAbiertoGasto = null; idConfirmandoEliminarGasto = null;
+  const gastoEliminado = registrosGasto.find(r => r.id === id);
+  if(gastoEliminado) await ajustarAporteDeGasto(gastoEliminado, null);
   registrosGasto = registrosGasto.filter(r => r.id !== id); renderizarListaGastos(); await guardarGastosEnAlmacenamiento();
   enviarAccionAgendaConReintentos('eliminar_gasto', { id_gasto: id });
 }
@@ -6673,6 +6804,7 @@ async function guardarEdicionGasto(){
   // una; pero si cambia de categoría, o ya tenía una, se pide de nuevo.
   const exigeSub = subcategoriasDe(categoriaModalGasto).length && !subcategoriaModalGasto && (registro.subcategoria || registro.categoria !== categoriaModalGasto);
   if(exigeSub){ mostrarAvisoFormulario('avisoEdicionGasto', 'Falta la subcategoría.', 'modalGastoGridSubcategorias'); return; }
+  await ajustarAporteDeGasto(registro, monto);
   registro.monto = monto; registro.categoria = categoriaModalGasto; registro.subcategoria = subcategoriaModalGasto || ''; registro.medioPago = pagoModalGasto;
   registro.fecha = document.getElementById('modalGastoFecha').value; registro.descripcion = document.getElementById('modalGastoDescripcion').value.trim();
   registro.colaSync = registro.colaSync || [];
@@ -7164,7 +7296,7 @@ function alternarVerTodosIngresosMes(){ mostrarTodosIngresosMes = !mostrarTodosI
 let filtroMovimientos = { desde:'', hasta:'', origenes: new Set(Object.keys(NOMBRES_FUENTE_INGRESO)), medioPago:'todos', criterio:'pago', direccion:'desc' };
 function filtroMovActivo(){
   const f = filtroMovimientos;
-  return !!f.desde || !!f.hasta || f.origenes.size < Object.keys(NOMBRES_FUENTE_INGRESO).length || f.medioPago !== 'todos' || f.criterio !== 'pago' || f.direccion !== 'desc';
+  return !!f.desde || !!f.hasta || (f.origenes.size > 0 && f.origenes.size < Object.keys(NOMBRES_FUENTE_INGRESO).length) || f.medioPago !== 'todos' || f.criterio !== 'pago' || f.direccion !== 'desc';
 }
 function abrirFiltroMovimientos(){
   document.getElementById('filtroMovDesde').value = filtroMovimientos.desde;
@@ -7173,6 +7305,7 @@ function abrirFiltroMovimientos(){
   document.getElementById('fondoModalFiltroMov').classList.add('abierto');
 }
 function cerrarFiltroMovimientos(){ document.getElementById('fondoModalFiltroMov').classList.remove('abierto'); }
+function quitarTodosOrigenesFiltroMov(){ filtroMovimientos.origenes.clear(); pintarChipsFiltroOrigen(); }
 function pintarChipsFiltroOrigen(){
   const c = document.getElementById('chipsFiltroOrigen'); c.innerHTML = '';
   Object.keys(NOMBRES_FUENTE_INGRESO).forEach(k => {
@@ -7379,7 +7512,7 @@ async function renderizarVistaIngresos(){
   const delMesFiltrado = delMes.filter(i =>
     (!filtroMovimientos.desde || i.fecha >= filtroMovimientos.desde) &&
     (!filtroMovimientos.hasta || i.fecha <= filtroMovimientos.hasta) &&
-    filtroMovimientos.origenes.has(i.tipo) &&
+    (filtroMovimientos.origenes.size === 0 || filtroMovimientos.origenes.has(i.tipo)) &&
     (filtroMovimientos.medioPago === 'todos' || i.medioPago === filtroMovimientos.medioPago)
   );
   const totalMovimientosBruto = delMesFiltrado.reduce((a,i) => a + (i.montoBruto||0), 0);
@@ -7427,6 +7560,7 @@ async function renderizarVistaIngresos(){
   }
 }
 
+let ingresoManualEditandoId = null;
 let ingresoEnEdicionId = null; let medioPagoManualSeleccionado = null; let tipoIngresoManualSeleccionado = 'manual';
 // Dos tipos de ingreso a mano: "Manual" (cualquier otro ingreso, con
 // descripción obligatoria) y "Rucalaf" (el trabajo dependiente, que se
@@ -7460,7 +7594,7 @@ function pintarSegmentadoMedioPagoManual(){
   });
 }
 function abrirFichaIngresoManual(){
-  ingresoEnEdicionId = null; medioPagoManualSeleccionado = 'efectivo'; tipoIngresoManualSeleccionado = 'manual';
+  ingresoEnEdicionId = null; ingresoManualEditandoId = null; medioPagoManualSeleccionado = 'efectivo'; tipoIngresoManualSeleccionado = 'manual';
   document.getElementById('tituloFichaIngreso').textContent = 'Nuevo ingreso';
   document.getElementById('detalleIngresoSoloLectura').style.display = 'none';
   document.getElementById('detalleIngresoSoloLectura').innerHTML = '';
@@ -7488,14 +7622,42 @@ async function guardarIngresoManual(){
   if(!fecha){ faltanIng.push('la fecha'); camposIng.push('ingresoManualFecha'); }
   if(!medioPagoManualSeleccionado){ faltanIng.push('el medio de pago'); camposIng.push('segmentadoMedioPagoManual'); }
   if(faltanIng.length){ mostrarAvisoFormulario('avisoIngresoManual', 'Falta ' + unirFaltantes(faltanIng) + '.', camposIng); return; }
+  if(ingresoManualEditandoId){
+    const existente = ingresos.find(i => i.id === ingresoManualEditandoId);
+    if(existente){
+      existente.tipo = tipoIngreso; existente.fecha = fecha; existente.montoBruto = monto; existente.montoNeto = monto;
+      existente.medioPago = medioPagoManualSeleccionado; existente.descripcion = descripcion;
+      const idEditado = existente.id;
+      cerrarFichaIngreso(); renderizarVistaIngresos(); await guardarIngresosEnAlmacenamiento();
+      await encolarAccionIngreso('editar_ingreso', { id_ingreso: idEditado, categoria_manual: tipoIngreso, descripcion, monto_bruto: monto, monto_neto: monto, forma_pago: medioPagoManualSeleccionado, fecha_evento: fecha });
+      return;
+    }
+  }
   const nuevoIngresoManual = { id: generarId(), tipo: tipoIngreso, origenClave:null, fecha, montoBruto: monto, montoNeto: monto, medioPago: medioPagoManualSeleccionado, descripcion, creado: Date.now() };
   ingresos.push(nuevoIngresoManual);
   cerrarFichaIngreso(); renderizarVistaIngresos(); await guardarIngresosEnAlmacenamiento();
   await encolarAccionIngreso('crear_ingreso_manual', { id_ingreso: nuevoIngresoManual.id, categoria_manual: tipoIngreso, descripcion, monto_bruto: monto, monto_neto: monto, forma_pago: medioPagoManualSeleccionado, fecha_evento: fecha });
 }
+function editarIngresoManual(){
+  const ing = ingresos.find(i => i.id === ingresoEnEdicionId); if(!ing) return;
+  ingresoManualEditandoId = ing.id;
+  medioPagoManualSeleccionado = ing.medioPago || 'transferencia';
+  tipoIngresoManualSeleccionado = ing.tipo === 'rucalaf' ? 'rucalaf' : 'manual';
+  document.getElementById('tituloFichaIngreso').textContent = 'Editar ingreso';
+  document.getElementById('detalleIngresoSoloLectura').style.display = 'none';
+  document.getElementById('camposIngresoManual').style.display = 'block';
+  document.getElementById('botonGuardarIngresoManual').style.display = 'block';
+  document.getElementById('ingresoManualDescripcion').value = ing.descripcion || '';
+  document.getElementById('ingresoManualMonto').value = ing.montoBruto;
+  document.getElementById('ingresoManualFecha').value = ing.fecha;
+  pintarSegmentadoMedioPagoManual();
+  actualizarFormularioTipoIngreso();
+  document.getElementById('zonaEliminarIngreso').style.display = 'none';
+  ocultarAvisoFormulario('avisoIngresoManual');
+}
 function abrirDetalleIngreso(id){
   const ing = ingresos.find(i => i.id === id); if(!ing) return;
-  ingresoEnEdicionId = id;
+  ingresoEnEdicionId = id; ingresoManualEditandoId = null;
   document.getElementById('tituloFichaIngreso').textContent = 'Detalle del ingreso';
   document.getElementById('camposIngresoManual').style.display = 'none';
   document.getElementById('botonGuardarIngresoManual').style.display = 'none';
@@ -7509,12 +7671,13 @@ function abrirDetalleIngreso(id){
     <div class="campo-modal"><span class="etiqueta-campo">Fecha</span><div class="detalle-ingreso-lectura">${ing.fecha}</div></div>
     ${ing.medioPago ? `<div class="campo-modal"><span class="etiqueta-campo">Medio de pago</span><div class="detalle-ingreso-lectura">${ing.medioPago==='efectivo'?'Efectivo':'Transferencia'}</div></div>` : ''}
     ${derivadoDeSesion ? `<div class="nota-campo" style="margin-top:12px;">Este ingreso depende de una sesión de Agenda. Para quitarlo, cambia el estado de esa sesión ahí.</div>` : ''}
+    ${(ing.tipo === 'manual' || ing.tipo === 'rucalaf') ? `<button class="boton-secundario" style="margin-top:12px;" onclick="editarIngresoManual()">Editar</button>` : ''}
   `;
   document.getElementById('zonaEliminarIngreso').style.display = derivadoDeSesion ? 'none' : 'block';
   document.getElementById('confirmacionEliminarIngreso').style.display = 'none';
   document.getElementById('fondoModalIngreso').classList.add('abierto');
 }
-function cerrarFichaIngreso(){ document.getElementById('fondoModalIngreso').classList.remove('abierto'); ingresoEnEdicionId = null; }
+function cerrarFichaIngreso(){ document.getElementById('fondoModalIngreso').classList.remove('abierto'); ingresoEnEdicionId = null; ingresoManualEditandoId = null; }
 // Para un ingreso de Entre Lazos creado desde una sesión, encuentra esa sesión
 // (el id del ingreso se calcula siempre igual a partir de la sesión).
 function buscarSesionDeIngresoEntreLazos(ing){
