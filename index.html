@@ -483,6 +483,12 @@ input{ font-family:inherit; }
 .boletas-selector-mes{ display:flex; align-items:center; justify-content:center; gap:10px; margin:8px 0 2px; }
 .boletas-selector-mes span{ font-size:13px; font-weight:700; color:var(--texto-principal); font-family:'Quicksand',sans-serif; min-width:110px; text-align:center; }
 
+/* Sobrescribir la sesión (botón discreto al final de la ficha de Atenciones) */
+.boton-sobrescribir{ display:block; margin:14px auto 2px; background:none; border:none; font-size:11px; font-weight:600; color:var(--texto-terciario); text-decoration:underline; text-underline-offset:3px; padding:8px 12px; touch-action:manipulation; opacity:0.8; }
+#fondoModalSobrescribir{ z-index:60; }
+.fila-sobrescribir{ display:flex; gap:8px; }
+.fila-sobrescribir .campo-modal{ flex:1; margin:0; }
+
 /* Ventana de decisión Sí / No (sesión ya pagada; cambio de tarifa con sesiones devengadas) */
 #fondoModalDecision{ z-index:70; }
 .decision-lista{ max-height:34vh; overflow-y:auto; margin:0 0 12px; border:1px solid var(--borde-suave); border-radius:12px; }
@@ -1551,6 +1557,10 @@ input{ font-family:inherit; }
       <button class="cerrar-modal" onclick="cerrarFiltroMovimientos()">✕</button>
     </div>
     <div class="campo-modal">
+      <span class="etiqueta-campo">Buscar por nombre</span>
+      <input type="text" id="filtroMovTexto" placeholder="Nombre del paciente o descripción" autocomplete="off">
+    </div>
+    <div class="campo-modal">
       <span class="etiqueta-campo">Rango de fechas</span>
       <div class="fila-dos-fechas">
         <div class="campo-modal" style="margin:0;">
@@ -2064,6 +2074,9 @@ input{ font-family:inherit; }
       </button>
       <div class="contenido-seccion-config" id="contenidoSeccionMemoria" style="display:none;">
         <div class="nota-campo">Si quieres que ESTE aparato se olvide de todo lo que tiene guardado y vuelva a traer todo de cero directo desde Google Sheets (que pasa a ser la única fuente real), usa esto. Hazlo por separado en cada aparato: el teléfono y el computador no se enteran el uno del otro. No se borra nada de la planilla.</div>
+        <div class="separador-seccion-config" style="margin:12px 0;"></div>
+        <div class="nota-campo">Revisión de datos: busca sesiones marcadas como pagadas que no tienen su ingreso, y boletas cuya sesión ya no está pagada. Antes de arreglar algo, te muestra la lista y te pregunta.</div>
+        <button class="boton-secundario" style="margin-top:8px;" onclick="revisarDatosSesiones()">Revisión de datos</button>
         <div class="zona-archivar" style="margin-top:10px; padding-top:0; border-top:none;">
           <button class="boton-primario peligro" onclick="solicitarBorrarDatosLocales()">Borrar datos guardados en este aparato</button>
           <div class="confirmacion-archivar" id="confirmacionBorrarDatosLocales" style="display:none;">
@@ -2081,8 +2094,6 @@ input{ font-family:inherit; }
 </div>
 
 <!-- ============================================================
-     MODAL: FICHA DE EVENTO (Agenda) — crear / editar
-     <!-- ============================================================
      MODAL: FICHA DE EVENTO (Agenda) — crear / editar
      ============================================================ -->
 <div class="fondo-modal" id="fondoModalEvento" onclick="cerrarModalSiFondo(event, 'fondoModalEvento', cerrarFichaEvento)">
@@ -2231,6 +2242,7 @@ input{ font-family:inherit; }
     </div>
     <button class="boton-secundario" onclick="cerrarFichaEvento()">Cancelar</button>
 
+    <button class="boton-sobrescribir" id="botonSobrescribirSesion" style="display:none;" onclick="abrirSobrescribirSesion()">Sobrescribir la sesión</button>
     <div class="zona-archivar" id="zonaEliminarEvento" style="display:none;">
       <button class="boton-archivar" id="botonEliminarEvento" onclick="solicitarEliminarEvento()">Eliminar</button>
       <div class="confirmacion-archivar" id="confirmacionEliminarEvento" style="display:none;">
@@ -2241,6 +2253,46 @@ input{ font-family:inherit; }
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODAL: SOBRESCRIBIR LA SESIÓN (Agenda, solo Atenciones)
+     Modificador supremo: ninguna regla anterior se le opone.
+     ============================================================ -->
+<div class="fondo-modal" id="fondoModalSobrescribir" onclick="cerrarModalSiFondo(event, 'fondoModalSobrescribir', cerrarSobrescribirSesion)">
+  <div class="hoja-modal">
+    <div class="encabezado-modal">
+      <h2>Sobrescribir la sesión</h2>
+      <button class="cerrar-modal" onclick="cerrarSobrescribirSesion()">✕</button>
+    </div>
+    <div class="nota-campo" id="notaSobrescribir" style="margin-bottom:10px;">Úsalo solo en casos excepcionales. Lo que escribas aquí reemplaza todo lo anterior de esta sesión, sin pedir confirmaciones. Los cambios sin guardar de la ficha se descartan.</div>
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Nombre</span>
+      <input type="text" id="sobNombre" autocomplete="off">
+    </div>
+    <div class="campo-modal">
+      <span class="etiqueta-campo">Monto bruto de la sesión</span>
+      <input type="text" id="sobMonto" inputmode="numeric">
+    </div>
+    <div class="fila-sobrescribir">
+      <div class="campo-modal">
+        <span class="etiqueta-campo">Impuesto (%)</span>
+        <input type="text" id="sobImpuesto" inputmode="decimal">
+      </div>
+      <div class="campo-modal" id="campoSobComision" style="display:none;">
+        <span class="etiqueta-campo">Comisión Entre Lazos (%)</span>
+        <input type="text" id="sobComision" inputmode="decimal">
+      </div>
+    </div>
+    <div class="campo-modal" id="campoSobFechaPago" style="display:none;">
+      <span class="etiqueta-campo">Fecha de pago</span>
+      <input type="date" id="sobFechaPago">
+    </div>
+    <div class="nota-campo" id="notaSobrescribirBoleta" style="display:none; margin-bottom:8px;"></div>
+    <div class="aviso-formulario" id="avisoSobrescribir"></div>
+    <button class="boton-primario" onclick="aplicarSobrescribirSesion()">Sobrescribir</button>
+    <button class="boton-secundario" onclick="cerrarSobrescribirSesion()">Cancelar</button>
   </div>
 </div>
 
@@ -2820,9 +2872,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.84';
-const VERSION_FECHA = '10 oct 2026';
-const VERSION_DESCRIPCION = 'Ingresos: el botón de dos flechas también está en Ingresos del mes; antes: Ingresos: botón de dos flechas junto a montos sin descuento en Sesiones devengadas y Sesiones Entre Lazos pagadas para ver los montos con descuento; Boletas: Factura de pacientes Entre Lazos con selector de mes y el impuesto real de cada sesión (sobre el monto menos la comisión de Entre Lazos); Sesiones pagadas sin boleta con el color de Sesiones devengadas; antes: Boletas: las sesiones particulares de Entre Lazos vuelven a Sesiones pagadas sin boleta y se registran con el botón Factura emitida; la ventana pasa a llamarse Factura de pacientes Entre Lazos (solo registro, sin impuesto, separada de las boletas de Ingresos); antes: Boletas: la advertencia afirma que en Entre Lazos el impuesto ya viene descontado en la boleta; antes: Boletas: ventana aparte Particulares Entre Lazos (solo registro, con o sin boleta Entre Lazos); esas sesiones ya no aparecen en Sesiones pagadas sin boleta ni suman al impuesto de Boletas emitidas del mes; antes: Boletas: la alerta ahora avisa cuando alguna sesión pagada lleva 14 días o más sin boleta; botón pequeño Sin boleta (la sesión pasa al ingreso con su monto completo, sin descontar impuesto) y lista discreta Sesiones sin boleta con Revertir; antes: Boletas: triángulo amarillo en el menú junto a Boletas si pasan 14 días sin registrar boletas (habiendo sesiones pendientes) y en cada sesión pagada con 14 días o más sin boleta; antes: Boletas: advertencia desplegable sobre el cálculo de impuestos (estimación, Formulario 29, plazo, comparar con el SII la primera vez); antes: Boletas: una boleta por sesión (sin número), agrupadas por fecha de emisión, cada una con su impuesto (el porcentaje de Configuración) y su botón Anular; Configuración: Valores y Comisiones de Pacientes pasa a llamarse Comisiones e Impuestos; antes: Boletas y Sesiones Entre Lazos pagadas: si una sesión pagada no guardó su fecha de pago, se muestra la fecha de su ingreso; antes: Boletas: ahora se abre desde el menú de la flecha (no desde Configuración); Sesiones pagadas sin boleta tiene filtro (tipo de sesión, fecha y paciente); antes: Configuración: al cambiar el monto FONASA, el porcentaje de impuesto o la comisión de Entre Lazos se muestran las sesiones afectadas (devengadas y Entre Lazos pagadas sin boleta) y se pregunta si se les aplica el valor nuevo (si dices No, conservan el anterior, también guardado en la planilla); antes: Configuración: al cambiar la comisión de Entre Lazos se muestran las sesiones afectadas (devengadas y pagadas sin boleta) y se pregunta si se les aplica la comisión nueva (si dices No, conservan la anterior, también guardado en la planilla); antes: Nuevo módulo Boletas (se abre desde Configuración): sesiones particulares ya pagadas sin boleta, selección, ir a la sesión en la Agenda, Boleta emitida y visor de boletas del mes con filtro; Objetivos pasa a llamarse Ahorros; antes: Agenda: al mover una sesión ya pagada, su ingreso se traslada a la sesión movida; Sesiones pagadas: cambiar la fecha o el paciente de una sesión pagada actualiza su ingreso (también en la planilla) sin duplicarlo; al omitir, mover o cambiar el día o la duración de una serie con sesiones ya pagadas aparece la advertencia y la pregunta ¿Quieres eliminar el ingreso?; Pacientes: al cambiar la tarifa de un paciente con sesiones devengadas se muestra cuáles cambian y se pregunta si se les aplica la tarifa nueva (si dices No, conservan su monto); Gastos: al editar un gasto y pasarlo a la subcategoría Ahorro se elige el objetivo y se suma; el monto congelado de sesiones devengadas se recupera desde la planilla; el teclado del computador ignora siempre el punto; al sacar un gasto de la subcategoría Ahorro se resta del objetivo de ahorro (con aviso) y el cambio de fecha también se refleja; antes: Ingresos: se pueden editar los ingresos manuales y Rucalaf; Gastos: el vínculo gasto-aporte de Ahorro queda en la planilla (no se pierde al borrar datos locales); antes: Filtros: Quitar todas en Ingresos del mes y en la lupa de la Agenda; Configuración muestra solo la versión; Gastos: al elegir la subcategoría Ahorro se elige (o se crea) el objetivo de ahorro y el gasto se suma como aporte; antes: Ingresos: filtro en Sesiones devengadas (tipo y fecha); Gastos: en el filtro, Quitar todas las categorías, subcategorías al marcar una categoría y total gastado según el filtro arriba; antes: Gastos: botón Pegar monto (ignora los puntos); Ingresos: flecha en cada sesión devengada que lleva a su día en la Agenda, columnas de igual ancho; ícono nuevo con sol y luna; antes: Ícono actualizado (dorado más brillante); Totales de ingresos: el neto se suma sin redondear cada sesión y se redondea una sola vez al final (Ingresos, Dashboard, boleta Entre Lazos); Ícono nuevo de la app (luna, sol y estrellas en burdeo y dorado); Ingresos: la ventana Entre Lazos pasa a llamarse Sesiones Entre Lazos pagadas; Ingresos: Movimientos del mes pasa a llamarse Ingresos del mes; filtros de Ingresos del mes (por fecha de pago o de sesión) y de Gastos (por fecha) con opción de orden; antes: Ícono propio de la app (pestaña del navegador y pantalla de inicio); Ingresos: etiqueta Particular / Entre Lazos en Sesiones devengadas, sesiones en 2 columnas en las tres ventanas, Movimientos con fecha de la sesión y del pago (sin el texto Efectivo/Transferencia; el dato sigue guardado y filtrable); Dashboard: efectivo del mes bajo Disponible; Gastos: filtro en Últimos registros; antes: Ingresos: las sesiones pagadas (particulares y FONASA) quedan registradas el día del pago y no el día de la sesión, también las ya existentes; Boleta Entre Lazos: cada sesión queda registrada en el mes de la boleta (cuando se cobra) y no en el mes de la sesión, también las ya emitidas; Sesión de ingreso: nuevo tipo de pago Particular Entre Lazos (monto variable, pasa por la boleta de Entre Lazos); Agenda: los eventos sin duración se acortan siempre que otro empieza antes de que terminen (quedan apilados, no lado a lado); marco rojo y apilado también entre eventos que no son Atenciones; semana desplegada: eventos más chicos como en el mes, selección de bloques cada 30 minutos, franja desde las 08:00 con líneas más marcadas a las 8, 12 y 20; antes: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
+const VERSION_APP = '2.85';
+const VERSION_FECHA = '11 oct 2026';
+const VERSION_DESCRIPCION = 'Ingresos del mes: filtro por nombre; Sesiones pagadas: el monto y el porcentaje de impuesto quedan congelados desde que se marca pagada (la boleta toma ese porcentaje); Boletas: cada boleta queda ligada a su sesión (si la sesión deja de estar pagada, o se elimina, aparece la alerta y la boleta se retira del registro; si se cambia su fecha o se mueve, la boleta la sigue); Agenda: botón discreto Sobrescribir la sesión al final de la ficha de Atenciones (nombre, monto, impuesto, comisión y fecha de pago); Sesiones de la planilla: se guarda el nombre del paciente; Configuración: Revisión de datos (sesiones pagadas sin ingreso y boletas sin sesión pagada); Ingresos: un movimiento que la planilla dice que no existe ya no traba la cola; antes: Ingresos: el botón de dos flechas también está en Ingresos del mes; antes: Ingresos: botón de dos flechas junto a montos sin descuento en Sesiones devengadas y Sesiones Entre Lazos pagadas para ver los montos con descuento; Boletas: Factura de pacientes Entre Lazos con selector de mes y el impuesto real de cada sesión (sobre el monto menos la comisión de Entre Lazos); Sesiones pagadas sin boleta con el color de Sesiones devengadas; antes: Boletas: las sesiones particulares de Entre Lazos vuelven a Sesiones pagadas sin boleta y se registran con el botón Factura emitida; la ventana pasa a llamarse Factura de pacientes Entre Lazos (solo registro, sin impuesto, separada de las boletas de Ingresos); antes: Boletas: la advertencia afirma que en Entre Lazos el impuesto ya viene descontado en la boleta; antes: Boletas: ventana aparte Particulares Entre Lazos (solo registro, con o sin boleta Entre Lazos); esas sesiones ya no aparecen en Sesiones pagadas sin boleta ni suman al impuesto de Boletas emitidas del mes; antes: Boletas: la alerta ahora avisa cuando alguna sesión pagada lleva 14 días o más sin boleta; botón pequeño Sin boleta (la sesión pasa al ingreso con su monto completo, sin descontar impuesto) y lista discreta Sesiones sin boleta con Revertir; antes: Boletas: triángulo amarillo en el menú junto a Boletas si pasan 14 días sin registrar boletas (habiendo sesiones pendientes) y en cada sesión pagada con 14 días o más sin boleta; antes: Boletas: advertencia desplegable sobre el cálculo de impuestos (estimación, Formulario 29, plazo, comparar con el SII la primera vez); antes: Boletas: una boleta por sesión (sin número), agrupadas por fecha de emisión, cada una con su impuesto (el porcentaje de Configuración) y su botón Anular; Configuración: Valores y Comisiones de Pacientes pasa a llamarse Comisiones e Impuestos; antes: Boletas y Sesiones Entre Lazos pagadas: si una sesión pagada no guardó su fecha de pago, se muestra la fecha de su ingreso; antes: Boletas: ahora se abre desde el menú de la flecha (no desde Configuración); Sesiones pagadas sin boleta tiene filtro (tipo de sesión, fecha y paciente); antes: Configuración: al cambiar el monto FONASA, el porcentaje de impuesto o la comisión de Entre Lazos se muestran las sesiones afectadas (devengadas y Entre Lazos pagadas sin boleta) y se pregunta si se les aplica el valor nuevo (si dices No, conservan el anterior, también guardado en la planilla); antes: Configuración: al cambiar la comisión de Entre Lazos se muestran las sesiones afectadas (devengadas y pagadas sin boleta) y se pregunta si se les aplica la comisión nueva (si dices No, conservan la anterior, también guardado en la planilla); antes: Nuevo módulo Boletas (se abre desde Configuración): sesiones particulares ya pagadas sin boleta, selección, ir a la sesión en la Agenda, Boleta emitida y visor de boletas del mes con filtro; Objetivos pasa a llamarse Ahorros; antes: Agenda: al mover una sesión ya pagada, su ingreso se traslada a la sesión movida; Sesiones pagadas: cambiar la fecha o el paciente de una sesión pagada actualiza su ingreso (también en la planilla) sin duplicarlo; al omitir, mover o cambiar el día o la duración de una serie con sesiones ya pagadas aparece la advertencia y la pregunta ¿Quieres eliminar el ingreso?; Pacientes: al cambiar la tarifa de un paciente con sesiones devengadas se muestra cuáles cambian y se pregunta si se les aplica la tarifa nueva (si dices No, conservan su monto); Gastos: al editar un gasto y pasarlo a la subcategoría Ahorro se elige el objetivo y se suma; el monto congelado de sesiones devengadas se recupera desde la planilla; el teclado del computador ignora siempre el punto; al sacar un gasto de la subcategoría Ahorro se resta del objetivo de ahorro (con aviso) y el cambio de fecha también se refleja; antes: Ingresos: se pueden editar los ingresos manuales y Rucalaf; Gastos: el vínculo gasto-aporte de Ahorro queda en la planilla (no se pierde al borrar datos locales); antes: Filtros: Quitar todas en Ingresos del mes y en la lupa de la Agenda; Configuración muestra solo la versión; Gastos: al elegir la subcategoría Ahorro se elige (o se crea) el objetivo de ahorro y el gasto se suma como aporte; antes: Ingresos: filtro en Sesiones devengadas (tipo y fecha); Gastos: en el filtro, Quitar todas las categorías, subcategorías al marcar una categoría y total gastado según el filtro arriba; antes: Gastos: botón Pegar monto (ignora los puntos); Ingresos: flecha en cada sesión devengada que lleva a su día en la Agenda, columnas de igual ancho; ícono nuevo con sol y luna; antes: Ícono actualizado (dorado más brillante); Totales de ingresos: el neto se suma sin redondear cada sesión y se redondea una sola vez al final (Ingresos, Dashboard, boleta Entre Lazos); Ícono nuevo de la app (luna, sol y estrellas en burdeo y dorado); Ingresos: la ventana Entre Lazos pasa a llamarse Sesiones Entre Lazos pagadas; Ingresos: Movimientos del mes pasa a llamarse Ingresos del mes; filtros de Ingresos del mes (por fecha de pago o de sesión) y de Gastos (por fecha) con opción de orden; antes: Ícono propio de la app (pestaña del navegador y pantalla de inicio); Ingresos: etiqueta Particular / Entre Lazos en Sesiones devengadas, sesiones en 2 columnas en las tres ventanas, Movimientos con fecha de la sesión y del pago (sin el texto Efectivo/Transferencia; el dato sigue guardado y filtrable); Dashboard: efectivo del mes bajo Disponible; Gastos: filtro en Últimos registros; antes: Ingresos: las sesiones pagadas (particulares y FONASA) quedan registradas el día del pago y no el día de la sesión, también las ya existentes; Boleta Entre Lazos: cada sesión queda registrada en el mes de la boleta (cuando se cobra) y no en el mes de la sesión, también las ya emitidas; Sesión de ingreso: nuevo tipo de pago Particular Entre Lazos (monto variable, pasa por la boleta de Entre Lazos); Agenda: los eventos sin duración se acortan siempre que otro empieza antes de que terminen (quedan apilados, no lado a lado); marco rojo y apilado también entre eventos que no son Atenciones; semana desplegada: eventos más chicos como en el mes, selección de bloques cada 30 minutos, franja desde las 08:00 con líneas más marcadas a las 8, 12 y 20; antes: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -4310,6 +4362,9 @@ function generarOcurrencias(evento, inicioRangoISO, finRangoISO){
    ============================================================ */
 function obtenerNombreEvento(evento, fechaOcurrencia){
   if(evento.etiqueta === 'atenciones' && evento.pacienteId){
+    // Nombre puesto a mano para esta fecha con "Sobrescribir la sesión".
+    const nombreSob = fechaOcurrencia && evento.nombreSobrescritoPorFecha ? evento.nombreSobrescritoPorFecha[fechaOcurrencia] : null;
+    if(nombreSob) return nombreSob;
     const p = pacientes.find(x => x.id === evento.pacienteId);
     const nombrePaciente = p ? p.nombreCompleto : '(paciente archivado o eliminado)';
     // Si para ESTA fecha puntual se marcó con qué adulto responsable fue
@@ -4558,13 +4613,21 @@ function fechaIngresoDeSesion(entidad, fechaEvento){
   const f = esConsulta ? entidad.fechaPago : (entidad.marcadoPagadoPorFecha || {})[fechaEvento];
   return f || fechaEvento || entidad.fecha;
 }
+// Nombre que se escribe en la pestaña Sesiones de la planilla para poder reconocer cada fila.
+function nombreParaSesionesSheet(entidad, fecha){
+  try{
+    const esConsulta = entidad.etiqueta === undefined && entidad.tipoPago !== undefined;
+    if(esConsulta) return entidad.nombre || '';
+    return obtenerNombreEvento(entidad, fecha) || '';
+  }catch(e){ return ''; }
+}
 function encolarActualizarEstadoSesion(entidad, fechaOcurrencia, estado, montoInfo, idIngreso, adultosPresentes){
   // Un estado nulo o vacío ya no se descarta: significa que el usuario
   // quitó la marca de la sesión, y eso también hay que mandarlo, porque
   // si no la planilla sigue mostrando el estado viejo (y, cuando ese
   // estado generaba ingreso, ese ingreso queda huérfano).
   const fechaEvento = fechaOcurrencia || entidad.fecha;
-  const datosBase = { id_evento: entidad.id, fecha_evento: fechaEvento, estado_sesion: estado || '', fecha_pago: fechaPagoParaEnviar(entidad, fechaEvento, estado) };
+  const datosBase = { id_evento: entidad.id, fecha_evento: fechaEvento, estado_sesion: estado || '', fecha_pago: fechaPagoParaEnviar(entidad, fechaEvento, estado), nombre_paciente: nombreParaSesionesSheet(entidad, fechaEvento) };
   // Se manda SIEMPRE (incluso vacío) cuando se llama a esta función
   // desde una Atención: si no, al sacar al único adulto marcado, la
   // planilla se quedaría con el nombre viejo.
@@ -4591,7 +4654,7 @@ function encolarActualizarEstadoSesion(entidad, fechaOcurrencia, estado, montoIn
 // se queda con un valor viejo.
 function encolarActualizarHoraFinSesion(entidad, fechaOcurrencia, horaFin){
   entidad.colaSync = entidad.colaSync || [];
-  entidad.colaSync.push({ accion:'actualizar_hora_fin_sesion', datosBase: { id_evento: entidad.id, fecha_evento: fechaOcurrencia, hora_fin: horaFin || '' } });
+  entidad.colaSync.push({ accion:'actualizar_hora_fin_sesion', datosBase: { id_evento: entidad.id, fecha_evento: fechaOcurrencia, hora_fin: horaFin || '', nombre_paciente: nombreParaSesionesSheet(entidad, fechaOcurrencia) } });
 }
 
 // Si una sesión deja de estar en un estado que genera ingreso (por
@@ -5482,6 +5545,7 @@ function abrirFichaEventoNueva(){
   document.getElementById('camposDuracionDetalle').style.display = 'none';
   document.getElementById('resumenDuracionEvento').textContent = '';
   document.getElementById('zonaEliminarEvento').style.display = 'none';
+  document.getElementById('botonSobrescribirSesion').style.display = 'none';
   document.getElementById('botonOmitirFechaEvento').style.display = 'none';
   document.getElementById('botonMoverSesionEvento').style.display = 'none';
   document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'none';
@@ -5523,6 +5587,7 @@ function abrirFichaEventoEdicion(instancia){
     document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'none';
     document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = 'none';
     document.getElementById('botonEliminarEvento').textContent = 'Eliminar registro';
+    document.getElementById('botonSobrescribirSesion').style.display = 'block';
   }else{
     eventoEnEdicionId = instancia.eventoId; consultaEnEdicionId = null;
     const evento = eventosAgenda.find(x => x.id === instancia.eventoId); if(!evento) return;
@@ -5573,6 +5638,7 @@ function abrirFichaEventoEdicion(instancia){
     const permiteDuracion = etiquetaEventoSeleccionada !== 'atenciones' && etiquetaEventoSeleccionada !== 'analisis';
     document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = (esRecurrente && permiteDuracion) ? 'block' : 'none';
     document.getElementById('botonEliminarEvento').textContent = esRecurrente ? 'Eliminar toda la serie' : 'Eliminar';
+    document.getElementById('botonSobrescribirSesion').style.display = (evento.etiqueta === 'atenciones' && evento.pacienteId) ? 'block' : 'none';
   }
 
   document.getElementById('confirmacionEliminarEvento').style.display = 'none';
@@ -5995,6 +6061,14 @@ async function guardarFichaEventoInterno(){
       if(sesionNecesitaMedioPago(idIngresoPrevio, esTipoPagoConsultaEntreLazos(tipoPagoEventoConsultaSeleccionado), estadoSesionEventoSeleccionado)){ preguntarMedioPagoSesion(nombre); return; }
     }
     const medioElegidoConsulta = medioPagoSesionElegido;
+    let quitarBoletaConsulta = false;
+    if(consultaEnEdicionId !== null){
+      const cPrev = consultasUnicas.find(x => x.id === consultaEnEdicionId);
+      if(cPrev && ESTADOS_QUE_GENERAN_INGRESO.includes(cPrev.estadoSesion || '') && !ESTADOS_QUE_GENERAN_INGRESO.includes(estadoSesionEventoSeleccionado || '') && boletaDeClave(`consulta:${cPrev.id}`)){
+        if(!(await confirmarPerdidaBoletas([`consulta:${cPrev.id}`]))) return;
+        quitarBoletaConsulta = true;
+      }
+    }
     let consultaGuardada;
     let estadoAnteriorConsulta = null, montoAnteriorConsulta = null;
     if(consultaEnEdicionId === null){
@@ -6017,7 +6091,12 @@ async function guardarFichaEventoInterno(){
       const idIngreso = idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'consulta', consultaId: consultaGuardada.id }));
       const cambioEstado = estadoAnteriorConsulta !== estadoSesionEventoSeleccionado;
       const siguePagada = ESTADOS_QUE_GENERAN_INGRESO.includes(estadoSesionEventoSeleccionado);
-      if(siguePagada){ if(!consultaGuardada.fechaPago) consultaGuardada.fechaPago = hoyISO(); }
+      if(siguePagada){
+        if(!consultaGuardada.fechaPago) consultaGuardada.fechaPago = hoyISO();
+        // Al quedar pagada se congelan el porcentaje de impuesto (y la comisión si es Entre Lazos).
+        if(typeof consultaGuardada.impuestoCongelado !== 'number') consultaGuardada.impuestoCongelado = configuracion.porcentajeImpuesto;
+        if(esEntreLazos && typeof consultaGuardada.comisionELCongelada !== 'number') consultaGuardada.comisionELCongelada = configuracion.porcentajeComisionEL;
+      }
       else{ consultaGuardada.fechaPago = null; }
       const cambioMontoEnPagada = siguePagada && montoAnteriorConsulta !== monto;
       // Solo se avisa a Ingresos si el estado cambió, o si sigue pagada
@@ -6045,6 +6124,8 @@ async function guardarFichaEventoInterno(){
         await guardarIngresosEnAlmacenamiento();
       }
     }
+    if(quitarBoletaConsulta && consultaGuardada) await quitarBoletasDeClaves([`consulta:${consultaGuardada.id}`]);
+    else if(consultaGuardada && consultaEnEdicionId !== null) await actualizarDetalleBoleta(`consulta:${consultaGuardada.id}`, { nombre });
     cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarConsultasEnAlmacenamiento();
     if(consultaGuardada) procesarColaEntidadAgenda(consultaGuardada, guardarConsultasEnAlmacenamiento);
     return;
@@ -6104,6 +6185,23 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
        && clavesFacturadasDesdeServidor.has(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evPrev.id, fecha: evPrev.fecha }))){
       mostrarAvisoFormulario('avisoFichaEvento', 'Esta sesión ya está en una boleta de Entre Lazos, así que no se puede cambiar su fecha.', 'eventoFecha');
       return;
+    }
+  }
+
+  // Boleta ligada a la sesión: si la sesión deja de estar pagada, la boleta se elimina (con aviso).
+  let clavesBoletaAQuitar = [];
+  if(eventoEnEdicionId !== null && etiquetaEventoSeleccionada === 'atenciones'){
+    const evB = eventosAgenda.find(x => x.id === eventoEnEdicionId);
+    if(evB){
+      const fB = evB.recurrencia === 'ninguna' ? evB.fecha : fechaOcurrenciaEnEdicion;
+      const estB = evB.recurrencia === 'ninguna' ? evB.estadoSesion : (evB.estadosPorFecha || {})[fB];
+      if(fB && ESTADOS_QUE_GENERAN_INGRESO.includes(estB || '') && !ESTADOS_QUE_GENERAN_INGRESO.includes(estadoSesionEventoSeleccionado || '')){
+        const claveB = obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evB.id, fecha: fB });
+        if(boletaDeClave(claveB)){
+          if(!(await confirmarPerdidaBoletas([claveB]))) return;
+          clavesBoletaAQuitar.push(claveB);
+        }
+      }
     }
   }
 
@@ -6220,6 +6318,25 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
     if(montoInfo && evento.pacienteId === pacienteId && evento.impuestoCongeladoPorFecha && typeof evento.impuestoCongeladoPorFecha[fechaClaveOrigen] === 'number'){
       montoInfo.impuestoPct = evento.impuestoCongeladoPorFecha[fechaClaveOrigen];
     }
+    // Si la sesión ya estaba pagada (y sigue con el mismo paciente), manda lo que quedó
+    // registrado en su ingreso: monto y porcentaje de impuesto congelados al pagar.
+    if(montoInfo && !montoInfo.esEntreLazos && pacienteAnteriorEvento === pacienteId && ESTADOS_QUE_GENERAN_INGRESO.includes(estadoAnteriorEvento || '')){
+      const fechaIngPrevio = fechaAnteriorSesionSuelta || fechaClaveOrigen;
+      const clavePrevia = obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaIngPrevio });
+      const ingPrevio = ingresos.find(i => i.id === idIngresoDeterministico(clavePrevia));
+      if(ingPrevio && ingPrevio.tipo !== 'entrelazos' && ingPrevio.montoBruto > 0){
+        montoInfo.montoBruto = ingPrevio.montoBruto;
+        if(!esSesionSinBoleta(clavePrevia)){ const pp = impuestoPctDesdeMontos(ingPrevio.montoBruto, ingPrevio.montoNeto); if(pp !== undefined) montoInfo.impuestoPct = pp; }
+      }
+    }
+    // Al quedar pagada una sesión de Entre Lazos, su monto, comisión e impuesto quedan congelados.
+    if(montoInfo && montoInfo.esEntreLazos && ESTADOS_QUE_GENERAN_INGRESO.includes(estadoSesionEventoSeleccionado)){
+      ['montoBrutoCongeladoPorFecha','comisionELCongeladaPorFecha','impuestoCongeladoPorFecha'].forEach(c => { evento[c] = evento[c] || {}; });
+      if(typeof evento.montoBrutoCongeladoPorFecha[fechaClaveOrigen] !== 'number') evento.montoBrutoCongeladoPorFecha[fechaClaveOrigen] = montoInfo.montoBruto;
+      if(typeof evento.comisionELCongeladaPorFecha[fechaClaveOrigen] !== 'number') evento.comisionELCongeladaPorFecha[fechaClaveOrigen] = comisionELParaCalculo(montoInfo.comisionEL);
+      if(typeof evento.impuestoCongeladoPorFecha[fechaClaveOrigen] !== 'number') evento.impuestoCongeladoPorFecha[fechaClaveOrigen] = impuestoParaCalculo(montoInfo.impuestoPct);
+      montoInfo.comisionEL = evento.comisionELCongeladaPorFecha[fechaClaveOrigen]; montoInfo.impuestoPct = evento.impuestoCongeladoPorFecha[fechaClaveOrigen];
+    }
     const idIngreso = idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaClaveOrigen }));
     const siguePagada = ESTADOS_QUE_GENERAN_INGRESO.includes(estadoSesionEventoSeleccionado);
     const ingresoAnteriorSuelta = idIngresoAnteriorSesionSuelta ? ingresos.find(i => i.id === idIngresoAnteriorSesionSuelta) : null;
@@ -6311,6 +6428,16 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
     }
   }
 
+  // Boleta ligada: se retira si la sesión dejó de estar pagada; si no, sigue a la sesión.
+  if(evento && clavesBoletaAQuitar.length) await quitarBoletasDeClaves(clavesBoletaAQuitar);
+  else if(evento && eventoEnEdicionId !== null){
+    if(fechaAnteriorSesionSuelta){
+      await reasignarClaveBoleta(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaAnteriorSesionSuelta }), obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fecha }), fecha);
+    }
+    if(pacienteAnteriorEvento && pacienteAnteriorEvento !== pacienteId && fechaOcurrenciaAfectada){
+      await actualizarDetalleBoleta(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaOcurrenciaAfectada }), { nombre: obtenerNombreEvento(evento, fechaOcurrenciaAfectada) });
+    }
+  }
   cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarEventosEnAlmacenamiento();
   if(evento) procesarColaEntidadAgenda(evento, guardarEventosEnAlmacenamiento);
 }
@@ -6416,9 +6543,11 @@ function filasSesionesPagadas(evento, fechas){
 async function consultarSesionesPagadas(evento, fechas, textoAccion){
   const pagadas = fechasPagadasEnSerie(evento, fechas);
   if(!pagadas.length) return { continuar:true, eliminar:false, fechas:[] };
+  const nConBoleta = pagadas.filter(f => { const r0 = boletaDeClave(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: f })); return r0 && !r0.b.sinBoleta; }).length;
+  const avisoBoleta = nConBoleta ? (nConBoleta === 1 ? ' Esta sesión tiene una boleta emitida que también se eliminará del registro de boletas.' : ` ${nConBoleta} de estas sesiones tienen una boleta emitida que también se eliminará del registro de boletas.`) : '';
   const r = await preguntarDecision({
     titulo: 'Sesión ya pagada',
-    texto: (pagadas.length === 1 ? 'Estás modificando una sesión que ya fue pagada' : 'Estás modificando sesiones que ya fueron pagadas') + (textoAccion ? ` (${textoAccion}).` : '.'),
+    texto: (pagadas.length === 1 ? 'Estás modificando una sesión que ya fue pagada' : 'Estás modificando sesiones que ya fueron pagadas') + (textoAccion ? ` (${textoAccion}).` : '.') + avisoBoleta,
     filas: filasSesionesPagadas(evento, pagadas),
     pregunta: pagadas.length === 1 ? '¿Quieres eliminar el ingreso?' : '¿Quieres eliminar los ingresos?',
     textoSi: 'Sí, eliminar', textoNo: 'No, conservar'
@@ -6429,8 +6558,9 @@ async function consultarSesionesPagadas(evento, fechas, textoAccion){
 // Elimina el ingreso (aquí y en la planilla) de cada fecha y deja la sesión
 // sin estado (ni realizada ni ausentada). Solo modifica los datos; quien
 // llama guarda y sincroniza después.
-async function eliminarIngresoYEstadoDeFechas(evento, fechas){
+async function eliminarIngresoYEstadoDeFechas(evento, fechas, conservarBoletas){
   evento.colaSync = evento.colaSync || [];
+  if(!conservarBoletas) await quitarBoletasDeClaves(fechas.map(f => obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: f })));
   fechas.forEach(f => {
     const idIng = idIngresoDeterministico(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: f }));
     if(ingresos.some(i => i.id === idIng)){
@@ -6520,7 +6650,7 @@ async function guardarMoverSesion(){
   const adultosViejo = (evento.adultosPorFecha && evento.adultosPorFecha[fechaVieja]) ? [...evento.adultosPorFecha[fechaVieja]] : [];
   if(fechasPagadasMover.length){
     estadoAMover = evento.estadosPorFecha[fechaVieja];
-    await eliminarIngresoYEstadoDeFechas(evento, fechasPagadasMover);
+    await eliminarIngresoYEstadoDeFechas(evento, fechasPagadasMover, true);
   }
 
   // 1) Omite la fecha vieja de la serie — igual mecanismo que "Omitir esta fecha".
@@ -6556,6 +6686,8 @@ async function guardarMoverSesion(){
     }
   }
   eventosAgenda.push(nuevoEvento);
+  // La boleta de la sesión movida la sigue a su día nuevo.
+  await reasignarClaveBoleta(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaVieja }), obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: nuevoEvento.id, fecha: nuevaFecha }), nuevaFecha);
 
   cerrarModalMoverSesion(); cerrarFichaEvento(); rerenderizarVistaAgendaActual();
   await guardarEventosEnAlmacenamiento();
@@ -6727,9 +6859,10 @@ function solicitarEliminarEvento(){
   document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = 'none';
   const eventoActual = eventoEnEdicionId !== null ? eventosAgenda.find(x => x.id === eventoEnEdicionId) : null;
   const esSerie = eventoActual && eventoActual.recurrencia !== 'ninguna';
-  document.getElementById('textoConfirmacionEliminarEvento').textContent = esSerie
+  const hayBoletasEliminar = clavesBoletaDeEntidad(eventoActual ? eventoActual.id : consultaEnEdicionId, !eventoActual).some(c => { const r0 = boletaDeClave(c); return r0 && !r0.b.sinBoleta; });
+  document.getElementById('textoConfirmacionEliminarEvento').textContent = (esSerie
     ? 'Se eliminará toda la serie recurrente, incluyendo sus repeticiones futuras. No se puede deshacer.'
-    : 'Este registro se eliminará permanentemente. No se puede deshacer.';
+    : 'Este registro se eliminará permanentemente. No se puede deshacer.') + (hayBoletasEliminar ? ' Tiene boletas emitidas que también se eliminarán del registro de boletas.' : '');
   document.getElementById('confirmacionEliminarEvento').style.display = 'block';
 }
 function cancelarEliminarEvento(){
@@ -6786,6 +6919,7 @@ async function confirmarEliminarEvento(){
   if(consultaEnEdicionId !== null){
     const consulta = consultasUnicas.find(x => x.id === consultaEnEdicionId);
     consultasUnicas = consultasUnicas.filter(x => x.id !== consultaEnEdicionId);
+    await quitarBoletasDeClaves(clavesBoletaDeEntidad(consultaEnEdicionId, true));
     cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarConsultasEnAlmacenamiento();
     if(consulta){
       enviarAccionAgendaConReintentos('eliminar_evento', { id_evento: consulta.id });
@@ -6796,6 +6930,7 @@ async function confirmarEliminarEvento(){
   }else if(eventoEnEdicionId !== null){
     const evento = eventosAgenda.find(x => x.id === eventoEnEdicionId);
     eventosAgenda = eventosAgenda.filter(x => x.id !== eventoEnEdicionId);
+    await quitarBoletasDeClaves(clavesBoletaDeEntidad(eventoEnEdicionId, false));
     cerrarFichaEvento(); rerenderizarVistaAgendaActual(); await guardarEventosEnAlmacenamiento();
     if(evento){
       enviarAccionAgendaConReintentos('eliminar_evento', { id_evento: evento.id });
@@ -7160,7 +7295,7 @@ let filtroGastos = FILTRO_GASTOS_VACIO();
 function claveSubFiltroGasto(codigo, nombre){ return codigo + '|' + nombre; }
 function filtroGastosActivo(){
   const f = filtroGastos;
-  return !!f.desde || !!f.hasta || f.categorias.size > 0 || f.medioPago !== 'todos' || f.orden !== 'registro';
+  return !!f.texto || !!f.desde || !!f.hasta || f.categorias.size > 0 || f.medioPago !== 'todos' || f.orden !== 'registro';
 }
 function gastoPasaFiltro(r){
   const f = filtroGastos;
@@ -7555,8 +7690,30 @@ function obtenerFechaPagoInstancia(inst){
   const evento = eventosAgenda.find(e => e.id === inst.eventoId);
   return (evento && evento.marcadoPagadoPorFecha && evento.marcadoPagadoPorFecha[inst.fecha]) || null;
 }
+// Lo que se registró en el ingreso al marcar la sesión como pagada manda: el monto
+// bruto y el porcentaje de impuesto con que se cobró quedan congelados aunque después
+// cambie la tarifa del paciente o el porcentaje de Configuración.
+function impuestoPctDesdeMontos(bruto, neto){
+  if(!(bruto > 0) || typeof neto !== 'number') return undefined;
+  const exacto = (1 - neto / bruto) * 100;
+  const cand = Math.round(exacto * 4) / 4;
+  if(Math.round(bruto * (1 - cand / 100)) === neto) return cand;
+  return Math.round(exacto * 100) / 100;
+}
+function pagoCongeladoDeSesion(inst){
+  if(!ESTADOS_QUE_GENERAN_INGRESO.includes(inst.estadoSesion)) return null;
+  const clave = obtenerClaveOrigen(inst);
+  const ing = ingresos.find(i => i.id === idIngresoDeterministico(clave));
+  if(!ing || ing.tipo === 'entrelazos' || !(ing.montoBruto > 0)) return null;
+  const sinBoleta = esSesionSinBoleta(clave);
+  return { bruto: ing.montoBruto, impuestoPct: sinBoleta ? undefined : impuestoPctDesdeMontos(ing.montoBruto, ing.montoNeto) };
+}
 function clasificarInstanciaIngreso(inst){
   const info = clasificarInstanciaIngresoBase(inst); if(!info) return info;
+  if(!info.esEntreLazos){
+    const cg = pagoCongeladoDeSesion(inst);
+    if(cg){ info.montoBruto = cg.bruto; if(cg.impuestoPct !== undefined) info.impuestoPct = cg.impuestoPct; }
+  }
   if(inst.tipoInstancia === 'consulta'){
     const c = consultasUnicas.find(x => x.id === inst.consultaId);
     if(c && typeof c.impuestoCongelado === 'number') info.impuestoPct = c.impuestoCongelado;
@@ -7851,6 +8008,16 @@ async function procesarColaIngresosInterno(intento){
     actualizarBannerSyncIngresos();
     await procesarColaIngresosInterno(1);
   }catch(err){
+    // Si el servidor dice que ese registro ya no existe en la planilla (ej. un ingreso que
+    // se pide borrar o editar y ya no está), no hay nada más que hacer: se descarta ese
+    // movimiento para que no trabe a los que vienen detrás.
+    if(err && /No se encontr/i.test(String(err.message || ''))){
+      colaIngresos.shift();
+      await guardarColaIngresos();
+      actualizarBannerSyncIngresos();
+      await procesarColaIngresosInterno(1);
+      return;
+    }
     if(intento < 3){
       await new Promise(resolver => setTimeout(resolver, 1000 * intento));
       await procesarColaIngresosInterno(intento + 1);
@@ -7912,12 +8079,13 @@ function alternarVerTodosIngresosMes(){ mostrarTodosIngresosMes = !mostrarTodosI
 // Filtro de "Movimientos del mes": fechas (dentro del mes que se está
 // mirando), orígenes (multi-selección) y medio de pago. Vive fuera del
 // mes: se mantiene si cambias de mes, hasta que lo quites a mano.
-let filtroMovimientos = { desde:'', hasta:'', origenes: new Set(Object.keys(NOMBRES_FUENTE_INGRESO)), medioPago:'todos', criterio:'pago', direccion:'desc' };
+let filtroMovimientos = { texto:'', desde:'', hasta:'', origenes: new Set(Object.keys(NOMBRES_FUENTE_INGRESO)), medioPago:'todos', criterio:'pago', direccion:'desc' };
 function filtroMovActivo(){
   const f = filtroMovimientos;
   return !!f.desde || !!f.hasta || (f.origenes.size > 0 && f.origenes.size < Object.keys(NOMBRES_FUENTE_INGRESO).length) || f.medioPago !== 'todos' || f.criterio !== 'pago' || f.direccion !== 'desc';
 }
 function abrirFiltroMovimientos(){
+  document.getElementById('filtroMovTexto').value = filtroMovimientos.texto || '';
   document.getElementById('filtroMovDesde').value = filtroMovimientos.desde;
   document.getElementById('filtroMovHasta').value = filtroMovimientos.hasta;
   pintarChipsFiltroOrigen(); pintarSegmentadoFiltroMedioPago(); pintarSegmentadosOrdenMov();
@@ -7964,6 +8132,7 @@ function pintarSegmentadosOrdenMov(){
   dibujar('segmentadoOrdenMovDireccion', [['desc','Más nuevos primero'],['asc','Más antiguos primero']], 'direccion');
 }
 function aplicarFiltroMovimientos(){
+  filtroMovimientos.texto = (document.getElementById('filtroMovTexto').value || '').trim();
   filtroMovimientos.desde = document.getElementById('filtroMovDesde').value || '';
   filtroMovimientos.hasta = document.getElementById('filtroMovHasta').value || '';
   cerrarFiltroMovimientos();
@@ -7971,7 +8140,7 @@ function aplicarFiltroMovimientos(){
   renderizarVistaIngresos();
 }
 function limpiarFiltroMovimientos(){
-  filtroMovimientos = { desde:'', hasta:'', origenes: new Set(Object.keys(NOMBRES_FUENTE_INGRESO)), medioPago:'todos', criterio:'pago', direccion:'desc' };
+  filtroMovimientos = { texto:'', desde:'', hasta:'', origenes: new Set(Object.keys(NOMBRES_FUENTE_INGRESO)), medioPago:'todos', criterio:'pago', direccion:'desc' };
   cerrarFiltroMovimientos();
   renderizarVistaIngresos();
 }
@@ -8128,7 +8297,9 @@ async function renderizarVistaIngresos(){
   const filtroActivo = filtroMovActivo();
   document.getElementById('botonFiltroMov').classList.toggle('activo', filtroActivo);
   document.getElementById('puntitoFiltroMov').style.display = filtroActivo ? 'block' : 'none';
+  const textoBuscadoMov = normalizarTextoBusqueda(filtroMovimientos.texto || '');
   const delMesFiltrado = delMes.filter(i =>
+    (!textoBuscadoMov || normalizarTextoBusqueda(i.descripcion || '').includes(textoBuscadoMov)) &&
     (!filtroMovimientos.desde || i.fecha >= filtroMovimientos.desde) &&
     (!filtroMovimientos.hasta || i.fecha <= filtroMovimientos.hasta) &&
     (filtroMovimientos.origenes.size === 0 || filtroMovimientos.origenes.has(i.tipo)) &&
@@ -9259,6 +9430,7 @@ async function aplicarSincronizacionCompleta(paquete){
       if(previo && previo.montoBrutoCongeladoPorFecha && Object.keys(previo.montoBrutoCongeladoPorFecha).length) ne.montoBrutoCongeladoPorFecha = Object.assign({}, ne.montoBrutoCongeladoPorFecha || {}, previo.montoBrutoCongeladoPorFecha);
       if(previo && previo.comisionELCongeladaPorFecha && Object.keys(previo.comisionELCongeladaPorFecha).length) ne.comisionELCongeladaPorFecha = Object.assign({}, ne.comisionELCongeladaPorFecha || {}, previo.comisionELCongeladaPorFecha);
       if(previo && previo.impuestoCongeladoPorFecha && Object.keys(previo.impuestoCongeladoPorFecha).length) ne.impuestoCongeladoPorFecha = Object.assign({}, ne.impuestoCongeladoPorFecha || {}, previo.impuestoCongeladoPorFecha);
+      if(previo && previo.nombreSobrescritoPorFecha && Object.keys(previo.nombreSobrescritoPorFecha).length) ne.nombreSobrescritoPorFecha = Object.assign({}, ne.nombreSobrescritoPorFecha || {}, previo.nombreSobrescritoPorFecha);
     });
     nuevasConsultas.forEach(nc => {
       const previa = consultasUnicas.find(c => c.id === nc.id);
@@ -9729,8 +9901,9 @@ async function guardarBoletaEmitida(){
   const sel = obtenerSesionesParaBoleta().filter(p => seleccionBoletaPart.has(p.clave) && !!p.info.esEntreLazos === esFactura);
   if(!sel.length){ cerrarModalBoletaEmitida(); renderizarVistaBoletas(); return; }
   // Una boleta (o factura) por sesión. La boleta lleva el impuesto (porcentaje vigente hoy) ya calculado; la factura no.
-  const pct = configuracion.porcentajeImpuesto;
   const nuevas = sel.map(p => {
+    // El porcentaje es el que quedó congelado al marcar la sesión como pagada.
+    const pct = impuestoParaCalculo(p.info.impuestoPct);
     const d = { clave: p.clave, nombre: p.info.nombre || '', monto: p.info.montoBruto, fechaSesion: p.instancia.fecha, fechaPago: p.fechaPago || '', canal: p.info.esEntreLazos ? 'entrelazos' : 'directo' };
     if(!esFactura){ d.impuesto = Math.round(p.info.montoBruto * pct / 100); d.pct = pct; }
     else{ const com = comisionELParaCalculo(p.info.comisionEL), imp = impuestoParaCalculo(p.info.impuestoPct); d.impuesto = Math.round(p.info.montoBruto * (1 - com / 100) * imp / 100); d.pct = imp; d.comision = com; }
@@ -9754,6 +9927,269 @@ async function guardarBoletaEmitida(){
     });
   }
 }
+// ---- Boleta ligada a su sesión (v2.85)
+function boletaDeClave(clave){
+  for(const b of boletasParticulares){
+    if((b.claves || []).includes(clave)) return { b, d: (b.detalle || []).find(x => x.clave === clave) || null };
+  }
+  return null;
+}
+function datosEnvioBoleta(b){
+  return { id_boleta_particular: b.id, fecha_emision: b.fecha, numero_boleta: b.numero || '', cantidad_sesiones: (b.claves || []).length, monto_bruto_total: b.montoBruto || 0, ids_sesiones: (b.claves || []).join(','), detalle: JSON.stringify(b.detalle || []) };
+}
+function refrescarVistaBoletasSiAbierta(){ try{ renderizarVistaBoletas(); }catch(e){ /* la vista de Boletas aún no se dibuja */ } }
+// Pregunta antes de perder las boletas (y facturas) de estas sesiones. Las marcas "sin boleta" se retiran sin preguntar.
+async function confirmarPerdidaBoletas(claves){
+  const con = claves.map(c => boletaDeClave(c)).filter(r => r && !r.b.sinBoleta);
+  if(!con.length) return true;
+  const r = await preguntarDecision({
+    titulo: 'Sesión con boleta',
+    texto: con.length === 1 ? 'Esta sesión tiene una boleta emitida que se eliminará del registro de boletas.' : 'Estas sesiones tienen boletas emitidas que se eliminarán del registro de boletas.',
+    filas: con.map(x => ({ izq: `${x.d && x.d.nombre ? x.d.nombre : 'Sesión'}${x.d && x.d.fechaSesion ? ' · ' + formatearFechaMovimiento(x.d.fechaSesion) : ''}`, der: x.d && x.d.monto ? formatearCLP(x.d.monto) : '' })),
+    pregunta: '¿Quieres continuar?', textoSi: 'Sí, continuar', textoNo: 'Cancelar'
+  });
+  return r === 'si';
+}
+// Saca estas sesiones del registro de boletas (aquí y en la planilla).
+async function quitarBoletasDeClaves(claves){
+  const envios = [];
+  for(const clave of claves){
+    const r = boletaDeClave(clave); if(!r) continue;
+    const b = r.b;
+    const restantes = (b.claves || []).filter(c => c !== clave);
+    if(!restantes.length){
+      boletasParticulares = boletasParticulares.filter(x => x.id !== b.id);
+      envios.push(['eliminar_boleta_particular', { id_boleta_particular: b.id }]);
+    }else{
+      b.claves = restantes;
+      b.detalle = (b.detalle || []).filter(x => x.clave !== clave);
+      b.montoBruto = b.detalle.reduce((a,x) => a + (x.monto || 0), 0);
+      envios.push(['emitir_boleta_particular', datosEnvioBoleta(b)]);
+    }
+  }
+  if(!envios.length) return;
+  await guardarBoletasParticulares();
+  refrescarVistaBoletasSiAbierta();
+  for(const [accion, datos] of envios) await encolarAccionIngreso(accion, datos);
+}
+// La sesión cambió de clave (cambió su fecha o se movió): la boleta la sigue.
+async function reasignarClaveBoleta(claveVieja, claveNueva, fechaSesionNueva){
+  if(claveVieja === claveNueva) return;
+  const r = boletaDeClave(claveVieja); if(!r) return;
+  const b = r.b;
+  b.claves = (b.claves || []).map(c => c === claveVieja ? claveNueva : c);
+  (b.detalle || []).forEach(d => { if(d.clave === claveVieja){ d.clave = claveNueva; if(fechaSesionNueva) d.fechaSesion = fechaSesionNueva; } });
+  await guardarBoletasParticulares();
+  refrescarVistaBoletasSiAbierta();
+  await encolarAccionIngreso('emitir_boleta_particular', datosEnvioBoleta(b));
+}
+// Actualiza datos de la sesión dentro de su boleta (nombre, fecha de pago, y si hace falta monto e impuesto).
+async function actualizarDetalleBoleta(clave, cambios){
+  const r = boletaDeClave(clave); if(!r || !r.d) return;
+  Object.assign(r.d, cambios);
+  r.b.montoBruto = (r.b.detalle || []).reduce((a,x) => a + (x.monto || 0), 0);
+  await guardarBoletasParticulares();
+  refrescarVistaBoletasSiAbierta();
+  await encolarAccionIngreso('emitir_boleta_particular', datosEnvioBoleta(r.b));
+}
+function clavesBoletaDeEntidad(id, esConsulta){
+  const res = [];
+  boletasParticulares.forEach(b => (b.claves || []).forEach(c => {
+    if(esConsulta ? c === `consulta:${id}` : c.startsWith(`evento:${id}:`)) res.push(c);
+  }));
+  return res;
+}
+
+
+// ============================================================
+// SOBRESCRIBIR LA SESIÓN (v2.85)
+// Modificador supremo de una Atención: cambia nombre, monto, impuesto, comisión
+// y fecha de pago de UNA sesión (una sola fecha dentro de una serie), sin pedir
+// ninguna de las confirmaciones de siempre. Si la sesión estaba pagada, su ingreso
+// y su boleta se actualizan; si no tenía ingreso, se crea.
+// ============================================================
+let sobrescribiendo = null;
+function abrirSobrescribirSesion(){
+  let ent, inst, esConsulta = false;
+  if(consultaEnEdicionId !== null){
+    ent = consultasUnicas.find(x => x.id === consultaEnEdicionId); if(!ent) return;
+    esConsulta = true;
+    inst = { tipoInstancia:'consulta', consultaId: ent.id, fecha: ent.fecha, etiqueta:'atenciones', estadoSesion: ent.estadoSesion || null };
+  }else if(eventoEnEdicionId !== null){
+    ent = eventosAgenda.find(x => x.id === eventoEnEdicionId); if(!ent || ent.etiqueta !== 'atenciones' || !ent.pacienteId) return;
+    const f = ent.recurrencia === 'ninguna' ? ent.fecha : fechaOcurrenciaEnEdicion; if(!f) return;
+    const est = ent.recurrencia === 'ninguna' ? ent.estadoSesion : (ent.estadosPorFecha || {})[f];
+    inst = { tipoInstancia:'evento', eventoId: ent.id, fecha: f, etiqueta:'atenciones', estadoSesion: est || null };
+  }else return;
+  const info = clasificarInstanciaIngreso(inst); if(!info) return;
+  const clave = obtenerClaveOrigen(inst);
+  const pagada = ESTADOS_QUE_GENERAN_INGRESO.includes(inst.estadoSesion || '');
+  sobrescribiendo = { ent, esConsulta, inst, info, clave, esEL: !!info.esEntreLazos, pagada, estado: inst.estadoSesion || null };
+  const coma = n => String(n).replace('.', ',');
+  document.getElementById('sobNombre').value = info.nombre || '';
+  document.getElementById('sobMonto').value = String(info.montoBruto || '');
+  document.getElementById('sobImpuesto').value = coma(impuestoParaCalculo(info.impuestoPct));
+  document.getElementById('campoSobComision').style.display = info.esEntreLazos ? 'block' : 'none';
+  document.getElementById('sobComision').value = coma(comisionELParaCalculo(info.comisionEL));
+  document.getElementById('campoSobFechaPago').style.display = pagada ? 'block' : 'none';
+  document.getElementById('sobFechaPago').value = pagada ? (obtenerFechaPagoInstancia(inst) || hoyISO()) : '';
+  const nota = document.getElementById('notaSobrescribirBoleta');
+  const rb = boletaDeClave(clave);
+  const enBoletaIngresos = clavesFacturadasDesdeServidor.has(clave);
+  nota.style.display = (rb || enBoletaIngresos) ? 'block' : 'none';
+  nota.textContent = enBoletaIngresos ? 'Esta sesión ya está en una boleta de Entre Lazos de Ingresos: esa boleta ya emitida conserva su monto.' : (rb ? 'Esta sesión tiene una boleta o factura registrada: se actualizará con estos datos.' : '');
+  ocultarAvisoFormulario('avisoSobrescribir');
+  document.getElementById('fondoModalSobrescribir').classList.add('abierto');
+}
+function cerrarSobrescribirSesion(){
+  document.getElementById('fondoModalSobrescribir').classList.remove('abierto');
+  ocultarAvisoFormulario('avisoSobrescribir');
+  sobrescribiendo = null;
+}
+function leerPorcentajeTexto(t){
+  const v = parseFloat(String(t || '').replace(',', '.').trim());
+  return (isNaN(v) || v < 0 || v >= 100) ? null : Math.round(v * 100) / 100;
+}
+async function aplicarSobrescribirSesion(){
+  const so = sobrescribiendo; if(!so) return;
+  ocultarAvisoFormulario('avisoSobrescribir');
+  const nombre = document.getElementById('sobNombre').value.trim();
+  const monto = limpiarMontoTexto(document.getElementById('sobMonto').value);
+  const imp = leerPorcentajeTexto(document.getElementById('sobImpuesto').value);
+  const com = so.esEL ? leerPorcentajeTexto(document.getElementById('sobComision').value) : null;
+  const fechaPago = so.pagada ? document.getElementById('sobFechaPago').value : '';
+  const faltan = [], campos = [];
+  const falta = (t, c) => { faltan.push(t); campos.push(c); };
+  if(!nombre) falta('el nombre', 'sobNombre');
+  if(monto === null || monto <= 0) falta('el monto', 'sobMonto');
+  if(imp === null) falta('el impuesto (un número entre 0 y 99)', 'sobImpuesto');
+  if(so.esEL && com === null) falta('la comisión (un número entre 0 y 99)', 'sobComision');
+  if(so.pagada && !fechaPago) falta('la fecha de pago', 'sobFechaPago');
+  if(faltan.length){ mostrarAvisoFormulario('avisoSobrescribir', 'Falta ' + unirFaltantes(faltan) + '.', campos); return; }
+
+  const { ent, esConsulta, inst, info, clave } = so;
+  const idIngreso = idIngresoDeterministico(clave);
+  const ingExistente = ingresos.find(i => i.id === idIngreso);
+  const montoInfo = { montoBruto: monto, esEntreLazos: so.esEL, comisionEL: so.esEL ? com : undefined, impuestoPct: imp, tipo: info.tipo, nombre, formaPago: (ingExistente && ingExistente.medioPago) || '' };
+  let adultos = [];
+  if(esConsulta){
+    ent.monto = monto; ent.nombre = nombre; ent.impuestoCongelado = imp;
+    if(so.esEL) ent.comisionELCongelada = com;
+    if(so.pagada) ent.fechaPago = fechaPago;
+    ent.colaSync = ent.colaSync || [];
+    ent.colaSync.push({ accion:'editar_evento', datosBase: construirDatosConsultaBase(ent) });
+    if(so.estado) encolarActualizarEstadoSesion(ent, null, so.estado, montoInfo, idIngreso);
+  }else{
+    const f = inst.fecha;
+    ['montoBrutoCongeladoPorFecha','impuestoCongeladoPorFecha','comisionELCongeladaPorFecha','nombreSobrescritoPorFecha'].forEach(c => { ent[c] = ent[c] || {}; });
+    ent.montoBrutoCongeladoPorFecha[f] = monto; ent.impuestoCongeladoPorFecha[f] = imp;
+    if(so.esEL) ent.comisionELCongeladaPorFecha[f] = com;
+    const guardado = ent.nombreSobrescritoPorFecha[f]; delete ent.nombreSobrescritoPorFecha[f];
+    const nombreBase = obtenerNombreEvento(ent, f);
+    if(nombre !== nombreBase) ent.nombreSobrescritoPorFecha[f] = nombre;
+    if(so.pagada){ ent.marcadoPagadoPorFecha = ent.marcadoPagadoPorFecha || {}; ent.marcadoPagadoPorFecha[f] = fechaPago; }
+    adultos = (ent.adultosPorFecha && ent.adultosPorFecha[f]) || [];
+    if(so.estado) encolarActualizarEstadoSesion(ent, ent.recurrencia === 'ninguna' ? null : f, so.estado, montoInfo, idIngreso, adultos);
+  }
+  // Ingreso de la sesión: se actualiza (o se crea si faltaba).
+  if(so.pagada && !so.esEL){
+    sincronizarIngresoLocalDeSesion(idIngreso, { tipo: info.tipo, claveOrigen: clave, fecha: fechaIngresoDeSesion(ent, inst.fecha), montoBruto: monto, montoNeto: netoIngresoSesion(clave, monto, imp), nombre, medioPago: (ingExistente && ingExistente.medioPago) || '' });
+    await guardarIngresosEnAlmacenamiento();
+  }
+  // Boleta o factura ligada.
+  const rb = boletaDeClave(clave);
+  if(rb && rb.d){
+    const cambios = { nombre, monto };
+    if(so.pagada && fechaPago) cambios.fechaPago = fechaPago;
+    if(!rb.b.sinBoleta){
+      const esF = esItemFactura(rb.b, rb.d);
+      cambios.pct = imp;
+      cambios.impuesto = esF ? Math.round(monto * (1 - com / 100) * imp / 100) : Math.round(monto * imp / 100);
+      if(esF) cambios.comision = com;
+    }
+    await actualizarDetalleBoleta(clave, cambios);
+  }
+  cerrarSobrescribirSesion(); cerrarFichaEvento(); rerenderizarVistaAgendaActual();
+  if(esConsulta){ await guardarConsultasEnAlmacenamiento(); procesarColaEntidadAgenda(ent, guardarConsultasEnAlmacenamiento); }
+  else{ await guardarEventosEnAlmacenamiento(); procesarColaEntidadAgenda(ent, guardarEventosEnAlmacenamiento); }
+  try{ renderizarVistaIngresos(); }catch(e){ /* Ingresos aún no se dibuja */ }
+  mostrarAvisoFlotante('Sesión sobrescrita.');
+}
+
+// ============================================================
+// REVISIÓN DE DATOS (v2.85)
+// 1) Sesiones marcadas como pagadas que no tienen su ingreso.
+// 2) Boletas cuya sesión ya no está pagada (o ya no existe).
+// ============================================================
+async function revisarDatosSesiones(){
+  let hallazgos = 0;
+  const sinIngreso = [];
+  obtenerSesionesPagadasHastaHoy().forEach(inst => {
+    const info = clasificarInstanciaIngreso(inst); if(!info || info.esEntreLazos) return;
+    const id = idIngresoDeterministico(obtenerClaveOrigen(inst));
+    if(!ingresos.some(i => i.id === id)) sinIngreso.push({ inst, info, id });
+  });
+  if(sinIngreso.length){
+    hallazgos++;
+    const r = await preguntarDecision({
+      titulo: 'Sesiones pagadas sin ingreso',
+      texto: 'Estas sesiones figuran como pagadas en la Agenda pero no tienen su ingreso. Por eso no aparecen en Ingresos.',
+      filas: sinIngreso.map(x => ({ izq: `${formatearFechaMovimiento(x.inst.fecha)} · ${x.info.nombre || ''}`, der: formatearCLP(x.info.montoBruto) })),
+      pregunta: '¿Quieres crear los ingresos que faltan?', textoSi: 'Sí, crearlos', textoNo: 'No, dejarlo así'
+    });
+    if(r === 'si'){
+      const eventosTocados = new Set(), consultasTocadas = new Set();
+      for(const x of sinIngreso){
+        const { inst, info, id } = x;
+        const esC = inst.tipoInstancia === 'consulta';
+        const ent = esC ? consultasUnicas.find(c => c.id === inst.consultaId) : eventosAgenda.find(e => e.id === inst.eventoId);
+        if(!ent) continue;
+        const montoInfo = { montoBruto: info.montoBruto, esEntreLazos: false, impuestoPct: info.impuestoPct, tipo: info.tipo, nombre: info.nombre, formaPago: '' };
+        const clave = obtenerClaveOrigen(inst);
+        if(!esC){ ent.marcadoPagadoPorFecha = ent.marcadoPagadoPorFecha || {}; if(!ent.marcadoPagadoPorFecha[inst.fecha]) ent.marcadoPagadoPorFecha[inst.fecha] = hoyISO(); }
+        else if(!ent.fechaPago) ent.fechaPago = hoyISO();
+        sincronizarIngresoLocalDeSesion(id, { tipo: info.tipo, claveOrigen: clave, fecha: fechaIngresoDeSesion(ent, inst.fecha), montoBruto: info.montoBruto, montoNeto: netoIngresoSesion(clave, info.montoBruto, info.impuestoPct), nombre: info.nombre, medioPago: '' });
+        encolarActualizarEstadoSesion(ent, esC ? null : (ent.recurrencia === 'ninguna' ? null : inst.fecha), inst.estadoSesion, montoInfo, id, esC ? undefined : ((ent.adultosPorFecha && ent.adultosPorFecha[inst.fecha]) || []));
+        (esC ? consultasTocadas : eventosTocados).add(ent);
+      }
+      await guardarIngresosEnAlmacenamiento();
+      await guardarEventosEnAlmacenamiento(); await guardarConsultasEnAlmacenamiento();
+      eventosTocados.forEach(e => procesarColaEntidadAgenda(e, guardarEventosEnAlmacenamiento));
+      consultasTocadas.forEach(c => procesarColaEntidadAgenda(c, guardarConsultasEnAlmacenamiento));
+      try{ renderizarVistaIngresos(); }catch(e){ /* sin dibujar */ }
+    }
+  }
+  // Boletas sin sesión pagada
+  const huerfanas = [];
+  boletasParticulares.forEach(b => (b.claves || []).forEach(clave => {
+    let estado = null, existe = false, fechaSes = '';
+    let m = /^evento:([^:]+):(\d{4}-\d{2}-\d{2})$/.exec(clave);
+    if(m){
+      const ev = eventosAgenda.find(e => e.id === m[1]);
+      if(ev){ existe = true; estado = ev.recurrencia === 'ninguna' ? ev.estadoSesion : (ev.estadosPorFecha || {})[m[2]]; }
+      fechaSes = m[2];
+    }else if((m = /^consulta:(.+)$/.exec(clave))){
+      const c = consultasUnicas.find(x => x.id === m[1]);
+      if(c){ existe = true; estado = c.estadoSesion; }
+    }else return;
+    if(!existe || !ESTADOS_QUE_GENERAN_INGRESO.includes(estado || '')){
+      const d = (b.detalle || []).find(x => x.clave === clave) || {};
+      huerfanas.push({ clave, izq: `${d.fechaSesion ? formatearFechaMovimiento(d.fechaSesion) : (fechaSes ? formatearFechaMovimiento(fechaSes) : '')} · ${d.nombre || ''}`, der: d.monto ? formatearCLP(d.monto) : '' });
+    }
+  }));
+  if(huerfanas.length){
+    hallazgos++;
+    const r = await preguntarDecision({
+      titulo: 'Boletas sin sesión pagada',
+      texto: 'Estas boletas están registradas, pero su sesión ya no está pagada (o ya no existe).',
+      filas: huerfanas.map(h => ({ izq: h.izq, der: h.der })),
+      pregunta: '¿Quieres sacarlas del registro de boletas?', textoSi: 'Sí, sacarlas', textoNo: 'No, dejarlas'
+    });
+    if(r === 'si') await quitarBoletasDeClaves(huerfanas.map(h => h.clave));
+  }
+  if(!hallazgos) mostrarAvisoFlotante('Todo en orden: no encontré diferencias.');
+}
+
 // Anula la boleta de UNA sesión. Si era una boleta antigua con varias sesiones, solo
 // se quita esa sesión de la boleta (las demás quedan igual).
 async function anularSesionDeBoleta(id, clave){
