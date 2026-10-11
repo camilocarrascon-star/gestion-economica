@@ -462,6 +462,14 @@ input{ font-family:inherit; }
 .boleta-emitida-titulo{ font-size:13px; font-weight:700; color:var(--texto-principal); font-family:'Quicksand',sans-serif; }
 .boleta-emitida-monto{ font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--texto-principal); }
 .boleta-emitida-sesion{ font-size:11px; font-weight:600; color:var(--texto-secundario); display:flex; justify-content:space-between; gap:8px; }
+.alerta-triangulo{ display:inline-flex; align-items:center; margin-left:8px; flex:none; }
+.alerta-boletas-texto{ display:none; align-items:center; gap:8px; margin-bottom:8px; padding:9px 12px; border-radius:12px; background:#FBF3E2; border:1px solid #EBDCBC; font-size:12px; font-weight:650; color:#6B5320; }
+.alerta-sesion-boleta{ display:inline-flex; margin-left:6px; vertical-align:-2px; }
+.aviso-impuestos-boletas{ margin-top:12px; background:#FBF3E2; border:1px solid #EBDCBC; border-radius:14px; padding:10px 12px; color:#6B5320; }
+.aviso-impuestos-boletas summary{ font-size:13px; font-weight:750; font-family:'Quicksand',sans-serif; cursor:pointer; list-style:none; touch-action:manipulation; }
+.aviso-impuestos-boletas summary::-webkit-details-marker{ display:none; }
+.aviso-impuestos-boletas ul{ margin:8px 0 0; padding-left:18px; font-size:12px; line-height:1.45; font-weight:600; }
+.aviso-impuestos-boletas li{ margin-bottom:5px; }
 .boleta-grupo-fila{ font-size:11.5px; font-weight:600; color:var(--texto-secundario); display:flex; align-items:baseline; gap:8px; padding:2px 0; }
 .boleta-grupo-fila .nombre{ flex:1; min-width:0; }
 .boleta-grupo-fila .monto-fuente{ font-variant-numeric:tabular-nums; color:var(--texto-principal); font-weight:700; }
@@ -1099,6 +1107,11 @@ input{ font-family:inherit; }
 .tarjeta-lazos .fila-pendiente-pago .monto{ color:var(--lazos-texto); }
 .tarjeta-lazos-monto-encabezado{ font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--lazos-texto); }
 .tarjeta-lazos-nota{ font-size:10.5px; font-weight:600; color:var(--lazos-texto2); margin-top:3px; font-family:'Quicksand',sans-serif; }
+.boton-sin-boleta{ display:block; margin:7px 0 0 auto; font-size:10.5px; font-weight:650; color:var(--texto-secundario); background:var(--borde-suave); border-radius:8px; padding:5px 10px; touch-action:manipulation; }
+.boton-sin-boleta:disabled{ opacity:.45; }
+.lista-sin-boleta{ margin-top:12px; }
+.lista-sin-boleta summary{ font-size:11.5px; font-weight:650; color:var(--texto-secundario); cursor:pointer; list-style:none; padding:4px 2px; touch-action:manipulation; }
+.lista-sin-boleta summary::-webkit-details-marker{ display:none; }
 .boton-generar-boleta{ width:100%; margin-top:11px; border-radius:11px; background:var(--acento); color:#FFF6E8; font-size:13px; font-weight:700; padding:11px; font-family:'Quicksand',sans-serif; touch-action:manipulation; }
 
 .tarjeta-movimientos{ background:var(--superficie); border:1px solid var(--borde); border-radius:16px; padding:13px 14px; }
@@ -1696,6 +1709,7 @@ input{ font-family:inherit; }
     <h1>Boletas</h1>
     <div class="relleno"></div>
   </div>
+  <div class="alerta-boletas-texto" id="alertaBoletasTexto"></div>
   <div id="bannerSyncBoletas" style="display:none; margin-bottom:4px; padding:10px 12px; border-radius:12px; background:#FBF3E2; border:1px solid #EBDCBC; font-size:12px; color:#8B6516; align-items:center; gap:8px;"></div>
 
   <div class="tarjeta-lazos" id="tarjetaBoletasPendientes">
@@ -1711,6 +1725,17 @@ input{ font-family:inherit; }
     <div class="tarjeta-lazos-nota" id="boletasPendNota"></div>
     <button class="boton-ver-todos-gasto" id="botonDesplegarBoletasPend" style="margin-top:8px; width:100%; display:none;" onclick="alternarDesplegarBoletasPend()"></button>
     <div id="seccionBoletasPend" style="display:none;"></div>
+  </div>
+
+  <div class="tarjeta-lazos" id="tarjetaBoletasEL" style="margin-top:12px;">
+    <div class="tarjeta-lazos-encabezado">
+      <span class="tarjeta-lazos-titulo">Particulares Entre Lazos</span>
+      <span class="tarjeta-lazos-monto-encabezado monto-fuente" id="boletasELMonto"></span>
+      <button class="boton-ojo" id="botonOjoBoletasEL" onclick="alternarVisibilidadBoletasEL()"></button>
+    </div>
+    <div class="tarjeta-lazos-nota" id="boletasELNota"></div>
+    <button class="boton-ver-todos-gasto" id="botonDesplegarBoletasEL" style="margin-top:8px; width:100%; display:none;" onclick="alternarDesplegarBoletasEL()"></button>
+    <div class="boletas-lista-emitidas" id="seccionBoletasEL" style="display:none; margin-top:6px;"></div>
   </div>
 
   <div class="tarjeta-movimientos" style="margin-top:12px;">
@@ -1732,6 +1757,25 @@ input{ font-family:inherit; }
     <button class="boton-ver-todos-gasto" id="botonVerBoletasMes" style="margin-top:8px; width:100%; display:none;" onclick="alternarVerBoletasMes()"></button>
     <div class="boletas-lista-emitidas" id="listaBoletasMes" style="display:none;"></div>
   </div>
+
+  <details class="lista-sin-boleta" id="detalleSinBoleta" style="display:none;">
+    <summary id="resumenSinBoleta"></summary>
+    <div class="boletas-lista-emitidas" id="listaSinBoleta" style="margin-top:6px;"></div>
+  </details>
+
+  <!-- Advertencia sobre el cálculo de impuestos (texto editable aquí mismo) -->
+  <details class="aviso-impuestos-boletas" id="avisoImpuestosBoletas">
+    <summary>⚠ Importante antes de pagar tus impuestos</summary>
+    <ul>
+      <li>El impuesto que muestra la app es una <b>estimación</b>: el monto de cada sesión por el porcentaje de Configuración (hoy <span id="avisoBoletasPct"></span>%). No es el cálculo oficial del SII, y con montos grandes el total puede quedar distinto.</li>
+      <li>Cuando el paciente es una persona natural no hay quien retenga, así que la retención de esas boletas la declaras y pagas tú en el Formulario 29 del SII, dentro de los primeros 12 días del mes siguiente (hasta el día 20 si pagas electrónicamente desde el sitio del SII). Confirma siempre el plazo vigente en sii.cl.</li>
+      <li>Antes de pagar, compara el total de la app con lo que muestra el SII para ese mes. Pueden diferir por redondeos, boletas anuladas o boletas emitidas fuera de la app.</li>
+      <li>Estos pagos son un anticipo del impuesto anual (Operación Renta, en abril). Según tus ingresos de todo el año puede salir devolución o saldo a pagar. La app no calcula el impuesto anual.</li>
+      <li>La tasa cambia cada año: 15,25% en 2026, 16% en 2027 y 17% en 2028. Actualízala en Configuración, Comisiones e Impuestos, cuando corresponda.</li>
+      <li>En las boletas a Entre Lazos, normalmente retiene la empresa que paga y no tú. Confírmalo con Entre Lazos.</li>
+      <li><b>Pendiente:</b> la primera vez que pagues, comparar el monto del SII con el de la app para saber si el cálculo es coherente.</li>
+    </ul>
+  </details>
 </div>
 
 <!-- ============================================================
@@ -1819,7 +1863,7 @@ input{ font-family:inherit; }
   <div class="menu-mas" id="menuMas" style="display:none;">
     <button onclick="irAPantalla('pacientes')">Pacientes</button>
     <button onclick="irAPantalla('objetivos')">Ahorros</button>
-    <button onclick="irAPantalla('boletas')">Boletas</button>
+    <button onclick="irAPantalla('boletas')">Boletas<span id="alertaBoletasMenu" class="alerta-triangulo" style="display:none;"></span></button>
     <button onclick="irAPantalla('dashboard')">Dashboard</button>
     <button class="boton-config-menu" onclick="cerrarMenuMas(); abrirConfiguracion()" aria-label="Configuración">
       <span class="icono-config-menu">
@@ -2584,10 +2628,6 @@ input{ font-family:inherit; }
       <button class="cerrar-modal" onclick="cerrarFiltroBoletasPend()">✕</button>
     </div>
     <div class="campo-modal">
-      <span class="etiqueta-campo">Tipo de sesión</span>
-      <div class="segmentado" id="segmentadoFiltroBoletasPendCanal"></div>
-    </div>
-    <div class="campo-modal">
       <span class="etiqueta-campo">Fecha de la sesión</span>
       <div class="fila-dos-fechas">
         <div class="campo-modal" style="margin:0;">
@@ -2766,9 +2806,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.76';
+const VERSION_APP = '2.80';
 const VERSION_FECHA = '10 oct 2026';
-const VERSION_DESCRIPCION = 'Boletas: una boleta por sesión (sin número), agrupadas por fecha de emisión, cada una con su impuesto (el porcentaje de Configuración) y su botón Anular; Configuración: Valores y Comisiones de Pacientes pasa a llamarse Comisiones e Impuestos; antes: Boletas y Sesiones Entre Lazos pagadas: si una sesión pagada no guardó su fecha de pago, se muestra la fecha de su ingreso; antes: Boletas: ahora se abre desde el menú de la flecha (no desde Configuración); Sesiones pagadas sin boleta tiene filtro (tipo de sesión, fecha y paciente); antes: Configuración: al cambiar el monto FONASA, el porcentaje de impuesto o la comisión de Entre Lazos se muestran las sesiones afectadas (devengadas y Entre Lazos pagadas sin boleta) y se pregunta si se les aplica el valor nuevo (si dices No, conservan el anterior, también guardado en la planilla); antes: Configuración: al cambiar la comisión de Entre Lazos se muestran las sesiones afectadas (devengadas y pagadas sin boleta) y se pregunta si se les aplica la comisión nueva (si dices No, conservan la anterior, también guardado en la planilla); antes: Nuevo módulo Boletas (se abre desde Configuración): sesiones particulares ya pagadas sin boleta, selección, ir a la sesión en la Agenda, Boleta emitida y visor de boletas del mes con filtro; Objetivos pasa a llamarse Ahorros; antes: Agenda: al mover una sesión ya pagada, su ingreso se traslada a la sesión movida; Sesiones pagadas: cambiar la fecha o el paciente de una sesión pagada actualiza su ingreso (también en la planilla) sin duplicarlo; al omitir, mover o cambiar el día o la duración de una serie con sesiones ya pagadas aparece la advertencia y la pregunta ¿Quieres eliminar el ingreso?; Pacientes: al cambiar la tarifa de un paciente con sesiones devengadas se muestra cuáles cambian y se pregunta si se les aplica la tarifa nueva (si dices No, conservan su monto); Gastos: al editar un gasto y pasarlo a la subcategoría Ahorro se elige el objetivo y se suma; el monto congelado de sesiones devengadas se recupera desde la planilla; el teclado del computador ignora siempre el punto; al sacar un gasto de la subcategoría Ahorro se resta del objetivo de ahorro (con aviso) y el cambio de fecha también se refleja; antes: Ingresos: se pueden editar los ingresos manuales y Rucalaf; Gastos: el vínculo gasto-aporte de Ahorro queda en la planilla (no se pierde al borrar datos locales); antes: Filtros: Quitar todas en Ingresos del mes y en la lupa de la Agenda; Configuración muestra solo la versión; Gastos: al elegir la subcategoría Ahorro se elige (o se crea) el objetivo de ahorro y el gasto se suma como aporte; antes: Ingresos: filtro en Sesiones devengadas (tipo y fecha); Gastos: en el filtro, Quitar todas las categorías, subcategorías al marcar una categoría y total gastado según el filtro arriba; antes: Gastos: botón Pegar monto (ignora los puntos); Ingresos: flecha en cada sesión devengada que lleva a su día en la Agenda, columnas de igual ancho; ícono nuevo con sol y luna; antes: Ícono actualizado (dorado más brillante); Totales de ingresos: el neto se suma sin redondear cada sesión y se redondea una sola vez al final (Ingresos, Dashboard, boleta Entre Lazos); Ícono nuevo de la app (luna, sol y estrellas en burdeo y dorado); Ingresos: la ventana Entre Lazos pasa a llamarse Sesiones Entre Lazos pagadas; Ingresos: Movimientos del mes pasa a llamarse Ingresos del mes; filtros de Ingresos del mes (por fecha de pago o de sesión) y de Gastos (por fecha) con opción de orden; antes: Ícono propio de la app (pestaña del navegador y pantalla de inicio); Ingresos: etiqueta Particular / Entre Lazos en Sesiones devengadas, sesiones en 2 columnas en las tres ventanas, Movimientos con fecha de la sesión y del pago (sin el texto Efectivo/Transferencia; el dato sigue guardado y filtrable); Dashboard: efectivo del mes bajo Disponible; Gastos: filtro en Últimos registros; antes: Ingresos: las sesiones pagadas (particulares y FONASA) quedan registradas el día del pago y no el día de la sesión, también las ya existentes; Boleta Entre Lazos: cada sesión queda registrada en el mes de la boleta (cuando se cobra) y no en el mes de la sesión, también las ya emitidas; Sesión de ingreso: nuevo tipo de pago Particular Entre Lazos (monto variable, pasa por la boleta de Entre Lazos); Agenda: los eventos sin duración se acortan siempre que otro empieza antes de que terminen (quedan apilados, no lado a lado); marco rojo y apilado también entre eventos que no son Atenciones; semana desplegada: eventos más chicos como en el mes, selección de bloques cada 30 minutos, franja desde las 08:00 con líneas más marcadas a las 8, 12 y 20; antes: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
+const VERSION_DESCRIPCION = 'Boletas: ventana aparte Particulares Entre Lazos (solo registro, con o sin boleta Entre Lazos); esas sesiones ya no aparecen en Sesiones pagadas sin boleta ni suman al impuesto de Boletas emitidas del mes; antes: Boletas: la alerta ahora avisa cuando alguna sesión pagada lleva 14 días o más sin boleta; botón pequeño Sin boleta (la sesión pasa al ingreso con su monto completo, sin descontar impuesto) y lista discreta Sesiones sin boleta con Revertir; antes: Boletas: triángulo amarillo en el menú junto a Boletas si pasan 14 días sin registrar boletas (habiendo sesiones pendientes) y en cada sesión pagada con 14 días o más sin boleta; antes: Boletas: advertencia desplegable sobre el cálculo de impuestos (estimación, Formulario 29, plazo, comparar con el SII la primera vez); antes: Boletas: una boleta por sesión (sin número), agrupadas por fecha de emisión, cada una con su impuesto (el porcentaje de Configuración) y su botón Anular; Configuración: Valores y Comisiones de Pacientes pasa a llamarse Comisiones e Impuestos; antes: Boletas y Sesiones Entre Lazos pagadas: si una sesión pagada no guardó su fecha de pago, se muestra la fecha de su ingreso; antes: Boletas: ahora se abre desde el menú de la flecha (no desde Configuración); Sesiones pagadas sin boleta tiene filtro (tipo de sesión, fecha y paciente); antes: Configuración: al cambiar el monto FONASA, el porcentaje de impuesto o la comisión de Entre Lazos se muestran las sesiones afectadas (devengadas y Entre Lazos pagadas sin boleta) y se pregunta si se les aplica el valor nuevo (si dices No, conservan el anterior, también guardado en la planilla); antes: Configuración: al cambiar la comisión de Entre Lazos se muestran las sesiones afectadas (devengadas y pagadas sin boleta) y se pregunta si se les aplica la comisión nueva (si dices No, conservan la anterior, también guardado en la planilla); antes: Nuevo módulo Boletas (se abre desde Configuración): sesiones particulares ya pagadas sin boleta, selección, ir a la sesión en la Agenda, Boleta emitida y visor de boletas del mes con filtro; Objetivos pasa a llamarse Ahorros; antes: Agenda: al mover una sesión ya pagada, su ingreso se traslada a la sesión movida; Sesiones pagadas: cambiar la fecha o el paciente de una sesión pagada actualiza su ingreso (también en la planilla) sin duplicarlo; al omitir, mover o cambiar el día o la duración de una serie con sesiones ya pagadas aparece la advertencia y la pregunta ¿Quieres eliminar el ingreso?; Pacientes: al cambiar la tarifa de un paciente con sesiones devengadas se muestra cuáles cambian y se pregunta si se les aplica la tarifa nueva (si dices No, conservan su monto); Gastos: al editar un gasto y pasarlo a la subcategoría Ahorro se elige el objetivo y se suma; el monto congelado de sesiones devengadas se recupera desde la planilla; el teclado del computador ignora siempre el punto; al sacar un gasto de la subcategoría Ahorro se resta del objetivo de ahorro (con aviso) y el cambio de fecha también se refleja; antes: Ingresos: se pueden editar los ingresos manuales y Rucalaf; Gastos: el vínculo gasto-aporte de Ahorro queda en la planilla (no se pierde al borrar datos locales); antes: Filtros: Quitar todas en Ingresos del mes y en la lupa de la Agenda; Configuración muestra solo la versión; Gastos: al elegir la subcategoría Ahorro se elige (o se crea) el objetivo de ahorro y el gasto se suma como aporte; antes: Ingresos: filtro en Sesiones devengadas (tipo y fecha); Gastos: en el filtro, Quitar todas las categorías, subcategorías al marcar una categoría y total gastado según el filtro arriba; antes: Gastos: botón Pegar monto (ignora los puntos); Ingresos: flecha en cada sesión devengada que lleva a su día en la Agenda, columnas de igual ancho; ícono nuevo con sol y luna; antes: Ícono actualizado (dorado más brillante); Totales de ingresos: el neto se suma sin redondear cada sesión y se redondea una sola vez al final (Ingresos, Dashboard, boleta Entre Lazos); Ícono nuevo de la app (luna, sol y estrellas en burdeo y dorado); Ingresos: la ventana Entre Lazos pasa a llamarse Sesiones Entre Lazos pagadas; Ingresos: Movimientos del mes pasa a llamarse Ingresos del mes; filtros de Ingresos del mes (por fecha de pago o de sesión) y de Gastos (por fecha) con opción de orden; antes: Ícono propio de la app (pestaña del navegador y pantalla de inicio); Ingresos: etiqueta Particular / Entre Lazos en Sesiones devengadas, sesiones en 2 columnas en las tres ventanas, Movimientos con fecha de la sesión y del pago (sin el texto Efectivo/Transferencia; el dato sigue guardado y filtrable); Dashboard: efectivo del mes bajo Disponible; Gastos: filtro en Últimos registros; antes: Ingresos: las sesiones pagadas (particulares y FONASA) quedan registradas el día del pago y no el día de la sesión, también las ya existentes; Boleta Entre Lazos: cada sesión queda registrada en el mes de la boleta (cuando se cobra) y no en el mes de la sesión, también las ya emitidas; Sesión de ingreso: nuevo tipo de pago Particular Entre Lazos (monto variable, pasa por la boleta de Entre Lazos); Agenda: los eventos sin duración se acortan siempre que otro empieza antes de que terminen (quedan apilados, no lado a lado); marco rojo y apilado también entre eventos que no son Atenciones; semana desplegada: eventos más chicos como en el mes, selección de bloques cada 30 minutos, franja desde las 08:00 con líneas más marcadas a las 8, 12 y 20; antes: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -3237,6 +3277,7 @@ function alternarMenuMas(){
   const menu = document.getElementById('menuMas');
   const overlay = document.getElementById('overlayMenuMas');
   const abierto = menu.style.display === 'flex';
+  if(!abierto) actualizarAlertaBoletas();
   menu.style.display = abierto ? 'none' : 'flex';
   overlay.classList.toggle('visible', !abierto);
   document.getElementById('navMas').classList.toggle('abierto', !abierto);
@@ -4516,7 +4557,8 @@ function encolarActualizarEstadoSesion(entidad, fechaOcurrencia, estado, montoIn
   if(adultosPresentes !== undefined) datosBase.adultos_presentes = (adultosPresentes || []).join(' | ');
   let generaIngreso = false;
   if(montoInfo && !montoInfo.esEntreLazos && ESTADOS_QUE_GENERAN_INGRESO.includes(estado)){
-    const montoNeto = calcularNeto(montoInfo.montoBruto, false, undefined, montoInfo.impuestoPct);
+    const esConsultaEntidad = entidad.etiqueta === undefined && entidad.tipoPago !== undefined;
+    const montoNeto = netoIngresoSesion(esConsultaEntidad ? `consulta:${entidad.id}` : `evento:${entidad.id}:${fechaEvento}`, montoInfo.montoBruto, montoInfo.impuestoPct);
     datosBase.monto_congelado = montoNeto;
     datosBase.generar_ingreso = { fecha_evento: fechaIngresoDeSesion(entidad, fechaEvento), id_ingreso: idIngreso, monto_bruto: montoInfo.montoBruto, monto_neto: montoNeto, forma_pago: montoInfo.formaPago || '', categoria_manual: montoInfo.tipo || '', descripcion: montoInfo.nombre || '' };
     generaIngreso = true;
@@ -5982,7 +6024,7 @@ async function guardarFichaEventoInterno(){
       // sesión deja de estar pagada.
       if(!esEntreLazos){
         if(siguePagada){
-          sincronizarIngresoLocalDeSesion(idIngreso, { tipo: tipoIngresoConsulta, claveOrigen: obtenerClaveOrigen({ tipoInstancia:'consulta', consultaId: consultaGuardada.id }), fecha: fechaIngresoDeSesion(consultaGuardada, fecha), montoBruto: monto, montoNeto: calcularNeto(monto, false, undefined, consultaGuardada.impuestoCongelado), nombre, medioPago: medioElegidoConsulta });
+          sincronizarIngresoLocalDeSesion(idIngreso, { tipo: tipoIngresoConsulta, claveOrigen: obtenerClaveOrigen({ tipoInstancia:'consulta', consultaId: consultaGuardada.id }), fecha: fechaIngresoDeSesion(consultaGuardada, fecha), montoBruto: monto, montoNeto: netoIngresoSesion(`consulta:${consultaGuardada.id}`, monto, consultaGuardada.impuestoCongelado), nombre, medioPago: medioElegidoConsulta });
         }else{
           sincronizarIngresoLocalDeSesion(idIngreso, null);
         }
@@ -6213,7 +6255,7 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
     // guardado, y se borra si esa fecha deja de estar pagada.
     if(montoInfo && !montoInfo.esEntreLazos){
       if(siguePagada){
-        sincronizarIngresoLocalDeSesion(idIngreso, { tipo: montoInfo.tipo, claveOrigen: obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaClaveOrigen }), fecha: fechaIngresoDeSesion(evento, fechaClaveOrigen), montoBruto: montoInfo.montoBruto, montoNeto: calcularNeto(montoInfo.montoBruto, false, undefined, montoInfo.impuestoPct), nombre: montoInfo.nombre || '', medioPago: medioElegidoEvento || (ingresoAnteriorSuelta && ingresoAnteriorSuelta.medioPago) || '' });
+        sincronizarIngresoLocalDeSesion(idIngreso, { tipo: montoInfo.tipo, claveOrigen: obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaClaveOrigen }), fecha: fechaIngresoDeSesion(evento, fechaClaveOrigen), montoBruto: montoInfo.montoBruto, montoNeto: netoIngresoSesion(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: evento.id, fecha: fechaClaveOrigen }), montoInfo.montoBruto, montoInfo.impuestoPct), nombre: montoInfo.nombre || '', medioPago: medioElegidoEvento || (ingresoAnteriorSuelta && ingresoAnteriorSuelta.medioPago) || '' });
       }else{
         sincronizarIngresoLocalDeSesion(idIngreso, null);
       }
@@ -7585,7 +7627,7 @@ async function confirmarPagoDesdeIngresos(inst, medioPago){
     const c = consultasUnicas.find(x => x.id === inst.consultaId); if(!c) return;
     c.estadoSesion = nuevoEstado; c.fechaPago = hoyISO();
     encolarActualizarEstadoSesion(c, null, nuevoEstado, montoInfo, idIngreso);
-    if(!info.esEntreLazos) sincronizarIngresoLocalDeSesion(idIngreso, { tipo: info.tipo, claveOrigen: obtenerClaveOrigen(inst), fecha: fechaIngresoDeSesion(c, inst.fecha), montoBruto: info.montoBruto, montoNeto: calcularNeto(info.montoBruto, false, undefined, info.impuestoPct), nombre: info.nombre, medioPago });
+    if(!info.esEntreLazos) sincronizarIngresoLocalDeSesion(idIngreso, { tipo: info.tipo, claveOrigen: obtenerClaveOrigen(inst), fecha: fechaIngresoDeSesion(c, inst.fecha), montoBruto: info.montoBruto, montoNeto: netoIngresoSesion(obtenerClaveOrigen(inst), info.montoBruto, info.impuestoPct), nombre: info.nombre, medioPago });
     await guardarConsultasEnAlmacenamiento();
     procesarColaEntidadAgenda(c, guardarConsultasEnAlmacenamiento);
   }else{
@@ -7594,7 +7636,7 @@ async function confirmarPagoDesdeIngresos(inst, medioPago){
     else{ evento.estadosPorFecha = evento.estadosPorFecha || {}; evento.estadosPorFecha[inst.fecha] = nuevoEstado; }
     evento.marcadoPagadoPorFecha = evento.marcadoPagadoPorFecha || {}; evento.marcadoPagadoPorFecha[inst.fecha] = hoyISO();
     encolarActualizarEstadoSesion(evento, evento.recurrencia === 'ninguna' ? null : inst.fecha, nuevoEstado, montoInfo, idIngreso, (evento.adultosPorFecha && evento.adultosPorFecha[inst.fecha]) || []);
-    if(!info.esEntreLazos) sincronizarIngresoLocalDeSesion(idIngreso, { tipo: info.tipo, claveOrigen: obtenerClaveOrigen(inst), fecha: fechaIngresoDeSesion(evento, inst.fecha), montoBruto: info.montoBruto, montoNeto: calcularNeto(info.montoBruto, false, undefined, info.impuestoPct), nombre: info.nombre, medioPago });
+    if(!info.esEntreLazos) sincronizarIngresoLocalDeSesion(idIngreso, { tipo: info.tipo, claveOrigen: obtenerClaveOrigen(inst), fecha: fechaIngresoDeSesion(evento, inst.fecha), montoBruto: info.montoBruto, montoNeto: netoIngresoSesion(obtenerClaveOrigen(inst), info.montoBruto, info.impuestoPct), nombre: info.nombre, medioPago });
     await guardarEventosEnAlmacenamiento();
     procesarColaEntidadAgenda(evento, guardarEventosEnAlmacenamiento);
   }
@@ -9283,6 +9325,7 @@ async function aplicarSincronizacionCompleta(paquete){
     await guardarBoletasParticulares();
     if(document.getElementById('pantallaBoletas') && document.getElementById('pantallaBoletas').style.display !== 'none') renderizarVistaBoletas();
   }
+  actualizarAlertaBoletas();
 
   const vigentes = paquete.configGlobal;
   if(vigentes && typeof vigentes === 'object'){
@@ -9330,6 +9373,8 @@ async function sincronizarTodo(){
    BoletasParticulares de la planilla. Las sesiones devengadas y las
    ausencias justificadas no aparecen (no hay pago).
    ============================================================ */
+// Las sesiones que se deciden NO boletear se guardan en la misma pestaña, con esta marca en numero_boleta.
+const MARCA_SIN_BOLETA = 'SIN_BOLETA';
 let boletasParticulares = [];
 async function cargarBoletasParticulares(){
   try{ const r = await window.storage.get(CLAVE_BOLETAS_PARTICULARES, false); boletasParticulares = (r && r.value) ? JSON.parse(r.value) : []; }
@@ -9350,16 +9395,47 @@ function mapearBoletaParticularDesdeServidor(f){
     numero: String(f.numero_boleta === undefined || f.numero_boleta === null ? '' : f.numero_boleta),
     claves: claves.length ? claves : detalle.map(d => d.clave).filter(Boolean),
     montoBruto: Number(f.monto_bruto_total) || 0,
+    sinBoleta: String(f.numero_boleta) === MARCA_SIN_BOLETA,
     detalle,
     creado: Date.parse(String(f.fecha_registro || '').replace(' ', 'T')) || Date.now()
   };
 }
 
-let vBoletasPend = false, vBoletasMes = false;
+let vBoletasPend = false, vBoletasMes = false, vBoletasEL = false;
+function alternarVisibilidadBoletasEL(){ vBoletasEL = !vBoletasEL; renderizarVistaBoletas(); }
 let desplegarBoletasPend = false, desplegarBoletasMes = false;
 let seleccionBoletaPart = new Set();
 let mesBoletasMostrado = new Date().getMonth(), anioBoletasMostrado = new Date().getFullYear();
 let filtroBoletas = { desde:'', hasta:'', texto:'' };
+// ---- Alertas de boletas atrasadas (triángulo amarillo)
+// Una sesión pagada lleva 14 días o más sin boleta.
+const DIAS_ALERTA_BOLETA = 14;
+function iconoAlertaSVG(tam){
+  return `<svg viewBox="0 0 24 24" width="${tam}" height="${tam}" aria-hidden="true"><path d="M12 3 L22 20.5 H2 Z" fill="#F2B705" stroke="#B98600" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 9.5 V14.5" stroke="#5A4300" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17.4" r="1.25" fill="#5A4300"/></svg>`;
+}
+function diasDesdeISO(iso){
+  if(!iso) return 0;
+  return Math.round((fechaDesdeISO(hoyISO()) - fechaDesdeISO(String(iso).slice(0,10))) / 86400000);
+}
+function calcularAlertaBoletas(){
+  // Alerta cuando alguna sesión pagada lleva 14 días o más sin boleta.
+  const atrasadas = obtenerSesionesParaBoleta().filter(p => p.diasSinBoleta >= DIAS_ALERTA_BOLETA);
+  if(atrasadas.length === 0) return { activa:false, dias:0, atrasadas:0 };
+  return { activa:true, dias: Math.max(...atrasadas.map(p => p.diasSinBoleta)), atrasadas: atrasadas.length };
+}
+function actualizarAlertaBoletas(){
+  const a = calcularAlertaBoletas();
+  const menu = document.getElementById('alertaBoletasMenu');
+  if(menu){ menu.innerHTML = a.activa ? iconoAlertaSVG(17) : ''; menu.style.display = a.activa ? 'inline-flex' : 'none'; }
+  const texto = document.getElementById('alertaBoletasTexto');
+  if(texto){
+    texto.style.display = a.activa ? 'flex' : 'none';
+    texto.innerHTML = a.activa ? `${iconoAlertaSVG(18)}<span>${a.atrasadas} ${a.atrasadas===1?'sesión pagada lleva':'sesiones pagadas llevan'} ${DIAS_ALERTA_BOLETA} días o más sin boleta (la más antigua, ${a.dias} días).</span>` : '';
+  }
+}
+function esSesionSinBoleta(clave){ return boletasParticulares.some(b => b.sinBoleta && (b.claves || []).includes(clave)); }
+// Neto del ingreso de una sesión particular: sin boleta no se descuenta el impuesto.
+function netoIngresoSesion(clave, bruto, impuestoPct){ return esSesionSinBoleta(clave) ? bruto : calcularNeto(bruto, false, undefined, impuestoPct); }
 function alternarVisibilidadBoletasPend(){ vBoletasPend = !vBoletasPend; renderizarVistaBoletas(); }
 function alternarVisibilidadBoletasMes(){ vBoletasMes = !vBoletasMes; renderizarVistaBoletas(); }
 function alternarDesplegarBoletasPend(){ desplegarBoletasPend = !desplegarBoletasPend; renderizarVistaBoletas(); }
@@ -9370,26 +9446,15 @@ function cambiarMesBoletas(delta){
   if(mesBoletasMostrado < 0){ mesBoletasMostrado = 11; anioBoletasMostrado--; }
   renderizarVistaBoletas();
 }
-let filtroBoletasPend = { desde:'', hasta:'', canal:'todos', texto:'' };
-function filtroBoletasPendActivo(){ return !!filtroBoletasPend.desde || !!filtroBoletasPend.hasta || filtroBoletasPend.canal !== 'todos' || !!filtroBoletasPend.texto; }
+let filtroBoletasPend = { desde:'', hasta:'', texto:'' };
+function filtroBoletasPendActivo(){ return !!filtroBoletasPend.desde || !!filtroBoletasPend.hasta || !!filtroBoletasPend.texto; }
 function abrirFiltroBoletasPend(){
   document.getElementById('filtroBoletasPendDesde').value = filtroBoletasPend.desde;
   document.getElementById('filtroBoletasPendHasta').value = filtroBoletasPend.hasta;
   document.getElementById('filtroBoletasPendTexto').value = filtroBoletasPend.texto;
-  pintarSegmentadoFiltroBoletasPend();
   document.getElementById('fondoModalFiltroBoletasPend').classList.add('abierto');
 }
 function cerrarFiltroBoletasPend(){ document.getElementById('fondoModalFiltroBoletasPend').classList.remove('abierto'); }
-function pintarSegmentadoFiltroBoletasPend(){
-  const c = document.getElementById('segmentadoFiltroBoletasPendCanal'); c.innerHTML = '';
-  [['todos','Todas'],['particular','Particular'],['entrelazos','Entre Lazos']].forEach(([valor,nombre]) => {
-    const b = document.createElement('button');
-    b.className = filtroBoletasPend.canal === valor ? 'seleccionado' : '';
-    b.textContent = nombre;
-    b.onclick = () => { filtroBoletasPend.canal = valor; pintarSegmentadoFiltroBoletasPend(); };
-    c.appendChild(b);
-  });
-}
 function aplicarFiltroBoletasPend(){
   filtroBoletasPend.desde = document.getElementById('filtroBoletasPendDesde').value || '';
   filtroBoletasPend.hasta = document.getElementById('filtroBoletasPendHasta').value || '';
@@ -9398,7 +9463,7 @@ function aplicarFiltroBoletasPend(){
   cerrarFiltroBoletasPend(); renderizarVistaBoletas();
 }
 function limpiarFiltroBoletasPend(){
-  filtroBoletasPend = { desde:'', hasta:'', canal:'todos', texto:'' };
+  filtroBoletasPend = { desde:'', hasta:'', texto:'' };
   cerrarFiltroBoletasPend(); renderizarVistaBoletas();
 }
 function filtroBoletasActivo(){ return !!filtroBoletas.desde || !!filtroBoletas.hasta || !!filtroBoletas.texto; }
@@ -9422,14 +9487,33 @@ function obtenerSesionesParaBoleta(){
     if(yaConBoleta.has(clave)) return;
     if(!sesionEsPagoParticular(inst)) return;
     const info = clasificarInstanciaIngreso(inst); if(!info) return;
+    if(info.esEntreLazos) return; // las de Entre Lazos van en su propia ventana (el impuesto ya viene en la boleta de Entre Lazos)
     // Si la sesión no guardó su fecha de pago (se marcó pagada antes de que se
     // guardara ese dato), se usa la fecha de su ingreso, que es la más cercana.
     const ingresoDeSesion = ingresos.find(i => i.id === idIngresoDeterministico(clave));
-    res.push({ instancia: inst, clave, info, fechaPago: obtenerFechaPagoInstancia(inst) || (ingresoDeSesion && ingresoDeSesion.fecha) || null });
+    const fechaPagoSesion = obtenerFechaPagoInstancia(inst) || (ingresoDeSesion && ingresoDeSesion.fecha) || null;
+    res.push({ instancia: inst, clave, info, fechaPago: fechaPagoSesion, diasSinBoleta: diasDesdeISO(fechaPagoSesion || inst.fecha) });
   });
   res.sort((a,b) => a.instancia.fecha.localeCompare(b.instancia.fecha));
   return res;
 }
+// Particulares de Entre Lazos: solo se registran aquí. Su impuesto ya se descuenta en
+// la boleta de Entre Lazos (Ingresos), por eso no entran a las boletas ni a sus totales.
+function obtenerParticularesEntreLazos(){
+  const incluidas = obtenerClavesYaIncluidasEnBoletas();
+  const res = [];
+  obtenerSesionesPagadasHastaHoy().forEach(inst => {
+    if(!sesionEsPagoParticular(inst)) return;
+    const info = clasificarInstanciaIngreso(inst); if(!info || !info.esEntreLazos) return;
+    const clave = obtenerClaveOrigen(inst);
+    const ing = incluidas.has(clave) ? ingresos.find(i => i.id === idIngresoDeterministico(clave)) : null;
+    res.push({ clave, nombre: info.nombre || '', fecha: inst.fecha, bruto: info.montoBruto, conBoleta: incluidas.has(clave), fechaBoleta: ing ? ing.fecha : '' });
+  });
+  res.sort((a,b) => b.fecha.localeCompare(a.fecha));
+  return res;
+}
+let desplegarBoletasEL = false;
+function alternarDesplegarBoletasEL(){ desplegarBoletasEL = !desplegarBoletasEL; renderizarVistaBoletas(); }
 function alternarSeleccionBoletaPart(clave){
   if(seleccionBoletaPart.has(clave)) seleccionBoletaPart.delete(clave); else seleccionBoletaPart.add(clave);
   renderizarVistaBoletas();
@@ -9441,6 +9525,8 @@ function irAAgendaDesdeBoleta(clave){
 }
 function renderizarVistaBoletas(){
   if(!document.getElementById('pantallaBoletas')) return;
+  actualizarAlertaBoletas();
+  const spanPct = document.getElementById('avisoBoletasPct'); if(spanPct) spanPct.textContent = String(configuracion.porcentajeImpuesto).replace('.', ',');
   // ---- Sesiones pagadas sin boleta
   const filtPendActivo = filtroBoletasPendActivo();
   document.getElementById('botonFiltroBoletasPend').classList.toggle('activo', filtPendActivo);
@@ -9449,7 +9535,6 @@ function renderizarVistaBoletas(){
   const pend = obtenerSesionesParaBoleta().filter(p =>
     (!filtroBoletasPend.desde || p.instancia.fecha >= filtroBoletasPend.desde) &&
     (!filtroBoletasPend.hasta || p.instancia.fecha <= filtroBoletasPend.hasta) &&
-    (filtroBoletasPend.canal === 'todos' || (filtroBoletasPend.canal === 'entrelazos') === !!p.info.esEntreLazos) &&
     (!textoPend || String(p.info.nombre || '').toLowerCase().includes(textoPend)));
   const clavesPend = new Set(pend.map(p => p.clave));
   [...seleccionBoletaPart].forEach(c => { if(!clavesPend.has(c)) seleccionBoletaPart.delete(c); });
@@ -9473,7 +9558,7 @@ function renderizarVistaBoletas(){
             <input type="checkbox" class="check-lazos" ${seleccionBoletaPart.has(p.clave) ? 'checked' : ''} onchange="alternarSeleccionBoletaPart('${p.clave}')">
             <span class="casilla-lazos" aria-hidden="true"></span>
           </label>
-          <span class="nombre">${escaparHTML(p.info.nombre || '')}</span>
+          <span class="nombre">${escaparHTML(p.info.nombre || '')}${p.diasSinBoleta >= DIAS_ALERTA_BOLETA ? `<span class="alerta-sesion-boleta" title="Hace ${p.diasSinBoleta} días sin boleta" aria-label="Hace ${p.diasSinBoleta} días sin boleta">${iconoAlertaSVG(14)}</span>` : ''}</span>
         </div>
         <span class="monto monto-fuente">${textoMontoOculto(p.info.montoBruto, vBoletasPend)}</span>
         <span class="fecha">Sesión: ${formatearFechaMovimiento(p.instancia.fecha)}</span>
@@ -9483,8 +9568,34 @@ function renderizarVistaBoletas(){
           <button class="boton-ir-agenda" onclick="irAAgendaDesdeBoleta('${p.clave}')" aria-label="Ir a la sesión en la Agenda"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 5l7 7-7 7"/></svg></button>
         </div>
       </div>
-    `).join('') + `</div><button class="boton-generar-boleta" onclick="abrirModalBoletaEmitida()" ${sel.length === 0 ? 'disabled' : ''}>Boleta emitida${sel.length ? ` (${sel.length} · ${textoMontoOculto(totalSel, vBoletasPend)})` : ''}</button>`;
+    `).join('') + `</div><button class="boton-generar-boleta" onclick="abrirModalBoletaEmitida()" ${sel.length === 0 ? 'disabled' : ''}>Boleta emitida${sel.length ? ` (${sel.length} · ${textoMontoOculto(totalSel, vBoletasPend)})` : ''}</button><button class="boton-sin-boleta" onclick="marcarSesionesSinBoleta()" ${sel.length === 0 ? 'disabled' : ''}>Sin boleta</button>`;
   }
+
+  // ---- Particulares Entre Lazos (solo registro)
+  const lista_EL = obtenerParticularesEntreLazos();
+  pintarBotonOjo('botonOjoBoletasEL', vBoletasEL);
+  document.getElementById('boletasELMonto').textContent = textoMontoOculto(lista_EL.reduce((a,x) => a + x.bruto, 0), vBoletasEL);
+  const conBol = lista_EL.filter(x => x.conBoleta).length;
+  document.getElementById('boletasELNota').textContent = lista_EL.length === 0
+    ? 'Aún no hay sesiones particulares de Entre Lazos pagadas.'
+    : `${lista_EL.length} ${lista_EL.length===1?'sesión':'sesiones'} · ${conBol} con boleta Entre Lazos · el impuesto ya viene descontado en esa boleta`;
+  const botonEL = document.getElementById('botonDesplegarBoletasEL'), seccionEL = document.getElementById('seccionBoletasEL');
+  if(lista_EL.length === 0){ botonEL.style.display = 'none'; seccionEL.style.display = 'none'; seccionEL.innerHTML = ''; }
+  else{
+    botonEL.style.display = 'block';
+    botonEL.textContent = desplegarBoletasEL ? 'Ocultar detalle' : `Ver detalle (${lista_EL.length})`;
+    seccionEL.style.display = desplegarBoletasEL ? 'grid' : 'none';
+    seccionEL.innerHTML = lista_EL.map(x => `<div class="boleta-grupo-fila"><span class="nombre">${escaparHTML(x.nombre)} · ${formatearFechaMovimiento(x.fecha)}</span><span class="monto-fuente">${textoMontoOculto(x.bruto, vBoletasEL)}</span><span style="font-size:10.5px; min-width:78px; max-width:110px; text-align:right;">${x.conBoleta ? 'Boleta' + (x.fechaBoleta ? ' ' + formatearFechaMovimiento(x.fechaBoleta) : ' EL') : 'Pendiente de boleta EL'}</span></div>`).join('');
+  }
+
+  // ---- Sesiones sin boleta (lista aparte y discreta)
+  const sinBoleta = [];
+  boletasParticulares.filter(b => b.sinBoleta).forEach(b => (b.detalle || []).forEach(d => sinBoleta.push({ id: b.id, nombre: d.nombre || '', fechaSesion: d.fechaSesion || '', monto: d.monto || 0 })));
+  sinBoleta.sort((x,y) => (y.fechaSesion || '').localeCompare(x.fechaSesion || ''));
+  const detSin = document.getElementById('detalleSinBoleta');
+  detSin.style.display = sinBoleta.length ? 'block' : 'none';
+  document.getElementById('resumenSinBoleta').textContent = `Sesiones sin boleta (${sinBoleta.length})`;
+  document.getElementById('listaSinBoleta').innerHTML = sinBoleta.map(f => `<div class="boleta-grupo-fila"><span class="nombre">${escaparHTML(f.nombre)}${f.fechaSesion ? ' · ' + formatearFechaMovimiento(f.fechaSesion) : ''}</span><span class="monto-fuente">${textoMontoOculto(f.monto, vBoletasMes)}</span><button class="anular-fila" onclick="revertirSinBoleta('${f.id}')">Revertir</button></div>`).join('');
 
   // ---- Boletas emitidas del mes
   document.getElementById('tituloMesBoletas').textContent = `${NOMBRES_MES[mesBoletasMostrado]} ${anioBoletasMostrado}`;
@@ -9494,7 +9605,7 @@ function renderizarVistaBoletas(){
   document.getElementById('botonFiltroBoletas').classList.toggle('activo', activo);
   document.getElementById('puntitoFiltroBoletas').style.display = activo ? 'block' : 'none';
   const texto = normalizarTextoBusqueda(filtroBoletas.texto || '');
-  const delMes = boletasParticulares
+  const delMes = boletasParticulares.filter(b => !b.sinBoleta)
     // Con un rango de fechas en el filtro se mira ese rango; sin rango, el mes elegido.
     .filter(b => (filtroBoletas.desde || filtroBoletas.hasta) ? ((!filtroBoletas.desde || b.fecha >= filtroBoletas.desde) && (!filtroBoletas.hasta || b.fecha <= filtroBoletas.hasta)) : (b.fecha >= inicioMes && b.fecha <= finMes))
     .sort((a,b) => b.fecha.localeCompare(a.fecha) || (b.creado||0) - (a.creado||0));
@@ -9505,6 +9616,7 @@ function renderizarVistaBoletas(){
   delMes.forEach(bo => {
     const det = (bo.detalle && bo.detalle.length) ? bo.detalle : (bo.claves || []).map(c => ({ clave: c, nombre: '', monto: 0 }));
     det.forEach(d => {
+      if(d.canal === 'entrelazos') return; // boletas antiguas de Entre Lazos: su impuesto ya viene en la boleta de Entre Lazos
       if(texto && !normalizarTextoBusqueda(d.nombre || '').includes(texto)) return;
       filas.push({ id: bo.id, fecha: bo.fecha, creado: bo.creado || 0, clave: d.clave, nombre: d.nombre || '', fechaSesion: d.fechaSesion || '', bruto: d.monto || 0, impuesto: impuestoDeBoletaSesion(d) });
     });
@@ -9610,6 +9722,59 @@ async function anularSesionDeBoleta(id, clave){
     cantidad_sesiones: b.claves.length, monto_bruto_total: b.montoBruto,
     ids_sesiones: b.claves.join(','), detalle: JSON.stringify(b.detalle)
   });
+}
+
+// ---- Sesiones sin boleta
+// Casos puntuales (paciente que viene poco y no pide boleta): la sesión sale de
+// "pagadas sin boleta" y su ingreso cuenta completo, sin descontar el impuesto.
+// Se guarda en la pestaña BoletasParticulares con numero_boleta = SIN_BOLETA.
+async function marcarSesionesSinBoleta(){
+  const sel = obtenerSesionesParaBoleta().filter(p => seleccionBoletaPart.has(p.clave));
+  if(!sel.length) return;
+  const validas = sel.filter(p => !p.info.esEntreLazos);
+  const omitidas = sel.length - validas.length;
+  if(!validas.length){ mostrarAvisoFlotante('Las sesiones de Entre Lazos no se pueden marcar sin boleta desde aquí.'); return; }
+  const r = await preguntarDecision({
+    titulo: 'Sesiones sin boleta',
+    texto: `Estas sesiones no tendrán boleta. Pasarán a tu ingreso con su monto completo (sin descontar impuesto) y saldrán de esta lista. Podrás revertirlo.${omidasTexto(omitidas)}`,
+    filas: validas.map(p => ({ izq: `${formatearFechaMovimiento(p.instancia.fecha)} · ${p.info.nombre || ''}`, der: formatearCLP(p.info.montoBruto) })),
+    pregunta: '¿Confirmas que estas sesiones no llevarán boleta?', textoSi: 'Sí, sin boleta', textoNo: 'Cancelar'
+  });
+  if(r !== 'si') return;
+  const fecha = hoyISO();
+  for(const p of validas){
+    const d = { clave: p.clave, nombre: p.info.nombre || '', monto: p.info.montoBruto, fechaSesion: p.instancia.fecha, fechaPago: p.fechaPago || '', canal: 'directo', sinBoleta: true };
+    const unico = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : generarId() + generarId();
+    const reg = { id: 'BOP-' + unico.replace(/-/g,'').slice(0,8).toUpperCase(), fecha, numero: MARCA_SIN_BOLETA, sinBoleta: true, claves: [p.clave], montoBruto: d.monto, detalle: [d], creado: Date.now() };
+    boletasParticulares.push(reg);
+    const ing = ingresos.find(i => i.id === idIngresoDeterministico(p.clave));
+    if(ing){ ing.montoNeto = ing.montoBruto; }
+    await guardarBoletasParticulares();
+    await guardarIngresosEnAlmacenamiento();
+    await encolarAccionIngreso('emitir_boleta_particular', { id_boleta_particular: reg.id, fecha_emision: fecha, numero_boleta: MARCA_SIN_BOLETA, cantidad_sesiones: 1, monto_bruto_total: d.monto, ids_sesiones: p.clave, detalle: JSON.stringify([d]) });
+    if(ing) await encolarAccionIngreso('editar_ingreso', { id_ingreso: ing.id, monto_neto: ing.montoNeto });
+  }
+  seleccionBoletaPart.clear();
+  renderizarVistaBoletas();
+}
+function omidasTexto(n){ return n ? ` (${n} ${n===1?'sesión de Entre Lazos se omite':'sesiones de Entre Lazos se omiten'}: pasan por la boleta de Entre Lazos).` : ''; }
+async function revertirSinBoleta(id){
+  const reg = boletasParticulares.find(x => x.id === id && x.sinBoleta); if(!reg) return;
+  const d = (reg.detalle || [])[0] || {};
+  const r = await preguntarDecision({
+    titulo: 'Revertir',
+    texto: `${d.nombre || 'La sesión'}${d.fechaSesion ? ' del ' + formatearFechaMovimiento(d.fechaSesion) : ''} volverá a quedar como pagada sin boleta, y su ingreso volverá a descontar el impuesto.`,
+    filas: [], pregunta: '¿Quieres revertirlo?', textoSi: 'Sí, revertir', textoNo: 'No'
+  });
+  if(r !== 'si') return;
+  boletasParticulares = boletasParticulares.filter(x => x.id !== id);
+  await guardarBoletasParticulares();
+  const clave = (reg.claves || [])[0];
+  const ing = clave ? ingresos.find(i => i.id === idIngresoDeterministico(clave)) : null;
+  if(ing){ ing.montoNeto = calcularNeto(ing.montoBruto, false); await guardarIngresosEnAlmacenamiento(); }
+  renderizarVistaBoletas();
+  await encolarAccionIngreso('eliminar_boleta_particular', { id_boleta_particular: id });
+  if(ing) await encolarAccionIngreso('editar_ingreso', { id_ingreso: ing.id, monto_neto: ing.montoNeto });
 }
 
 // ---- Filtro de boletas emitidas
