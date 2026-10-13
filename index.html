@@ -280,6 +280,19 @@ input{ font-family:inherit; }
 }
 .boton-flotante:active{ transform:scale(0.94); }
 
+/* --- Botón Deshacer (esquina inferior izquierda). Posición y colores se cambian aquí. --- */
+:root{ --deshacer-izquierda:18px; --deshacer-abajo:88px; --deshacer-tamano:44px; }
+.boton-deshacer{
+  position:absolute;
+  left:var(--deshacer-izquierda); bottom:calc(var(--deshacer-abajo) + env(safe-area-inset-bottom,0px));
+  width:var(--deshacer-tamano); height:var(--deshacer-tamano); border-radius:50%;
+  background:var(--superficie); color:var(--texto-principal); border:1px solid var(--borde);
+  box-shadow:var(--sombra-flotante); opacity:0.94;
+  align-items:center; justify-content:center; z-index:20; touch-action:manipulation;
+}
+.boton-deshacer:active{ transform:scale(0.94); }
+.boton-rehacer{ left:calc(var(--deshacer-izquierda) + var(--deshacer-tamano) + 8px); }
+
 /* ============================================================
    8. MENÚ INFERIOR DE NAVEGACIÓN
    ============================================================ */
@@ -1863,6 +1876,8 @@ input{ font-family:inherit; }
   </div>
 </div>
 
+<button class="boton-deshacer" id="botonDeshacer" style="display:none;" onclick="deshacerUltimoCambio()" aria-label="Deshacer el último cambio"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+<button class="boton-deshacer boton-rehacer" id="botonRehacer" style="display:none;" onclick="rehacerUltimoCambio()" aria-label="Rehacer lo deshecho"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
 <button class="boton-flotante" id="botonNuevoPaciente" style="display:none;" onclick="abrirFichaNueva()">+</button>
 <button class="boton-flotante" id="botonNuevoEvento" style="display:none;" onclick="abrirFichaEventoNueva()">+</button>
 <button class="boton-flotante" id="botonNuevoIngreso" style="display:none;" onclick="abrirFichaIngresoManual()">+</button>
@@ -2878,9 +2893,9 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.87';
+const VERSION_APP = '2.89';
 const VERSION_FECHA = '11 oct 2026';
-const VERSION_DESCRIPCION = 'Ingresos: selector de mes propio en Ingresos del mes y en Sesiones Entre Lazos pagadas (con opción Todos los meses; la ventana Entre Lazos ahora se ve en cualquier mes); Boletas e Ingresos: botón Ajustar monto en cada sesión pagada sin boleta para cambiar monto, impuesto o comisión sin pasar por el estado de la sesión; antes: Boletas: las marcas Sin boleta y Factura se reconocen por el detalle de la boleta (ya no dependen de la columna numero_boleta de la planilla); antes: Ingresos del mes: filtro por nombre; Sesiones pagadas: el monto y el porcentaje de impuesto quedan congelados desde que se marca pagada (la boleta toma ese porcentaje); Boletas: cada boleta queda ligada a su sesión (si la sesión deja de estar pagada, o se elimina, aparece la alerta y la boleta se retira del registro; si se cambia su fecha o se mueve, la boleta la sigue); Agenda: botón discreto Sobrescribir la sesión al final de la ficha de Atenciones (nombre, monto, impuesto, comisión y fecha de pago); Sesiones de la planilla: se guarda el nombre del paciente; Configuración: Revisión de datos (sesiones pagadas sin ingreso y boletas sin sesión pagada); Ingresos: un movimiento que la planilla dice que no existe ya no traba la cola; antes: Ingresos: el botón de dos flechas también está en Ingresos del mes; antes: Ingresos: botón de dos flechas junto a montos sin descuento en Sesiones devengadas y Sesiones Entre Lazos pagadas para ver los montos con descuento; Boletas: Factura de pacientes Entre Lazos con selector de mes y el impuesto real de cada sesión (sobre el monto menos la comisión de Entre Lazos); Sesiones pagadas sin boleta con el color de Sesiones devengadas; antes: Boletas: las sesiones particulares de Entre Lazos vuelven a Sesiones pagadas sin boleta y se registran con el botón Factura emitida; la ventana pasa a llamarse Factura de pacientes Entre Lazos (solo registro, sin impuesto, separada de las boletas de Ingresos); antes: Boletas: la advertencia afirma que en Entre Lazos el impuesto ya viene descontado en la boleta; antes: Boletas: ventana aparte Particulares Entre Lazos (solo registro, con o sin boleta Entre Lazos); esas sesiones ya no aparecen en Sesiones pagadas sin boleta ni suman al impuesto de Boletas emitidas del mes; antes: Boletas: la alerta ahora avisa cuando alguna sesión pagada lleva 14 días o más sin boleta; botón pequeño Sin boleta (la sesión pasa al ingreso con su monto completo, sin descontar impuesto) y lista discreta Sesiones sin boleta con Revertir; antes: Boletas: triángulo amarillo en el menú junto a Boletas si pasan 14 días sin registrar boletas (habiendo sesiones pendientes) y en cada sesión pagada con 14 días o más sin boleta; antes: Boletas: advertencia desplegable sobre el cálculo de impuestos (estimación, Formulario 29, plazo, comparar con el SII la primera vez); antes: Boletas: una boleta por sesión (sin número), agrupadas por fecha de emisión, cada una con su impuesto (el porcentaje de Configuración) y su botón Anular; Configuración: Valores y Comisiones de Pacientes pasa a llamarse Comisiones e Impuestos; antes: Boletas y Sesiones Entre Lazos pagadas: si una sesión pagada no guardó su fecha de pago, se muestra la fecha de su ingreso; antes: Boletas: ahora se abre desde el menú de la flecha (no desde Configuración); Sesiones pagadas sin boleta tiene filtro (tipo de sesión, fecha y paciente); antes: Configuración: al cambiar el monto FONASA, el porcentaje de impuesto o la comisión de Entre Lazos se muestran las sesiones afectadas (devengadas y Entre Lazos pagadas sin boleta) y se pregunta si se les aplica el valor nuevo (si dices No, conservan el anterior, también guardado en la planilla); antes: Configuración: al cambiar la comisión de Entre Lazos se muestran las sesiones afectadas (devengadas y pagadas sin boleta) y se pregunta si se les aplica la comisión nueva (si dices No, conservan la anterior, también guardado en la planilla); antes: Nuevo módulo Boletas (se abre desde Configuración): sesiones particulares ya pagadas sin boleta, selección, ir a la sesión en la Agenda, Boleta emitida y visor de boletas del mes con filtro; Objetivos pasa a llamarse Ahorros; antes: Agenda: al mover una sesión ya pagada, su ingreso se traslada a la sesión movida; Sesiones pagadas: cambiar la fecha o el paciente de una sesión pagada actualiza su ingreso (también en la planilla) sin duplicarlo; al omitir, mover o cambiar el día o la duración de una serie con sesiones ya pagadas aparece la advertencia y la pregunta ¿Quieres eliminar el ingreso?; Pacientes: al cambiar la tarifa de un paciente con sesiones devengadas se muestra cuáles cambian y se pregunta si se les aplica la tarifa nueva (si dices No, conservan su monto); Gastos: al editar un gasto y pasarlo a la subcategoría Ahorro se elige el objetivo y se suma; el monto congelado de sesiones devengadas se recupera desde la planilla; el teclado del computador ignora siempre el punto; al sacar un gasto de la subcategoría Ahorro se resta del objetivo de ahorro (con aviso) y el cambio de fecha también se refleja; antes: Ingresos: se pueden editar los ingresos manuales y Rucalaf; Gastos: el vínculo gasto-aporte de Ahorro queda en la planilla (no se pierde al borrar datos locales); antes: Filtros: Quitar todas en Ingresos del mes y en la lupa de la Agenda; Configuración muestra solo la versión; Gastos: al elegir la subcategoría Ahorro se elige (o se crea) el objetivo de ahorro y el gasto se suma como aporte; antes: Ingresos: filtro en Sesiones devengadas (tipo y fecha); Gastos: en el filtro, Quitar todas las categorías, subcategorías al marcar una categoría y total gastado según el filtro arriba; antes: Gastos: botón Pegar monto (ignora los puntos); Ingresos: flecha en cada sesión devengada que lleva a su día en la Agenda, columnas de igual ancho; ícono nuevo con sol y luna; antes: Ícono actualizado (dorado más brillante); Totales de ingresos: el neto se suma sin redondear cada sesión y se redondea una sola vez al final (Ingresos, Dashboard, boleta Entre Lazos); Ícono nuevo de la app (luna, sol y estrellas en burdeo y dorado); Ingresos: la ventana Entre Lazos pasa a llamarse Sesiones Entre Lazos pagadas; Ingresos: Movimientos del mes pasa a llamarse Ingresos del mes; filtros de Ingresos del mes (por fecha de pago o de sesión) y de Gastos (por fecha) con opción de orden; antes: Ícono propio de la app (pestaña del navegador y pantalla de inicio); Ingresos: etiqueta Particular / Entre Lazos en Sesiones devengadas, sesiones en 2 columnas en las tres ventanas, Movimientos con fecha de la sesión y del pago (sin el texto Efectivo/Transferencia; el dato sigue guardado y filtrable); Dashboard: efectivo del mes bajo Disponible; Gastos: filtro en Últimos registros; antes: Ingresos: las sesiones pagadas (particulares y FONASA) quedan registradas el día del pago y no el día de la sesión, también las ya existentes; Boleta Entre Lazos: cada sesión queda registrada en el mes de la boleta (cuando se cobra) y no en el mes de la sesión, también las ya emitidas; Sesión de ingreso: nuevo tipo de pago Particular Entre Lazos (monto variable, pasa por la boleta de Entre Lazos); Agenda: los eventos sin duración se acortan siempre que otro empieza antes de que terminen (quedan apilados, no lado a lado); marco rojo y apilado también entre eventos que no son Atenciones; semana desplegada: eventos más chicos como en el mes, selección de bloques cada 30 minutos, franja desde las 08:00 con líneas más marcadas a las 8, 12 y 20; antes: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
+const VERSION_DESCRIPCION = 'Deshacer ahora también cubre Boletas y hay botón Rehacer (→, y Ctrl+Y o Ctrl+Mayús+Z); Gastos: el orden Último registrado usa la fecha y hora reales de registro (antes todos los gastos quedaban con la hora de la sincronización y se mostraba siempre el mismo primero); antes: Botón Deshacer (↶, esquina inferior izquierda; en computador también Ctrl+Z): deshace el último cambio en Gastos, Ingresos y Agenda, hasta 10 pasos, y lo devuelve también a la planilla; si el cambio tocó Pacientes, Ahorros, Configuración o Boletas avisa que no se puede deshacer; antes: Ingresos: selector de mes propio en Ingresos del mes y en Sesiones Entre Lazos pagadas (con opción Todos los meses; la ventana Entre Lazos ahora se ve en cualquier mes); Boletas e Ingresos: botón Ajustar monto en cada sesión pagada sin boleta para cambiar monto, impuesto o comisión sin pasar por el estado de la sesión; antes: Boletas: las marcas Sin boleta y Factura se reconocen por el detalle de la boleta (ya no dependen de la columna numero_boleta de la planilla); antes: Ingresos del mes: filtro por nombre; Sesiones pagadas: el monto y el porcentaje de impuesto quedan congelados desde que se marca pagada (la boleta toma ese porcentaje); Boletas: cada boleta queda ligada a su sesión (si la sesión deja de estar pagada, o se elimina, aparece la alerta y la boleta se retira del registro; si se cambia su fecha o se mueve, la boleta la sigue); Agenda: botón discreto Sobrescribir la sesión al final de la ficha de Atenciones (nombre, monto, impuesto, comisión y fecha de pago); Sesiones de la planilla: se guarda el nombre del paciente; Configuración: Revisión de datos (sesiones pagadas sin ingreso y boletas sin sesión pagada); Ingresos: un movimiento que la planilla dice que no existe ya no traba la cola; antes: Ingresos: el botón de dos flechas también está en Ingresos del mes; antes: Ingresos: botón de dos flechas junto a montos sin descuento en Sesiones devengadas y Sesiones Entre Lazos pagadas para ver los montos con descuento; Boletas: Factura de pacientes Entre Lazos con selector de mes y el impuesto real de cada sesión (sobre el monto menos la comisión de Entre Lazos); Sesiones pagadas sin boleta con el color de Sesiones devengadas; antes: Boletas: las sesiones particulares de Entre Lazos vuelven a Sesiones pagadas sin boleta y se registran con el botón Factura emitida; la ventana pasa a llamarse Factura de pacientes Entre Lazos (solo registro, sin impuesto, separada de las boletas de Ingresos); antes: Boletas: la advertencia afirma que en Entre Lazos el impuesto ya viene descontado en la boleta; antes: Boletas: ventana aparte Particulares Entre Lazos (solo registro, con o sin boleta Entre Lazos); esas sesiones ya no aparecen en Sesiones pagadas sin boleta ni suman al impuesto de Boletas emitidas del mes; antes: Boletas: la alerta ahora avisa cuando alguna sesión pagada lleva 14 días o más sin boleta; botón pequeño Sin boleta (la sesión pasa al ingreso con su monto completo, sin descontar impuesto) y lista discreta Sesiones sin boleta con Revertir; antes: Boletas: triángulo amarillo en el menú junto a Boletas si pasan 14 días sin registrar boletas (habiendo sesiones pendientes) y en cada sesión pagada con 14 días o más sin boleta; antes: Boletas: advertencia desplegable sobre el cálculo de impuestos (estimación, Formulario 29, plazo, comparar con el SII la primera vez); antes: Boletas: una boleta por sesión (sin número), agrupadas por fecha de emisión, cada una con su impuesto (el porcentaje de Configuración) y su botón Anular; Configuración: Valores y Comisiones de Pacientes pasa a llamarse Comisiones e Impuestos; antes: Boletas y Sesiones Entre Lazos pagadas: si una sesión pagada no guardó su fecha de pago, se muestra la fecha de su ingreso; antes: Boletas: ahora se abre desde el menú de la flecha (no desde Configuración); Sesiones pagadas sin boleta tiene filtro (tipo de sesión, fecha y paciente); antes: Configuración: al cambiar el monto FONASA, el porcentaje de impuesto o la comisión de Entre Lazos se muestran las sesiones afectadas (devengadas y Entre Lazos pagadas sin boleta) y se pregunta si se les aplica el valor nuevo (si dices No, conservan el anterior, también guardado en la planilla); antes: Configuración: al cambiar la comisión de Entre Lazos se muestran las sesiones afectadas (devengadas y pagadas sin boleta) y se pregunta si se les aplica la comisión nueva (si dices No, conservan la anterior, también guardado en la planilla); antes: Nuevo módulo Boletas (se abre desde Configuración): sesiones particulares ya pagadas sin boleta, selección, ir a la sesión en la Agenda, Boleta emitida y visor de boletas del mes con filtro; Objetivos pasa a llamarse Ahorros; antes: Agenda: al mover una sesión ya pagada, su ingreso se traslada a la sesión movida; Sesiones pagadas: cambiar la fecha o el paciente de una sesión pagada actualiza su ingreso (también en la planilla) sin duplicarlo; al omitir, mover o cambiar el día o la duración de una serie con sesiones ya pagadas aparece la advertencia y la pregunta ¿Quieres eliminar el ingreso?; Pacientes: al cambiar la tarifa de un paciente con sesiones devengadas se muestra cuáles cambian y se pregunta si se les aplica la tarifa nueva (si dices No, conservan su monto); Gastos: al editar un gasto y pasarlo a la subcategoría Ahorro se elige el objetivo y se suma; el monto congelado de sesiones devengadas se recupera desde la planilla; el teclado del computador ignora siempre el punto; al sacar un gasto de la subcategoría Ahorro se resta del objetivo de ahorro (con aviso) y el cambio de fecha también se refleja; antes: Ingresos: se pueden editar los ingresos manuales y Rucalaf; Gastos: el vínculo gasto-aporte de Ahorro queda en la planilla (no se pierde al borrar datos locales); antes: Filtros: Quitar todas en Ingresos del mes y en la lupa de la Agenda; Configuración muestra solo la versión; Gastos: al elegir la subcategoría Ahorro se elige (o se crea) el objetivo de ahorro y el gasto se suma como aporte; antes: Ingresos: filtro en Sesiones devengadas (tipo y fecha); Gastos: en el filtro, Quitar todas las categorías, subcategorías al marcar una categoría y total gastado según el filtro arriba; antes: Gastos: botón Pegar monto (ignora los puntos); Ingresos: flecha en cada sesión devengada que lleva a su día en la Agenda, columnas de igual ancho; ícono nuevo con sol y luna; antes: Ícono actualizado (dorado más brillante); Totales de ingresos: el neto se suma sin redondear cada sesión y se redondea una sola vez al final (Ingresos, Dashboard, boleta Entre Lazos); Ícono nuevo de la app (luna, sol y estrellas en burdeo y dorado); Ingresos: la ventana Entre Lazos pasa a llamarse Sesiones Entre Lazos pagadas; Ingresos: Movimientos del mes pasa a llamarse Ingresos del mes; filtros de Ingresos del mes (por fecha de pago o de sesión) y de Gastos (por fecha) con opción de orden; antes: Ícono propio de la app (pestaña del navegador y pantalla de inicio); Ingresos: etiqueta Particular / Entre Lazos en Sesiones devengadas, sesiones en 2 columnas en las tres ventanas, Movimientos con fecha de la sesión y del pago (sin el texto Efectivo/Transferencia; el dato sigue guardado y filtrable); Dashboard: efectivo del mes bajo Disponible; Gastos: filtro en Últimos registros; antes: Ingresos: las sesiones pagadas (particulares y FONASA) quedan registradas el día del pago y no el día de la sesión, también las ya existentes; Boleta Entre Lazos: cada sesión queda registrada en el mes de la boleta (cuando se cobra) y no en el mes de la sesión, también las ya emitidas; Sesión de ingreso: nuevo tipo de pago Particular Entre Lazos (monto variable, pasa por la boleta de Entre Lazos); Agenda: los eventos sin duración se acortan siempre que otro empieza antes de que terminen (quedan apilados, no lado a lado); marco rojo y apilado también entre eventos que no son Atenciones; semana desplegada: eventos más chicos como en el mes, selección de bloques cada 30 minutos, franja desde las 08:00 con líneas más marcadas a las 8, 12 y 20; antes: al abrirla siempre parte en hoy y, al llegar al borde del scroll, botones para ver más semanas hacia atrás y hacia adelante; Configuración: categorías de gastos; Gastos: Casa y hogar y subcategorías';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -3016,6 +3031,7 @@ async function cargarPacientes(){
   pacientes.forEach(p => { p._procesando = false; }); // el bloqueo de sincronización es solo en memoria, nunca debe empezar "trabado"
 }
 async function guardarPacientesEnAlmacenamiento(){
+  registrarCambioDeshacer('pacientes');
   try{ const r = await window.storage.set(CLAVE_PACIENTES, JSON.stringify(pacientes), false); if(!r) mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }catch(e){ mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }
 }
 async function cargarConsultasUnicas(){
@@ -3023,6 +3039,7 @@ async function cargarConsultasUnicas(){
   consultasUnicas.forEach(c => { c._procesando = false; });
 }
 async function guardarConsultasEnAlmacenamiento(){
+  registrarCambioDeshacer('consultas');
   try{ const r = await window.storage.set(CLAVE_CONSULTAS, JSON.stringify(consultasUnicas), false); if(!r) mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }catch(e){ mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }
 }
 async function cargarEventosAgenda(){
@@ -3030,6 +3047,7 @@ async function cargarEventosAgenda(){
   eventosAgenda.forEach(e => { e._procesando = false; });
 }
 async function guardarEventosEnAlmacenamiento(){
+  registrarCambioDeshacer('eventos');
   try{ const r = await window.storage.set(CLAVE_AGENDA, JSON.stringify(eventosAgenda), false); if(!r) mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }catch(e){ mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }
 }
 // El sueldo automático de antes ("trabajo_dependiente") ahora se
@@ -3040,6 +3058,7 @@ async function cargarIngresos(){
   ingresos.forEach(i => { i.tipo = normalizarTipoIngreso(i.tipo); });
 }
 async function guardarIngresosEnAlmacenamiento(){
+  registrarCambioDeshacer('ingresos');
   try{ const r = await window.storage.set(CLAVE_INGRESOS, JSON.stringify(ingresos), false); if(!r) mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }catch(e){ mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }
 }
 // El tipo específico (particular, FONASA directo, Entre Lazos, sueldo
@@ -3094,6 +3113,7 @@ async function cargarClavesFacturadas(){
   }catch(e){ clavesFacturadasDesdeServidor = new Set(); }
 }
 async function guardarClavesFacturadas(){
+  registrarCambioDeshacer('claves');
   try{ await window.storage.set(CLAVE_BOLETAS, JSON.stringify(Array.from(clavesFacturadasDesdeServidor)), false); }
   catch(e){ /* si falla, la memoria en curso sigue sirviendo para esta sesión */ }
 }
@@ -3150,6 +3170,7 @@ async function cargarObjetivos(){
   objetivos.forEach(o => { o._procesando = false; }); // el bloqueo de sincronización es solo en memoria
 }
 async function guardarObjetivosEnAlmacenamiento(){
+  registrarCambioDeshacer('objetivos');
   try{ const r = await window.storage.set(CLAVE_OBJETIVOS, JSON.stringify(objetivos), false); if(!r) mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }catch(e){ mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }
 }
 async function cargarConfiguracion(){
@@ -3194,6 +3215,7 @@ function aplicarTiposEventoDesdeServidor(vigentes){
   }catch(e){ console.error('Tipos de evento con formato inválido en la planilla:', e); }
 }
 async function guardarConfiguracionEnAlmacenamiento(){
+  registrarCambioDeshacer('configuracion');
   try{ const r = await window.storage.set(CLAVE_CONFIG, JSON.stringify(configuracion), false); if(!r) mostrarAvisoFlotante('No se pudo guardar la configuración en este aparato.'); }catch(e){ mostrarAvisoFlotante('No se pudo guardar la configuración en este aparato.'); }
 }
 async function cargarRegistrosGasto(){
@@ -3201,9 +3223,14 @@ async function cargarRegistrosGasto(){
   registrosGasto.forEach(r => { r._procesando = false; });
 }
 async function guardarGastosEnAlmacenamiento(){
+  registrarCambioDeshacer('gastos');
   try{ const r = await window.storage.set(CLAVE_GASTOS, JSON.stringify(registrosGasto), false); if(!r) mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }catch(e){ mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }
 }
-function mapearGastoDesdeServidor(fila){
+function mapearGastoDesdeServidor(fila, posicion){
+  // "creado" decide el orden "Último registrado". Antes se le ponía la hora de la
+  // sincronización a todos los gastos (quedaban empatados). Ahora se usa la fecha y hora
+  // en que cada gasto se registró en la planilla; si no viene, el orden de las filas.
+  const registrado = Date.parse(String(fila.fecha_registro || '').replace(' ', 'T'));
   return {
     id: fila.id_gasto,
     fecha: fila.fecha_evento || '',
@@ -3212,7 +3239,7 @@ function mapearGastoDesdeServidor(fila){
     medioPago: fila.medio_pago || '',
     monto: Number(fila.monto) || 0,
     descripcion: fila.descripcion || '',
-    creado: Date.now(),
+    creado: isNaN(registrado) ? (posicion || 0) + 1 : registrado,
     pendienteSync: false,
     colaSync: []
   };
@@ -7405,10 +7432,13 @@ function renderizarListaGastos(){
   const totalFiltro = document.getElementById('gastoTotalFiltrado');
   totalFiltro.style.display = filtroActivoG ? 'inline' : 'none';
   totalFiltro.textContent = formatearCLP(filtradosGasto.reduce((a,r) => a + r.monto, 0));
+  // Desempate: si dos gastos tienen el mismo "creado", el que está más abajo en la lista (más nuevo) va primero.
+  const posicionGasto = new Map(registrosGasto.map((r, i) => [r.id, i]));
+  const masNuevo = (a, b) => (b.creado - a.creado) || ((posicionGasto.get(b.id) || 0) - (posicionGasto.get(a.id) || 0));
   const ordenados = [...filtradosGasto].sort((a,b) => {
-    if(filtroGastos.orden === 'fecha_desc') return b.fecha.localeCompare(a.fecha) || (b.creado - a.creado);
-    if(filtroGastos.orden === 'fecha_asc') return a.fecha.localeCompare(b.fecha) || (a.creado - b.creado);
-    return b.creado - a.creado;
+    if(filtroGastos.orden === 'fecha_desc') return b.fecha.localeCompare(a.fecha) || masNuevo(a, b);
+    if(filtroGastos.orden === 'fecha_asc') return a.fecha.localeCompare(b.fecha) || masNuevo(b, a);
+    return masNuevo(a, b);
   });
   if(ordenados.length === 0){ lista.innerHTML = '<div class="vacio">' + (filtroActivoG ? 'Ningún gasto coincide con el filtro.' : 'Todavía no hay gastos registrados.') + '</div>'; botonVerTodos.style.display = 'none'; return; }
   const aMostrar = mostrarTodosGasto ? ordenados : ordenados.slice(0,5);
@@ -9527,7 +9557,7 @@ async function aplicarSincronizacionCompleta(paquete){
   }
 
   if(Array.isArray(paquete.gastos)){
-    registrosGasto = paquete.gastos.filter(f => f.id_gasto).map(mapearGastoDesdeServidor);
+    registrosGasto = paquete.gastos.filter(f => f.id_gasto).map((f, i) => mapearGastoDesdeServidor(f, i));
     await guardarGastosEnAlmacenamiento();
   }
 
@@ -9570,6 +9600,7 @@ async function sincronizarTodo(){
   if(haySincronizacionPendiente()) await enviarTodoLoPendiente();
   if(haySincronizacionPendiente()) return false; // algo no se pudo enviar: no se descarga esta vez
 
+  deshacerPausado++;
   try{
     const paquete = await llamarScript('obtener_todo', {});
     await aplicarSincronizacionCompleta(paquete || {});
@@ -9578,6 +9609,8 @@ async function sincronizarTodo(){
   }catch(err){
     console.error('No se pudo sincronizar con Sheets:', err);
     return false;
+  }finally{
+    deshacerPausado--; rebasarDeshacerTrasSincronizar();
   }
 }
 
@@ -9601,6 +9634,7 @@ async function cargarBoletasParticulares(){
   if(!Array.isArray(boletasParticulares)) boletasParticulares = [];
 }
 async function guardarBoletasParticulares(){
+  registrarCambioDeshacer('boletas');
   try{ const r = await window.storage.set(CLAVE_BOLETAS_PARTICULARES, JSON.stringify(boletasParticulares), false); if(!r) mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }
   catch(e){ mostrarAvisoFlotante('No se pudo guardar el cambio en este aparato.'); }
 }
@@ -10418,6 +10452,282 @@ async function revisarVersionMasReciente(){
 }
 
 /* ============================================================
+   DESHACER (v2.88)
+   ------------------------------------------------------------
+   El botón ↶ (esquina inferior izquierda) deshace el último
+   cambio en Gastos, Ingresos y Agenda, hasta 10 pasos hacia atrás,
+   y manda a la planilla lo necesario para que quede igual que la app.
+   Cómo funciona: cada vez que la app guarda una de esas listas, se
+   compara con la versión anterior; si cambió, se guarda la versión
+   anterior como un "paso". Los guardados que ocurren casi juntos
+   (por ejemplo, cambiar el estado de una sesión guarda la agenda y
+   el ingreso) se juntan en un solo paso.
+   Si el último paso tocó algo que no se puede devolver con seguridad
+   (Pacientes, Ahorros, Configuración o Boletas), el botón avisa en
+   vez de deshacer a medias.
+   Solo vive en la memoria: al cerrar la app, los pasos se pierden.
+   ============================================================ */
+const DESHACER_MAX_PASOS = 10;
+const DESHACER_PAUSA_MS = 2500;
+const CAMPOS_VOLATILES_DESHACER = ['colaSync', 'pendienteSync', '_procesando'];
+const COLECCIONES_DESHACER = {
+  ingresos:      { etiqueta:'Ingresos',      restaurable:true,  leer: () => ingresos },
+  gastos:        { etiqueta:'Gastos',        restaurable:true,  leer: () => registrosGasto },
+  consultas:     { etiqueta:'Agenda',        restaurable:true,  leer: () => consultasUnicas },
+  eventos:       { etiqueta:'Agenda',        restaurable:true,  leer: () => eventosAgenda },
+  pacientes:     { etiqueta:'Pacientes',     restaurable:false, leer: () => pacientes },
+  objetivos:     { etiqueta:'Ahorros',       restaurable:false, leer: () => objetivos },
+  configuracion: { etiqueta:'Configuración', restaurable:false, leer: () => configuracion },
+  boletas:       { etiqueta:'Boletas',       restaurable:true,  leer: () => boletasParticulares },
+  claves:        { etiqueta:'Boletas',       restaurable:false, leer: () => Array.from(clavesFacturadasDesdeServidor) }
+};
+const ORDEN_RESTAURAR_DESHACER = ['ingresos', 'gastos', 'consultas', 'eventos', 'boletas'];
+let pilaDeshacer = [];
+let pilaRehacer = [];
+let sombraDeshacer = null;
+let deshacerPausado = 0;
+let deshaciendoAhora = false;
+
+function reemplazoVolatilDeshacer(clave, valor){ return CAMPOS_VOLATILES_DESHACER.includes(clave) ? undefined : valor; }
+function fotoDeshacer(nombre){
+  try{ return JSON.stringify(COLECCIONES_DESHACER[nombre].leer(), reemplazoVolatilDeshacer); }catch(e){ return ''; }
+}
+function iniciarDeshacer(){
+  sombraDeshacer = {};
+  Object.keys(COLECCIONES_DESHACER).forEach(n => { sombraDeshacer[n] = fotoDeshacer(n); });
+  pilaDeshacer = []; pilaRehacer = [];
+  pintarBotonDeshacer();
+}
+// Después de una sincronización completa: si bajó datos distintos a los que había,
+// los pasos guardados ya no sirven (hablan de datos viejos) y se descartan.
+function rebasarDeshacerTrasSincronizar(){
+  if(!sombraDeshacer) return;
+  const cambio = Object.keys(COLECCIONES_DESHACER).some(n => fotoDeshacer(n) !== sombraDeshacer[n]);
+  if(cambio) iniciarDeshacer();
+}
+function registrarCambioDeshacer(nombre){
+  if(!sombraDeshacer || deshacerPausado > 0) return;
+  const nueva = fotoDeshacer(nombre);
+  if(nueva === sombraDeshacer[nombre]) return;
+  const ahora = Date.now();
+  pilaRehacer = []; // un cambio nuevo borra lo que se podía rehacer
+  let paso = pilaDeshacer[pilaDeshacer.length - 1];
+  if(!paso || ahora - paso.t > DESHACER_PAUSA_MS){
+    paso = { antes:{}, t:ahora };
+    pilaDeshacer.push(paso);
+    if(pilaDeshacer.length > DESHACER_MAX_PASOS) pilaDeshacer.shift();
+  }
+  paso.t = ahora;
+  if(!(nombre in paso.antes)) paso.antes[nombre] = sombraDeshacer[nombre];
+  sombraDeshacer[nombre] = nueva;
+  pintarBotonDeshacer();
+}
+function pintarBotonDeshacer(){
+  const b = document.getElementById('botonDeshacer'); if(!b) return;
+  b.style.display = pilaDeshacer.length > 0 ? 'flex' : 'none';
+  b.setAttribute('aria-label', `Deshacer el último cambio (${pilaDeshacer.length} ${pilaDeshacer.length === 1 ? 'paso' : 'pasos'})`);
+  const r = document.getElementById('botonRehacer');
+  if(r) r.style.display = pilaRehacer.length > 0 ? 'flex' : 'none';
+}
+
+// Compara la lista actual con la lista de antes, por id.
+function clasificarCambiosDeshacer(vivos, antes){
+  const mapaVivos = new Map(vivos.map(v => [v.id, v]));
+  const mapaAntes = new Map(antes.map(a => [a.id, a]));
+  return {
+    mapaVivos,
+    agregados: vivos.filter(v => !mapaAntes.has(v.id)),
+    quitados: antes.filter(a => !mapaVivos.has(a.id)),
+    modificados: antes.filter(a => mapaVivos.has(a.id) && JSON.stringify(mapaVivos.get(a.id), reemplazoVolatilDeshacer) !== JSON.stringify(a)).map(a => ({ vivo: mapaVivos.get(a.id), antes: a }))
+  };
+}
+// Deja el registro vivo igual al de antes, sin tocar su cola de envío.
+function copiarCamposDeshacer(vivo, snap){
+  Object.keys(vivo).forEach(k => { if(!(k in snap) && !CAMPOS_VOLATILES_DESHACER.includes(k)) delete vivo[k]; });
+  Object.keys(snap).forEach(k => { vivo[k] = snap[k]; });
+}
+
+async function restaurarGastosDeshacer(antes){
+  const c = clasificarCambiosDeshacer(registrosGasto, antes);
+  const aProcesar = [];
+  c.agregados.forEach(v => { v.colaSync = v.colaSync || []; v.colaSync.push({ accion:'eliminar_gasto', datosBase:{} }); aProcesar.push(v); });
+  c.modificados.forEach(({ vivo, antes: a }) => {
+    copiarCamposDeshacer(vivo, a);
+    vivo.colaSync = vivo.colaSync || [];
+    vivo.colaSync.push({ accion:'editar_gasto', datosBase: Object.assign({ estado:'activo' }, construirDatosGastoBase(vivo)) });
+    aProcesar.push(vivo);
+  });
+  c.quitados.forEach(a => { a.colaSync = [{ accion:'crear_gasto', datosBase: construirDatosGastoBase(a) }]; aProcesar.push(a); });
+  registrosGasto = antes.map(a => c.mapaVivos.get(a.id) || a);
+  await guardarGastosEnAlmacenamiento();
+  aProcesar.forEach(r => procesarColaGasto(r));
+}
+
+async function restaurarBoletasDeshacer(antes){
+  const c = clasificarCambiosDeshacer(boletasParticulares, antes);
+  const acciones = [];
+  c.agregados.forEach(v => acciones.push(['eliminar_boleta_particular', { id_boleta_particular: v.id }]));
+  c.modificados.forEach(({ antes: a }) => acciones.push(['emitir_boleta_particular', datosEnvioBoleta(a)]));
+  c.quitados.forEach(a => acciones.push(['emitir_boleta_particular', datosEnvioBoleta(a)]));
+  boletasParticulares = antes;
+  await guardarBoletasParticulares();
+  for(const [accion, datos] of acciones) await encolarAccionIngreso(accion, datos);
+}
+
+function datosIngresoParaServidorDeshacer(i){
+  return { categoria_manual: i.tipo, descripcion: i.descripcion || '', monto_bruto: i.montoBruto, monto_neto: i.montoNeto, forma_pago: i.medioPago || '', fecha_evento: i.fecha };
+}
+async function restaurarIngresosDeshacer(antes){
+  const c = clasificarCambiosDeshacer(ingresos, antes);
+  const acciones = [];
+  c.agregados.forEach(v => acciones.push(['eliminar_ingreso', { id_ingreso: v.id }]));
+  c.modificados.forEach(({ antes: a }) => acciones.push(['editar_ingreso', Object.assign({ id_ingreso: a.id }, datosIngresoParaServidorDeshacer(a))]));
+  c.quitados.forEach(a => {
+    // Los que nacen de una sesión particular o FONASA se reactivan; los demás se vuelven a crear.
+    if(a.tipo === 'particular' || a.tipo === 'fonasa_directo') acciones.push(['editar_ingreso', Object.assign({ id_ingreso: a.id, estado:'activo' }, datosIngresoParaServidorDeshacer(a))]);
+    else acciones.push(['crear_ingreso_manual', Object.assign({ id_ingreso: a.id }, datosIngresoParaServidorDeshacer(a))]);
+  });
+  ingresos = antes;
+  await guardarIngresosEnAlmacenamiento();
+  for(const [accion, datos] of acciones) await encolarAccionIngreso(accion, datos);
+}
+
+// Estado, fecha de pago, adultos y hora de término de cada día de una sesión: si cambiaron
+// respecto de lo que había antes de deshacer, se manda a la pestaña Sesiones el valor restaurado.
+function encolarDiferenciasSesionDeshacer(vivo, viejo, esConsulta){
+  const estadoDe = (e, f) => esConsulta ? (e.estadoSesion || '') : ((e.recurrencia === 'ninguna' ? e.estadoSesion : (e.estadosPorFecha || {})[f]) || '');
+  const fechas = new Set();
+  if(esConsulta) fechas.add(vivo.fecha);
+  else{
+    fechas.add(vivo.fecha);
+    [vivo, viejo].forEach(e => ['estadosPorFecha', 'marcadoPagadoPorFecha', 'adultosPorFecha', 'endTimePorFecha'].forEach(m => Object.keys(e[m] || {}).forEach(f => fechas.add(f))));
+  }
+  fechas.forEach(f => {
+    const estA = estadoDe(vivo, f), estV = estadoDe(viejo, f);
+    const pagoA = esConsulta ? (vivo.fechaPago || '') : ((vivo.marcadoPagadoPorFecha || {})[f] || '');
+    const pagoV = esConsulta ? (viejo.fechaPago || '') : ((viejo.marcadoPagadoPorFecha || {})[f] || '');
+    const adA = esConsulta ? '' : ((vivo.adultosPorFecha || {})[f] || []).join('|');
+    const adV = esConsulta ? '' : ((viejo.adultosPorFecha || {})[f] || []).join('|');
+    if(estA !== estV || pagoA !== pagoV || adA !== adV){
+      let montoInfo, idIngreso;
+      try{
+        if(estA){
+          const inst = esConsulta
+            ? { tipoInstancia:'consulta', consultaId: vivo.id, fecha: vivo.fecha, etiqueta:'atenciones', estadoSesion: estA }
+            : { tipoInstancia:'evento', eventoId: vivo.id, fecha: f, etiqueta: vivo.etiqueta, estadoSesion: estA };
+          const info = (esConsulta || (vivo.etiqueta === 'atenciones' && vivo.pacienteId)) ? clasificarInstanciaIngreso(inst) : null;
+          if(info){
+            montoInfo = { montoBruto: info.montoBruto, esEntreLazos: info.esEntreLazos, comisionEL: info.comisionEL, impuestoPct: info.impuestoPct, tipo: info.tipo, nombre: info.nombre, formaPago: '' };
+            idIngreso = idIngresoDeterministico(obtenerClaveOrigen(inst));
+          }
+        }
+      }catch(e){ montoInfo = undefined; }
+      const esAtencion = esConsulta || (vivo.etiqueta === 'atenciones' && vivo.pacienteId);
+      encolarActualizarEstadoSesion(vivo, (esConsulta || vivo.recurrencia === 'ninguna') ? null : f, estA || null, montoInfo, idIngreso, esAtencion && !esConsulta ? ((vivo.adultosPorFecha || {})[f] || []) : undefined);
+      // El ingreso ya se restaura por su cuenta: aquí no se vuelve a generar.
+      const ultimo = vivo.colaSync[vivo.colaSync.length - 1];
+      if(ultimo && ultimo.datosBase){ delete ultimo.datosBase.generar_ingreso; ultimo.generaIngreso = false; }
+    }
+    if(!esConsulta){
+      const finA = (vivo.endTimePorFecha || {})[f] || '', finV = (viejo.endTimePorFecha || {})[f] || '';
+      if(finA !== finV) encolarActualizarHoraFinSesion(vivo, f, finA);
+    }
+  });
+}
+async function restaurarAgendaDeshacer(esConsulta, antes){
+  const vivos = esConsulta ? consultasUnicas : eventosAgenda;
+  const guardarFn = esConsulta ? guardarConsultasEnAlmacenamiento : guardarEventosEnAlmacenamiento;
+  const base = esConsulta ? construirDatosConsultaBase : construirDatosEventoBase;
+  const c = clasificarCambiosDeshacer(vivos, antes);
+  const aProcesar = [];
+  c.agregados.forEach(v => { v.colaSync = v.colaSync || []; v.colaSync.push({ accion:'eliminar_evento', datosBase:{ id_evento: v.id } }); aProcesar.push(v); });
+  c.quitados.forEach(a => {
+    a.colaSync = [{ accion:'crear_evento', datosBase: base(a) }];
+    if(!esConsulta && (a.fechasExcluidas || []).length) a.colaSync.push({ accion:'editar_evento', datosBase:{ id_evento: a.id, fechas_omitidas: a.fechasExcluidas.join(',') } });
+    aProcesar.push(a);
+  });
+  c.modificados.forEach(({ vivo, antes: a }) => {
+    const viejo = JSON.parse(JSON.stringify(vivo, reemplazoVolatilDeshacer));
+    copiarCamposDeshacer(vivo, a);
+    vivo.colaSync = vivo.colaSync || [];
+    const datos = base(vivo);
+    if(!esConsulta) datos.fechas_omitidas = (vivo.fechasExcluidas || []).join(',');
+    vivo.colaSync.push({ accion:'editar_evento', datosBase: datos });
+    encolarDiferenciasSesionDeshacer(vivo, viejo, esConsulta);
+    aProcesar.push(vivo);
+  });
+  const resultado = antes.map(a => c.mapaVivos.get(a.id) || a);
+  if(esConsulta) consultasUnicas = resultado; else eventosAgenda = resultado;
+  await guardarFn();
+  aProcesar.forEach(e => procesarColaEntidadAgenda(e, guardarFn));
+}
+
+async function aplicarPasoDeshacer(paso, objetivo, verbo){
+  // objetivo: 'antes' (deshacer) o 'despues' (rehacer). Devuelve false si no pudo.
+  const nombres = Object.keys(paso.antes);
+  const noRestaurables = nombres.filter(n => !COLECCIONES_DESHACER[n].restaurable);
+  if(noRestaurables.length){
+    const etiquetas = [...new Set(noRestaurables.map(n => COLECCIONES_DESHACER[n].etiqueta))];
+    iniciarDeshacer();
+    mostrarAvisoFlotante(`El último cambio tocó ${unirFaltantes(etiquetas)} y no se puede ${verbo} con este botón. Hay que corregirlo a mano.`);
+    return false;
+  }
+  deshaciendoAhora = true; deshacerPausado++;
+  let fallo = false;
+  try{
+    for(const n of ORDEN_RESTAURAR_DESHACER){
+      if(!(n in paso.antes)) continue;
+      const destino = JSON.parse(paso[objetivo][n]);
+      if(n === 'gastos') await restaurarGastosDeshacer(destino);
+      else if(n === 'ingresos') await restaurarIngresosDeshacer(destino);
+      else if(n === 'consultas') await restaurarAgendaDeshacer(true, destino);
+      else if(n === 'eventos') await restaurarAgendaDeshacer(false, destino);
+      else if(n === 'boletas') await restaurarBoletasDeshacer(destino);
+    }
+  }catch(e){ console.error('No se pudo aplicar el paso:', e); fallo = true; }
+  finally{
+    deshacerPausado--; deshaciendoAhora = false;
+    Object.keys(COLECCIONES_DESHACER).forEach(n => { sombraDeshacer[n] = fotoDeshacer(n); });
+  }
+  [() => renderizarListaGastos(), () => renderizarVistaIngresos(), () => rerenderizarVistaAgendaActual(), () => renderizarVistaBoletas(), () => actualizarAlertaBoletas()].forEach(f => { try{ f(); }catch(e){ /* esa pantalla aún no se dibuja */ } });
+  try{ if(document.getElementById('pantallaDashboard').style.display !== 'none') renderizarDashboard(); }catch(e){}
+  const etiquetas = [...new Set(nombres.map(n => COLECCIONES_DESHACER[n].etiqueta))];
+  mostrarAvisoFlotante(fallo ? 'No se pudo completar. Revisa los datos.' : `${verbo === 'deshacer' ? 'Deshecho' : 'Rehecho'} (${unirFaltantes(etiquetas)}).`);
+  return !fallo;
+}
+async function deshacerUltimoCambio(){
+  if(deshaciendoAhora) return;
+  const paso = pilaDeshacer.pop();
+  if(!paso){ pintarBotonDeshacer(); mostrarAvisoFlotante('No hay nada que deshacer.'); return; }
+  // Para poder rehacer, se guarda cómo estaba todo justo antes de deshacer.
+  paso.despues = {};
+  Object.keys(paso.antes).forEach(n => { paso.despues[n] = sombraDeshacer[n]; });
+  const ok = await aplicarPasoDeshacer(paso, 'antes', 'deshacer');
+  if(ok) pilaRehacer.push(paso);
+  pintarBotonDeshacer();
+}
+async function rehacerUltimoCambio(){
+  if(deshaciendoAhora) return;
+  const paso = pilaRehacer.pop();
+  if(!paso){ pintarBotonDeshacer(); mostrarAvisoFlotante('No hay nada que rehacer.'); return; }
+  const ok = await aplicarPasoDeshacer(paso, 'despues', 'rehacer');
+  if(ok) pilaDeshacer.push(paso);
+  pintarBotonDeshacer();
+}
+// En computador: Ctrl+Z (o Cmd+Z) deshace y Ctrl+Y (o Ctrl+Mayús+Z) rehace, salvo cuando se está escribiendo en un campo.
+document.addEventListener('keydown', ev => {
+  if(!(ev.ctrlKey || ev.metaKey)) return;
+  const k = String(ev.key).toLowerCase();
+  const esDeshacer = k === 'z' && !ev.shiftKey;
+  const esRehacer = k === 'y' || (k === 'z' && ev.shiftKey);
+  if(!esDeshacer && !esRehacer) return;
+  const a = document.activeElement;
+  if(a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable)) return;
+  ev.preventDefault();
+  if(esRehacer) rehacerUltimoCambio(); else deshacerUltimoCambio();
+});
+
+/* ============================================================
    14. INICIALIZACIÓN
    ============================================================ */
 async function iniciar(){
@@ -10479,6 +10789,7 @@ async function iniciar(){
   renderizarVistaMensual();
   iniciarModuloGastos();
   activarSwipeAgenda();
+  iniciarDeshacer();
 }
 
 // ============================================================
