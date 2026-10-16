@@ -731,6 +731,13 @@ input{ font-family:inherit; }
   font-family:'Quicksand',sans-serif; touch-action:manipulation;
 }
 .boton-ver-mas-agenda:active{ background:var(--borde-suave); }
+/* Botón sutil de actualizar, a la izquierda del título de la Agenda */
+.agenda-lado-izquierdo{ display:flex; align-items:center; }
+.boton-actualizar-agenda{ padding:6px; border-radius:10px; background:transparent; opacity:.55; touch-action:manipulation; }
+.boton-actualizar-agenda:active{ opacity:1; background:var(--borde-suave); }
+.boton-actualizar-agenda.girando .icono-actualizar{ animation:giroActualizar 0.9s linear infinite; }
+.icono-actualizar{ width:16px; height:16px; fill:none; stroke:var(--texto-secundario); stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+@keyframes giroActualizar{ to{ transform:rotate(360deg); } }
 /* Lupa del encabezado de la Agenda */
 .icono-lupa{ width:18px; height:18px; fill:none; stroke:var(--texto-secundario); stroke-width:2.4; stroke-linecap:round; }
 
@@ -1369,7 +1376,11 @@ input{ font-family:inherit; }
      ============================================================ -->
 <div class="contenedor" id="pantallaAgenda" style="display:none;">
   <div class="agenda-encabezado">
-    <div></div>
+    <div class="agenda-lado-izquierdo">
+      <button class="boton-actualizar-agenda" id="botonActualizarAgenda" onclick="actualizarDesdeAgenda()" aria-label="Actualizar datos">
+        <svg class="icono-actualizar" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><polyline points="20 4 20 9 15 9"/></svg>
+      </button>
+    </div>
     <div class="agenda-titulo-bloque">
       <div class="agenda-mes-nombre" id="tituloMes"></div>
       <div class="agenda-anio" id="agendaAnio"></div>
@@ -2893,7 +2904,7 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.90';
+const VERSION_APP = '2.91';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -5613,6 +5624,7 @@ function abrirFichaEventoEdicion(instancia){
     document.getElementById('botonMoverSesionEvento').style.display = 'none';
     document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'none';
     document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = 'none';
+    document.getElementById('botonEliminarEvento').style.display = 'block';
     document.getElementById('botonEliminarEvento').textContent = 'Eliminar registro';
     document.getElementById('botonSobrescribirSesion').style.display = 'block';
   }else{
@@ -5664,6 +5676,7 @@ function abrirFichaEventoEdicion(instancia){
     // que este botón solo aparece ahí, y solo si el evento se repite.
     const permiteDuracion = etiquetaEventoSeleccionada !== 'atenciones' && etiquetaEventoSeleccionada !== 'analisis';
     document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = (esRecurrente && permiteDuracion) ? 'block' : 'none';
+    document.getElementById('botonEliminarEvento').style.display = 'block';
     document.getElementById('botonEliminarEvento').textContent = esRecurrente ? 'Eliminar toda la serie' : 'Eliminar';
     document.getElementById('botonSobrescribirSesion').style.display = (evento.etiqueta === 'atenciones' && evento.pacienteId) ? 'block' : 'none';
   }
@@ -10982,6 +10995,25 @@ document.addEventListener('visibilitychange', async () => {
     }
   }finally{ sincronizandoAlVolver = false; }
 });
+
+// Botón "actualizar" de la Agenda: envía lo pendiente, descarga todo de la planilla y vuelve a dibujar.
+// Mide cuánto tarda y lo muestra en el aviso (sirve para saber cuánto demora la planilla).
+async function actualizarDesdeAgenda(){
+  const b = document.getElementById('botonActualizarAgenda');
+  if(sincronizandoAlVolver || (b && b.classList.contains('girando'))) return;
+  if(document.querySelector('.fondo-modal.abierto')){ mostrarAvisoFlotante('Cierra la ventana abierta para actualizar.'); return; }
+  if(b) b.classList.add('girando');
+  const t0 = performance.now();
+  let ok = false;
+  try{ ok = await sincronizarTodo(); }finally{ if(b) b.classList.remove('girando'); }
+  const seg = ((performance.now() - t0) / 1000).toFixed(1).replace('.', ',');
+  if(!ok){ mostrarAvisoFlotante('No se pudo actualizar (' + seg + ' s). Revisa tu conexión.'); return; }
+  renderizarListaPacientes(); renderizarListaGastos();
+  pintarCategoriasGasto('gastoGridCategorias', categoriaSeleccionadaGasto, seleccionarCategoriaPrincipalGasto);
+  pintarSubcategoriasGasto('gastoGridSubcategorias', categoriaSeleccionadaGasto, subcategoriaSeleccionadaGasto, seleccionarSubcategoriaPrincipalGasto);
+  renderizarVistaMensual(); if(semanaAbierta) renderizarPanelSemana();
+  mostrarAvisoFlotante('Actualizado en ' + seg + ' s.');
+}
 
 mostrarVersionApp();
 revisarVersionMasReciente();
