@@ -2276,6 +2276,14 @@ input{ font-family:inherit; }
 
     <button class="boton-sobrescribir" id="botonSobrescribirSesion" style="display:none;" onclick="abrirSobrescribirSesion()">Sobrescribir la sesión</button>
     <div class="zona-archivar" id="zonaEliminarEvento" style="display:none;">
+      <button class="boton-archivar" id="botonEliminarSerieDesdeAqui" onclick="solicitarEliminarSerieDesdeAqui()" style="display:none; margin-bottom:8px;">Eliminar la serie desde esta fecha en adelante</button>
+      <div class="confirmacion-archivar" id="confirmacionEliminarSerieDesdeAqui" style="display:none; margin-bottom:8px;">
+        <p id="textoConfirmacionEliminarSerieDesdeAqui"></p>
+        <div class="fila-confirmacion">
+          <button class="boton-confirmar-no" onclick="cancelarEliminarSerieDesdeAqui()">Cancelar</button>
+          <button class="boton-confirmar-si" onclick="confirmarEliminarSerieDesdeAqui()">Sí, eliminar</button>
+        </div>
+      </div>
       <button class="boton-archivar" id="botonEliminarEvento" onclick="solicitarEliminarEvento()">Eliminar</button>
       <div class="confirmacion-archivar" id="confirmacionEliminarEvento" style="display:none;">
         <p id="textoConfirmacionEliminarEvento">Este registro se eliminará permanentemente. No se puede deshacer.</p>
@@ -2904,7 +2912,7 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.91';
+const VERSION_APP = '2.92';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -5591,6 +5599,8 @@ function abrirFichaEventoNueva(){
   document.getElementById('confirmacionEliminarEvento').style.display = 'none';
   document.getElementById('confirmacionOmitirFecha').style.display = 'none';
   document.getElementById('botonEliminarEvento').style.display = 'block';
+  document.getElementById('botonEliminarSerieDesdeAqui').style.display = 'none';
+  document.getElementById('confirmacionEliminarSerieDesdeAqui').style.display = 'none';
 
   pintarGridEtiquetasEvento(); pintarSegmentadoSubtipoAtencion(); pintarSegmentadoTipoPagoEventoConsulta();
   pintarSegmentadoRecurrenciaEvento(); pintarSegmentadoSemanaDelMes(); pintarSegmentadoEstadoSesionEvento();
@@ -5625,6 +5635,8 @@ function abrirFichaEventoEdicion(instancia){
     document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'none';
     document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = 'none';
     document.getElementById('botonEliminarEvento').style.display = 'block';
+    document.getElementById('botonEliminarSerieDesdeAqui').style.display = 'none';
+    document.getElementById('confirmacionEliminarSerieDesdeAqui').style.display = 'none';
     document.getElementById('botonEliminarEvento').textContent = 'Eliminar registro';
     document.getElementById('botonSobrescribirSesion').style.display = 'block';
   }else{
@@ -5677,6 +5689,8 @@ function abrirFichaEventoEdicion(instancia){
     const permiteDuracion = etiquetaEventoSeleccionada !== 'atenciones' && etiquetaEventoSeleccionada !== 'analisis';
     document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = (esRecurrente && permiteDuracion) ? 'block' : 'none';
     document.getElementById('botonEliminarEvento').style.display = 'block';
+    document.getElementById('botonEliminarSerieDesdeAqui').style.display = (esRecurrente && fechaOcurrenciaEnEdicion && fechaOcurrenciaEnEdicion > evento.fecha) ? 'block' : 'none';
+    document.getElementById('confirmacionEliminarSerieDesdeAqui').style.display = 'none';
     document.getElementById('botonEliminarEvento').textContent = esRecurrente ? 'Eliminar toda la serie' : 'Eliminar';
     document.getElementById('botonSobrescribirSesion').style.display = (evento.etiqueta === 'atenciones' && evento.pacienteId) ? 'block' : 'none';
   }
@@ -6912,6 +6926,8 @@ async function confirmarCambiarDuracionSerie(){
 
 function solicitarEliminarEvento(){
   document.getElementById('botonEliminarEvento').style.display = 'none';
+  document.getElementById('botonEliminarSerieDesdeAqui').style.display = 'none';
+  document.getElementById('confirmacionEliminarSerieDesdeAqui').style.display = 'none';
   document.getElementById('botonOmitirFechaEvento').style.display = 'none';
   document.getElementById('botonMoverSesionEvento').style.display = 'none';
   document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'none';
@@ -6927,6 +6943,7 @@ function solicitarEliminarEvento(){
 function cancelarEliminarEvento(){
   document.getElementById('botonEliminarEvento').style.display = 'block';
   const evento = eventoEnEdicionId !== null ? eventosAgenda.find(x => x.id === eventoEnEdicionId) : null;
+  document.getElementById('botonEliminarSerieDesdeAqui').style.display = (evento && evento.recurrencia !== 'ninguna' && fechaOcurrenciaEnEdicion && fechaOcurrenciaEnEdicion > evento.fecha) ? 'block' : 'none';
   if(evento && evento.recurrencia !== 'ninguna'){
     document.getElementById('botonOmitirFechaEvento').style.display = 'block';
     document.getElementById('botonMoverSesionEvento').style.display = 'block';
@@ -6935,6 +6952,42 @@ function cancelarEliminarEvento(){
     document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = permiteDuracion ? 'block' : 'none';
   }
   document.getElementById('confirmacionEliminarEvento').style.display = 'none';
+}
+// "Eliminar la serie desde esta fecha en adelante": conserva todo lo anterior (sesiones realizadas,
+// estados y pagos) y omite esta fecha y todas las repeticiones siguientes, igual que "Omitir esta fecha" en bloque.
+function solicitarEliminarSerieDesdeAqui(){
+  const evento = eventosAgenda.find(x => x.id === eventoEnEdicionId); if(!evento || !fechaOcurrenciaEnEdicion) return;
+  document.getElementById('botonEliminarSerieDesdeAqui').style.display = 'none';
+  document.getElementById('botonEliminarEvento').style.display = 'none';
+  document.getElementById('textoConfirmacionEliminarSerieDesdeAqui').textContent = 'Se eliminarán esta fecha (' + fechaOcurrenciaEnEdicion + ') y todas las repeticiones siguientes de la serie. Lo anterior a esta fecha se conserva sin cambios. No se puede deshacer.';
+  document.getElementById('confirmacionEliminarSerieDesdeAqui').style.display = 'block';
+}
+function cancelarEliminarSerieDesdeAqui(){
+  document.getElementById('confirmacionEliminarSerieDesdeAqui').style.display = 'none';
+  document.getElementById('botonEliminarSerieDesdeAqui').style.display = 'block';
+  document.getElementById('botonEliminarEvento').style.display = 'block';
+}
+async function confirmarEliminarSerieDesdeAqui(){
+  const evento = eventosAgenda.find(x => x.id === eventoEnEdicionId);
+  const fechaCorte = fechaOcurrenciaEnEdicion;
+  if(!evento || !fechaCorte) return;
+  // Si no hay nada anterior que conservar, equivale a eliminar la serie completa.
+  if(fechaCorte <= evento.fecha){ await confirmarEliminarEvento(); return; }
+  const futuras = generarOcurrencias(evento, fechaCorte, rangoAnalisisFin());
+  const decisionPago = await consultarSesionesPagadas(evento, futuras, 'eliminar la serie desde esta fecha');
+  if(!decisionPago.continuar){ cancelarEliminarSerieDesdeAqui(); return; }
+  if(decisionPago.eliminar) await eliminarIngresoYEstadoDeFechas(evento, decisionPago.fechas);
+  evento.fechasExcluidas = evento.fechasExcluidas || [];
+  evento.colaSync = evento.colaSync || [];
+  futuras.forEach(f => {
+    if(!evento.fechasExcluidas.includes(f)){
+      evento.fechasExcluidas.push(f);
+      evento.colaSync.push({ accion:'omitir_fecha_evento', datosBase: { id_evento: evento.id, fecha_omitida: f } });
+    }
+  });
+  cerrarFichaEvento(); rerenderizarVistaAgendaActual();
+  await guardarEventosEnAlmacenamiento();
+  procesarColaEntidadAgenda(evento, guardarEventosEnAlmacenamiento);
 }
 // Envío puntual con reintentos. Lo usan las acciones que no tienen una
 // cola persistente propia (eliminar un evento, un gasto o un objetivo:
