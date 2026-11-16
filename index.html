@@ -2154,6 +2154,9 @@ input{ font-family:inherit; }
         <button class="boton-accion-serie" id="botonCambiarSerieDesdeAqui" onclick="abrirModalMoverSesion(true)" style="display:none;">Cambiar día de la serie desde aquí</button>
         <button class="boton-accion-serie" id="botonCambiarDuracionSerieDesdeAqui" onclick="abrirModalCambiarDuracionSerie()" style="display:none;">Cambiar duración de la serie desde aquí</button>
       </div>
+      <div class="fila-acciones-serie-evento">
+        <button class="boton-accion-serie" id="botonCambiarHoraSerieDesdeAqui" onclick="abrirModalMoverSesion(true, true)" style="display:none;">Cambiar hora de la serie desde aquí</button>
+      </div>
       <div class="confirmacion-archivar" id="confirmacionOmitirFecha" style="display:none;">
         <p>Esta fecha puntual se omitirá. Las demás repeticiones de este evento se mantienen sin cambios.</p>
         <div class="fila-confirmacion">
@@ -2256,7 +2259,7 @@ input{ font-family:inherit; }
     <div class="campo-modal" id="campoRecurrenciaPersonalizada" style="display:none;">
       <span class="etiqueta-campo">Semana del mes</span>
       <div class="segmentado" id="segmentadoSemanaDelMes"></div>
-      <div class="nota-campo" style="margin-bottom:10px;">Se repite ese día de la semana (el mismo de la fecha elegida arriba), en su N-ésima aparición del mes.</div>
+      <div class="nota-campo" style="margin-bottom:10px;">Se repite ese día de la semana (el mismo de la fecha elegida arriba), en su N-ésima aparición del mes. Con "Último" cae siempre en la última aparición de ese día del mes, sean 4 o 5.</div>
     </div>
 
     <span id="lugarOriginalEstadoSesion"></span>
@@ -2349,7 +2352,7 @@ input{ font-family:inherit; }
     <div class="campo-modal">
       <p class="nota-campo" id="textoInfoMoverSesion" style="margin:0;"></p>
     </div>
-    <div class="campo-modal">
+    <div class="campo-modal" id="campoFechaMoverSesion">
       <span class="etiqueta-campo">Nueva fecha</span>
       <input type="date" id="moverSesionFecha">
     </div>
@@ -2912,7 +2915,7 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.92';
+const VERSION_APP = '2.93';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -3017,6 +3020,7 @@ function rangoAnalisisInicio(){ const d = new Date(); d.setFullYear(d.getFullYea
 function rangoAnalisisFin(){ const d = new Date(); d.setFullYear(d.getFullYear()+5); return formatoISO(d); }
 const SEMANAS_DEL_MES = [
   { valor:1, nombre:'1°' }, { valor:2, nombre:'2°' }, { valor:3, nombre:'3°' }, { valor:4, nombre:'4°' },
+  { valor:-1, nombre:'Último' }, // -1 = última aparición de ese día de la semana en el mes (4° o 5°)
 ];
 
 const ESTADOS_SESION = [
@@ -4376,7 +4380,7 @@ function generarOcurrencias(evento, inicioRangoISO, finRangoISO){
   }
 
   if(evento.recurrencia === 'mensual_personalizada'){
-    // N-ésima aparición (1°-4°) de un día de la semana específico en cada mes.
+    // N-ésima aparición (1°-4°) o la última (-1) de un día de la semana específico en cada mes.
     const diaSemana = evento.diaSemana;
     const semanaN = evento.semanaDelMes;
     let anio = inicioRango.getFullYear(), mes = inicioRango.getMonth();
@@ -4384,9 +4388,17 @@ function generarOcurrencias(evento, inicioRangoISO, finRangoISO){
     let guard = 0;
     while(guard < 600){
       guard++;
-      const primerDia = new Date(anio, mes, 1, 12);
-      const offset = (diaSemana - primerDia.getDay() + 7) % 7;
-      const fechaOcurrencia = new Date(anio, mes, 1 + offset + (semanaN-1)*7, 12);
+      let fechaOcurrencia;
+      if(semanaN === -1){
+        // "Último": retrocede desde el último día del mes hasta el día de la semana pedido.
+        const ultimoDiaMes = new Date(anio, mes + 1, 0, 12);
+        const retroceso = (ultimoDiaMes.getDay() - diaSemana + 7) % 7;
+        fechaOcurrencia = new Date(anio, mes, ultimoDiaMes.getDate() - retroceso, 12);
+      }else{
+        const primerDia = new Date(anio, mes, 1, 12);
+        const offset = (diaSemana - primerDia.getDay() + 7) % 7;
+        fechaOcurrencia = new Date(anio, mes, 1 + offset + (semanaN-1)*7, 12);
+      }
       if(fechaOcurrencia.getMonth() === mes){
         if(fechaOcurrencia > finRango) break;
         if(fechaOcurrencia >= fechaBase && fechaOcurrencia >= inicioRango){
@@ -5426,8 +5438,8 @@ function textosMoverSegunEtiqueta(etiqueta){
   document.getElementById('botonMoverSesionEvento').textContent = esSesion ? 'Mover esta sesión a otro día' : 'Mover este evento para otro día';
   const mencionDuracion = (!esSesion && hasDurationEventoSeleccionado) ? ' Lo mismo pasa con la duración: cuántos días dura cada repetición se define una sola vez para toda la serie.' : '';
   document.getElementById('notaFechaEventoBloqueada').textContent = (esSesion
-    ? 'Esta sesión pertenece a una serie que se repite. Para cambiar el día de esta sesión en particular, usa "Mover esta sesión a otro día", arriba. Para cambiar el día de TODA la serie desde acá en adelante, usa "Cambiar día de la serie desde aquí", también arriba.'
-    : 'Este evento pertenece a una serie que se repite. Para cambiar solo este día, usa "Mover este evento para otro día", arriba. Para cambiar el día de TODA la serie desde acá en adelante, usa "Cambiar día de la serie desde aquí", también arriba.') + mencionDuracion;
+    ? 'Esta sesión pertenece a una serie que se repite. Para cambiar el día de esta sesión en particular, usa "Mover esta sesión a otro día", arriba. Para cambiar el día de TODA la serie desde acá en adelante, usa "Cambiar día de la serie desde aquí", y para cambiar solo la hora, "Cambiar hora de la serie desde aquí", también arriba.'
+    : 'Este evento pertenece a una serie que se repite. Para cambiar solo este día, usa "Mover este evento para otro día", arriba. Para cambiar el día de TODA la serie desde acá en adelante, usa "Cambiar día de la serie desde aquí", y para cambiar solo la hora, "Cambiar hora de la serie desde aquí", también arriba.') + mencionDuracion;
 }
 
 // No hace falta un redibujo especial al cambiar el tamaño de la
@@ -5594,7 +5606,7 @@ function abrirFichaEventoNueva(){
   document.getElementById('botonSobrescribirSesion').style.display = 'none';
   document.getElementById('botonOmitirFechaEvento').style.display = 'none';
   document.getElementById('botonMoverSesionEvento').style.display = 'none';
-  document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'none';
+  document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'none'; document.getElementById('botonCambiarHoraSerieDesdeAqui').style.display = 'none';
   document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = 'none';
   document.getElementById('confirmacionEliminarEvento').style.display = 'none';
   document.getElementById('confirmacionOmitirFecha').style.display = 'none';
@@ -5632,7 +5644,7 @@ function abrirFichaEventoEdicion(instancia){
     document.getElementById('zonaEliminarEvento').style.display = 'block';
     document.getElementById('botonOmitirFechaEvento').style.display = 'none';
     document.getElementById('botonMoverSesionEvento').style.display = 'none';
-    document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'none';
+    document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'none'; document.getElementById('botonCambiarHoraSerieDesdeAqui').style.display = 'none';
     document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = 'none';
     document.getElementById('botonEliminarEvento').style.display = 'block';
     document.getElementById('botonEliminarSerieDesdeAqui').style.display = 'none';
@@ -5682,7 +5694,7 @@ function abrirFichaEventoEdicion(instancia){
     document.getElementById('zonaEliminarEvento').style.display = 'block';
     document.getElementById('botonOmitirFechaEvento').style.display = esRecurrente ? 'block' : 'none';
     document.getElementById('botonMoverSesionEvento').style.display = esRecurrente ? 'block' : 'none';
-    document.getElementById('botonCambiarSerieDesdeAqui').style.display = esRecurrente ? 'block' : 'none';
+    document.getElementById('botonCambiarSerieDesdeAqui').style.display = esRecurrente ? 'block' : 'none'; document.getElementById('botonCambiarHoraSerieDesdeAqui').style.display = esRecurrente ? 'block' : 'none';
     // La duración solo existe para categorías que no son Atenciones ni
     // Análisis y Supervisión (ver actualizarCamposSegunEtiqueta), así
     // que este botón solo aparece ahí, y solo si el evento se repite.
@@ -5797,7 +5809,9 @@ function actualizarVisibilidadRecurrenciaPersonalizada(){
     : recurrenciaEventoSeleccionada === 'mensual'
       ? 'Se repite el mismo número de día del mes, durante 1 año.'
       : recurrenciaEventoSeleccionada === 'mensual_personalizada'
-        ? `Se repite cada mes en su N-ésimo ${nombreDia || 'día de la semana'}, durante 1 año.`
+        ? (semanaDelMesEventoSeleccionada === -1
+            ? `Se repite cada mes en el último ${nombreDia || 'día de la semana'}, durante 1 año.`
+            : `Se repite cada mes en su ${semanaDelMesEventoSeleccionada}° ${nombreDia || 'día de la semana'}, durante 1 año.`)
         : recurrenciaEventoSeleccionada === 'anual'
           ? 'Se repite el mismo día y mes, una vez al año, durante 5 años.'
           : '';
@@ -5808,7 +5822,7 @@ function pintarSegmentadoSemanaDelMes(){
     const b = document.createElement('button');
     b.className = semanaDelMesEventoSeleccionada === s.valor ? 'seleccionado' : '';
     b.textContent = s.nombre;
-    b.onclick = () => { semanaDelMesEventoSeleccionada = s.valor; pintarSegmentadoSemanaDelMes(); };
+    b.onclick = () => { semanaDelMesEventoSeleccionada = s.valor; pintarSegmentadoSemanaDelMes(); actualizarVisibilidadRecurrenciaPersonalizada(); };
     c.appendChild(b);
   });
 }
@@ -6247,7 +6261,7 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
   if(eventoEnEdicionId !== null){
     const evH = eventosAgenda.find(x => x.id === eventoEnEdicionId);
     if(evH && evH.recurrencia !== 'ninguna' && fechaOcurrenciaEnEdicion && (hora || '') !== (evH.hora || '')){
-      mostrarAvisoFormulario('avisoFichaEvento', 'La hora es de toda la serie. Para cambiarla solo en esta sesión usa "Mover esta sesión"; para cambiarla desde aquí en adelante usa "Cambiar día de la serie".', 'eventoHora');
+      mostrarAvisoFormulario('avisoFichaEvento', 'La hora es de toda la serie. Para cambiarla solo en esta sesión usa "Mover esta sesión"; para cambiarla desde aquí en adelante usa "Cambiar hora de la serie desde aquí".', 'eventoHora');
       return;
     }
   }
@@ -6507,7 +6521,7 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
 function solicitarOmitirFecha(){
   document.getElementById('botonOmitirFechaEvento').style.display = 'none';
   document.getElementById('botonMoverSesionEvento').style.display = 'none';
-  document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'none';
+  document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'none'; document.getElementById('botonCambiarHoraSerieDesdeAqui').style.display = 'none';
   document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = 'none';
   document.getElementById('botonEliminarEvento').style.display = 'none';
   document.getElementById('confirmacionOmitirFecha').style.display = 'block';
@@ -6515,7 +6529,7 @@ function solicitarOmitirFecha(){
 function cancelarOmitirFecha(){
   document.getElementById('botonOmitirFechaEvento').style.display = 'block';
   document.getElementById('botonMoverSesionEvento').style.display = 'block';
-  document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'block';
+  document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'block'; document.getElementById('botonCambiarHoraSerieDesdeAqui').style.display = 'block';
   const permiteDuracion = etiquetaEventoSeleccionada !== 'atenciones' && etiquetaEventoSeleccionada !== 'analisis';
   document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = permiteDuracion ? 'block' : 'none';
   document.getElementById('botonEliminarEvento').style.display = 'block';
@@ -6648,15 +6662,29 @@ async function eliminarIngresoYEstadoDeFechas(evento, fechas, conservarBoletas){
 // fecha", repetido para cada una) y se crea una serie NUEVA que
 // arranca en la fecha/hora elegidas, con la misma recurrencia,
 // paciente/nombre, etiqueta y duración.
+// moverModoSoloHora: variante de "Cambiar día de la serie desde aquí" que
+// solo cambia la hora (la fecha de la sesión desde la que se abre no
+// cambia, por eso el modal no pide fecha). Usa el mismo mecanismo de
+// cortar la serie, así que las repeticiones anteriores no se tocan.
 let moverModoGlobal = false;
-function abrirModalMoverSesion(esGlobal){
+let moverModoSoloHora = false;
+function abrirModalMoverSesion(esGlobal, soloHora){
   const evento = eventosAgenda.find(x => x.id === eventoEnEdicionId);
   if(!evento || !fechaOcurrenciaEnEdicion) return;
   moverModoGlobal = !!esGlobal;
+  moverModoSoloHora = !!(esGlobal && soloHora);
+  document.getElementById('campoFechaMoverSesion').style.display = moverModoSoloHora ? 'none' : 'block';
   eventoEnMovimiento = evento; fechaOcurrenciaEnMovimiento = fechaOcurrenciaEnEdicion;
   const esSesion = evento.etiqueta === 'atenciones';
   const notaGlobal = document.getElementById('notaCambioGlobalSerie');
-  if(moverModoGlobal){
+  if(moverModoSoloHora){
+    document.getElementById('tituloModalMoverSesion').textContent = esSesion ? 'Cambiar hora de la serie' : 'Cambiar hora del evento recurrente';
+    document.getElementById('botonConfirmarMoverSesion').textContent = 'Cambiar hora desde aquí';
+    document.getElementById('etiquetaHoraMoverSesion').textContent = 'Nueva hora';
+    document.getElementById('notaModalMoverSesion').textContent = `Desde el ${formatearFechaMovimiento(fechaOcurrenciaEnEdicion)} en adelante, toda la serie pasa a esta hora nueva. El día no cambia. Las repeticiones anteriores a esa fecha no cambian.`;
+    notaGlobal.style.display = 'block';
+    notaGlobal.textContent = 'Esto no toca ninguna repetición ya pasada: su hora, su estado y quién asistió quedan exactamente igual que ahora.';
+  }else if(moverModoGlobal){
     document.getElementById('tituloModalMoverSesion').textContent = esSesion ? 'Cambiar día de la serie' : 'Cambiar día del evento recurrente';
     document.getElementById('botonConfirmarMoverSesion').textContent = 'Cambiar desde aquí';
     document.getElementById('etiquetaHoraMoverSesion').textContent = esSesion ? 'Nueva hora' : 'Nueva hora (opcional)';
@@ -6680,13 +6708,20 @@ function abrirModalMoverSesion(esGlobal){
 }
 function cerrarModalMoverSesion(){
   document.getElementById('fondoModalMoverSesion').classList.remove('abierto');
-  eventoEnMovimiento = null; fechaOcurrenciaEnMovimiento = null; moverModoGlobal = false;
+  eventoEnMovimiento = null; fechaOcurrenciaEnMovimiento = null; moverModoGlobal = false; moverModoSoloHora = false;
 }
 async function guardarMoverSesion(){
   if(!eventoEnMovimiento || !fechaOcurrenciaEnMovimiento) return;
   const nuevaFecha = document.getElementById('moverSesionFecha').value;
   const nuevaHora = document.getElementById('moverSesionHora').value;
   ocultarAvisoFormulario('avisoMoverSesion');
+  if(moverModoSoloHora){
+    // Solo cambia la hora: la hora es obligatoria y la fecha de corte es la de esta sesión.
+    if(!horaEsValida(nuevaHora)){ mostrarAvisoFormulario('avisoMoverSesion', 'Falta la hora o está incompleta. Usa el formato 24 horas, por ejemplo 09:30.', 'moverSesionHora'); return; }
+    if(nuevaHora === (eventoEnMovimiento.hora || '')){ mostrarAvisoFormulario('avisoMoverSesion', 'Esa es la misma hora que tiene la serie ahora. Escribe una hora distinta.', 'moverSesionHora'); return; }
+    await confirmarCambioSerieDesdeAqui(fechaOcurrenciaEnMovimiento, nuevaHora, true);
+    return;
+  }
   if(!nuevaFecha){ mostrarAvisoFormulario('avisoMoverSesion', 'Falta la nueva fecha.', 'moverSesionFecha'); return; }
   const horaObligatoria = eventoEnMovimiento.etiqueta === 'atenciones';
   if((horaObligatoria || nuevaHora) && !horaEsValida(nuevaHora)){ mostrarAvisoFormulario('avisoMoverSesion', 'Falta la hora o está incompleta. Usa el formato 24 horas, por ejemplo 09:30.', 'moverSesionHora'); return; }
@@ -6772,9 +6807,38 @@ async function guardarMoverSesion(){
 // repeticiones futuras, calculadas con el mismo motor que dibuja la
 // Agenda) y arranca una serie nueva, con la misma recurrencia,
 // paciente/nombre/etiqueta y duración, en la fecha y hora elegidas.
-async function confirmarCambioSerieDesdeAqui(nuevaFecha, nuevaHora){
+//
+// soloHora = true ("Cambiar hora de la serie desde aquí"): la serie nueva
+// arranca en la MISMA fecha de corte. Como la serie vieja pierde esas
+// fechas, antes de hacer nada se revisa que ninguna sesión desde la
+// fecha de corte tenga estado, adultos u otros datos guardados (se
+// perderían de vista). Además, las fechas que ya estaban omitidas o
+// movidas desde esa fecha se traspasan a la serie nueva, para que no
+// reaparezcan. Un evento de varios días conserva cuántos días dura.
+async function confirmarCambioSerieDesdeAqui(nuevaFecha, nuevaHora, soloHora){
   const evento = eventoEnMovimiento;
   const fechaCorte = fechaOcurrenciaEnMovimiento;
+
+  let exclusionesATraspasar = [];
+  if(soloHora){
+    const camposPorFecha = ['estadosPorFecha','adultosPorFecha','marcadoPagadoPorFecha','montoBrutoCongeladoPorFecha','comisionELCongeladaPorFecha','impuestoCongeladoPorFecha','nombreSobrescritoPorFecha','endTimePorFecha'];
+    const fechasConDatos = new Set();
+    camposPorFecha.forEach(c => {
+      const mapa = evento[c] || {};
+      Object.keys(mapa).forEach(f => {
+        const v = mapa[f];
+        const tieneValor = Array.isArray(v) ? v.length > 0 : (v !== null && v !== undefined && v !== '');
+        if(f >= fechaCorte && tieneValor) fechasConDatos.add(f);
+      });
+    });
+    const conDatos = Array.from(fechasConDatos).sort();
+    if(conDatos.length){
+      const resto = conDatos.length > 1 ? ` (y ${conDatos.length - 1} más)` : '';
+      mostrarAvisoFormulario('avisoMoverSesion', `No se puede cambiar la hora desde aquí porque la sesión del ${formatearFechaMovimiento(conDatos[0])}${resto} ya tiene estado u otros datos guardados, y se perderían de vista. Abre una sesión posterior que no tenga nada marcado y cambia la hora desde ahí.`, 'moverSesionHora');
+      return;
+    }
+    exclusionesATraspasar = (evento.fechasExcluidas || []).filter(f => f >= fechaCorte);
+  }
 
   // 1) Repeticiones futuras (desde fechaCorte, calculadas hasta el
   // horizonte de la propia recurrencia) de la serie vieja: se omiten
@@ -6800,12 +6864,15 @@ async function confirmarCambioSerieDesdeAqui(nuevaFecha, nuevaHora){
     id: generarIdEvento(), etiqueta: evento.etiqueta, nombre: evento.nombre, pacienteId: evento.pacienteId,
     fecha: nuevaFecha, hora: nuevaHora || evento.hora, recurrencia: evento.recurrencia,
     diaSemana: evento.diaSemana, semanaDelMes: evento.semanaDelMes,
-    fechasExcluidas: [], estadoSesion: null, estadosPorFecha: {}, adultosPorFecha: {}, marcadoPagadoPorFecha: {},
+    fechasExcluidas: exclusionesATraspasar.slice(), estadoSesion: null, estadosPorFecha: {}, adultosPorFecha: {}, marcadoPagadoPorFecha: {},
     hasDuration: evento.hasDuration, endTime: evento.hasDuration ? (evento.endTime || '') : '',
-    endDate: (evento.hasDuration && evento.endDate && evento.endDate !== evento.fecha) ? nuevaFecha : '',
+    endDate: (evento.hasDuration && evento.endDate && evento.endDate !== evento.fecha)
+      ? (soloHora ? (() => { const f = fechaDesdeISO(nuevaFecha); f.setDate(f.getDate() + diasEntreFechas(evento.fecha, evento.endDate)); return formatoISO(f); })() : nuevaFecha)
+      : '',
     creado: Date.now(), pendienteSync:false, colaSync:[]
   };
   nuevoEvento.colaSync.push({ accion:'crear_evento', datosBase: construirDatosEventoBase(nuevoEvento) });
+  exclusionesATraspasar.forEach(f => nuevoEvento.colaSync.push({ accion:'omitir_fecha_evento', datosBase: { id_evento: nuevoEvento.id, fecha_omitida: f } }));
   eventosAgenda.push(nuevoEvento);
 
   cerrarModalMoverSesion(); cerrarFichaEvento(); rerenderizarVistaAgendaActual();
@@ -6930,7 +6997,7 @@ function solicitarEliminarEvento(){
   document.getElementById('confirmacionEliminarSerieDesdeAqui').style.display = 'none';
   document.getElementById('botonOmitirFechaEvento').style.display = 'none';
   document.getElementById('botonMoverSesionEvento').style.display = 'none';
-  document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'none';
+  document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'none'; document.getElementById('botonCambiarHoraSerieDesdeAqui').style.display = 'none';
   document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = 'none';
   const eventoActual = eventoEnEdicionId !== null ? eventosAgenda.find(x => x.id === eventoEnEdicionId) : null;
   const esSerie = eventoActual && eventoActual.recurrencia !== 'ninguna';
@@ -6947,7 +7014,7 @@ function cancelarEliminarEvento(){
   if(evento && evento.recurrencia !== 'ninguna'){
     document.getElementById('botonOmitirFechaEvento').style.display = 'block';
     document.getElementById('botonMoverSesionEvento').style.display = 'block';
-    document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'block';
+    document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'block'; document.getElementById('botonCambiarHoraSerieDesdeAqui').style.display = 'block';
     const permiteDuracion = evento.etiqueta !== 'atenciones' && evento.etiqueta !== 'analisis';
     document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = permiteDuracion ? 'block' : 'none';
   }
