@@ -398,6 +398,7 @@ input{ font-family:inherit; }
   flex:1; padding:11px 8px; border-radius:12px; background:var(--borde-suave); color:var(--texto-principal);
   font-size:12.5px; font-weight:650; font-family:'Quicksand',sans-serif; line-height:1.25; touch-action:manipulation;
 }
+.boton-accion-serie.activo{ background:var(--agenda-color-seleccion); color:#FFF6E8; }
 .separador-edicion-evento{ height:1px; background:var(--borde); margin:16px 0 14px; }
 
 /* Configuración: tarjeta de versión arriba */
@@ -2146,16 +2147,13 @@ input{ font-family:inherit; }
       </label>
       <span id="lugarSuperiorEstadoSesion"></span>
       <span id="lugarSuperiorGuardar"></span>
+      <div class="fila-acciones-serie-evento" id="filaModoSerie" style="display:none;">
+        <button class="boton-accion-serie" id="botonModoFecha" onclick="cambiarModoSerieFicha('fecha')">Modificar fecha</button>
+        <button class="boton-accion-serie" id="botonModoSerie" onclick="cambiarModoSerieFicha('serie')">Modificar serie</button>
+      </div>
+      <div class="nota-campo" id="notaModoSerieFicha" style="display:none; margin-top:8px;"></div>
       <div class="fila-acciones-serie-evento">
-        <button class="boton-accion-serie" id="botonMoverSesionEvento" onclick="abrirModalMoverSesion()" style="display:none;">Mover esta sesión a otro día</button>
         <button class="boton-accion-serie" id="botonOmitirFechaEvento" onclick="solicitarOmitirFecha()" style="display:none;">Omitir esta fecha</button>
-      </div>
-      <div class="fila-acciones-serie-evento">
-        <button class="boton-accion-serie" id="botonCambiarSerieDesdeAqui" onclick="abrirModalMoverSesion(true)" style="display:none;">Cambiar día de la serie desde aquí</button>
-        <button class="boton-accion-serie" id="botonCambiarDuracionSerieDesdeAqui" onclick="abrirModalCambiarDuracionSerie()" style="display:none;">Cambiar duración de la serie desde aquí</button>
-      </div>
-      <div class="fila-acciones-serie-evento">
-        <button class="boton-accion-serie" id="botonCambiarHoraSerieDesdeAqui" onclick="abrirModalMoverSesion(true, true)" style="display:none;">Cambiar hora de la serie desde aquí</button>
       </div>
       <div class="confirmacion-archivar" id="confirmacionOmitirFecha" style="display:none;">
         <p>Esta fecha puntual se omitirá. Las demás repeticiones de este evento se mantienen sin cambios.</p>
@@ -2915,7 +2913,7 @@ async function llamarScript(accion, datos){
 // abajo) detecte si hay una copia más nueva publicada. Al preparar
 // cada actualización, esta es la única línea que hace falta cambiar
 // (más la fecha y descripción, que son solo para mostrar).
-const VERSION_APP = '2.93';
+const VERSION_APP = '2.94';
 
 const CLAVE_PACIENTES = 'pacientes-registros';
 const CLAVE_CONFIG = 'configuracion-global';
@@ -5435,7 +5433,6 @@ function colocarControlesFichaEvento(modoEdicion){
 // Textos de "mover" según si es una sesión (Atenciones) u otro evento.
 function textosMoverSegunEtiqueta(etiqueta){
   const esSesion = etiqueta === 'atenciones';
-  document.getElementById('botonMoverSesionEvento').textContent = esSesion ? 'Mover esta sesión a otro día' : 'Mover este evento para otro día';
   const mencionDuracion = (!esSesion && hasDurationEventoSeleccionado) ? ' Lo mismo pasa con la duración: cuántos días dura cada repetición se define una sola vez para toda la serie.' : '';
   document.getElementById('notaFechaEventoBloqueada').textContent = (esSesion
     ? 'Esta sesión pertenece a una serie que se repite. Para cambiar el día de esta sesión en particular, usa "Mover esta sesión a otro día", arriba. Para cambiar el día de TODA la serie desde acá en adelante, usa "Cambiar día de la serie desde aquí", y para cambiar solo la hora, "Cambiar hora de la serie desde aquí", también arriba.'
@@ -5577,7 +5574,7 @@ function abrirFichaEventoNueva(){
   eventoEnEdicionId = null; consultaEnEdicionId = null; fechaOcurrenciaEnEdicion = null;
   etiquetaEventoSeleccionada = 'atenciones'; subtipoAtencionSeleccionado = 'existente';
   pacienteEventoSeleccionadoId = null; tipoPagoEventoConsultaSeleccionado = 'particular';
-  recurrenciaEventoSeleccionada = 'ninguna'; semanaDelMesEventoSeleccionada = 1;
+  recurrenciaEventoSeleccionada = 'ninguna'; semanaDelMesEventoSeleccionada = 1; modoSerieFicha = null;
   estadoSesionEventoSeleccionado = null; hasDurationEventoSeleccionado = false;
   grupoEstadoEventoElegido = null; avisoEstadoIncompleto = false; duracionDesplegada = false; recurrenciaDesplegada = false;
   listaPacientesAbierta = false; ocultarAvisoFormulario('avisoFichaEvento');
@@ -5605,10 +5602,7 @@ function abrirFichaEventoNueva(){
   document.getElementById('zonaEliminarEvento').style.display = 'none';
   document.getElementById('botonSobrescribirSesion').style.display = 'none';
   document.getElementById('botonOmitirFechaEvento').style.display = 'none';
-  document.getElementById('botonMoverSesionEvento').style.display = 'none';
-  document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'none'; document.getElementById('botonCambiarHoraSerieDesdeAqui').style.display = 'none';
-  document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = 'none';
-  document.getElementById('confirmacionEliminarEvento').style.display = 'none';
+        document.getElementById('confirmacionEliminarEvento').style.display = 'none';
   document.getElementById('confirmacionOmitirFecha').style.display = 'none';
   document.getElementById('botonEliminarEvento').style.display = 'block';
   document.getElementById('botonEliminarSerieDesdeAqui').style.display = 'none';
@@ -5643,10 +5637,7 @@ function abrirFichaEventoEdicion(instancia){
     document.getElementById('eventoHora').value = c.hora || '';
     document.getElementById('zonaEliminarEvento').style.display = 'block';
     document.getElementById('botonOmitirFechaEvento').style.display = 'none';
-    document.getElementById('botonMoverSesionEvento').style.display = 'none';
-    document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'none'; document.getElementById('botonCambiarHoraSerieDesdeAqui').style.display = 'none';
-    document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = 'none';
-    document.getElementById('botonEliminarEvento').style.display = 'block';
+                document.getElementById('botonEliminarEvento').style.display = 'block';
     document.getElementById('botonEliminarSerieDesdeAqui').style.display = 'none';
     document.getElementById('confirmacionEliminarSerieDesdeAqui').style.display = 'none';
     document.getElementById('botonEliminarEvento').textContent = 'Eliminar registro';
@@ -5693,14 +5684,11 @@ function abrirFichaEventoEdicion(instancia){
     document.getElementById('camposDuracionDetalle').style.display = hasDurationEventoSeleccionado ? 'block' : 'none';
     document.getElementById('zonaEliminarEvento').style.display = 'block';
     document.getElementById('botonOmitirFechaEvento').style.display = esRecurrente ? 'block' : 'none';
-    document.getElementById('botonMoverSesionEvento').style.display = esRecurrente ? 'block' : 'none';
-    document.getElementById('botonCambiarSerieDesdeAqui').style.display = esRecurrente ? 'block' : 'none'; document.getElementById('botonCambiarHoraSerieDesdeAqui').style.display = esRecurrente ? 'block' : 'none';
-    // La duración solo existe para categorías que no son Atenciones ni
+            // La duración solo existe para categorías que no son Atenciones ni
     // Análisis y Supervisión (ver actualizarCamposSegunEtiqueta), así
     // que este botón solo aparece ahí, y solo si el evento se repite.
     const permiteDuracion = etiquetaEventoSeleccionada !== 'atenciones' && etiquetaEventoSeleccionada !== 'analisis';
-    document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = (esRecurrente && permiteDuracion) ? 'block' : 'none';
-    document.getElementById('botonEliminarEvento').style.display = 'block';
+        document.getElementById('botonEliminarEvento').style.display = 'block';
     document.getElementById('botonEliminarSerieDesdeAqui').style.display = (esRecurrente && fechaOcurrenciaEnEdicion && fechaOcurrenciaEnEdicion > evento.fecha) ? 'block' : 'none';
     document.getElementById('confirmacionEliminarSerieDesdeAqui').style.display = 'none';
     document.getElementById('botonEliminarEvento').textContent = esRecurrente ? 'Eliminar toda la serie' : 'Eliminar';
@@ -5709,6 +5697,7 @@ function abrirFichaEventoEdicion(instancia){
 
   document.getElementById('confirmacionEliminarEvento').style.display = 'none';
   document.getElementById('confirmacionOmitirFecha').style.display = 'none';
+  modoSerieFicha = (eventoEnEdicionId !== null && eventosAgenda.some(e => e.id === eventoEnEdicionId && e.recurrencia !== 'ninguna')) ? 'fecha' : null;
   colocarControlesFichaEvento(true);
   textosMoverSegunEtiqueta(etiquetaEventoSeleccionada);
   mostrarBotonRealizado(instancia);
@@ -5718,6 +5707,7 @@ function abrirFichaEventoEdicion(instancia){
   duracionDesplegada = hasDurationEventoSeleccionado;
   recurrenciaDesplegada = recurrenciaEventoSeleccionada !== 'ninguna';
   actualizarCamposSegunEtiqueta();
+  aplicarModoSerieFicha();
   if(subtipoAtencionSeleccionado === 'consulta') actualizarMontoEventoConsulta();
   actualizarResumenDuracion();
   renderizarBusquedaPaciente();
@@ -5734,7 +5724,207 @@ function abrirFichaEventoEdicion(instancia){
   document.getElementById('fondoModalEvento').classList.add('abierto');
 }
 
+// ============================================================
+// EVENTOS QUE SE REPITEN: DOS MODOS EN LA MISMA FICHA
+// "Modificar fecha": los cambios valen solo para esta fecha. Estado,
+// adultos y "realizado" se guardan dentro de la serie; si cambia la
+// fecha, la hora o el nombre, la fecha sale de la serie y pasa a ser un
+// evento suelto (guardarFechaDeSerie, que reutiliza guardarMoverSesion).
+// "Modificar serie": los cambios valen desde esta fecha en adelante: la
+// serie vieja se corta y nace una serie nueva (guardarSerieDesdeAqui),
+// y las sesiones con estado o pago que siguen en los mismos días se
+// traspasan con sus datos a la serie nueva.
+// ============================================================
+let modoSerieFicha = null; // null = no es una serie; 'fecha' o 'serie'
+function cambiarModoSerieFicha(modo){
+  if(modoSerieFicha === modo) return;
+  const ev = eventosAgenda.find(x => x.id === eventoEnEdicionId);
+  if(!ev) return;
+  modoSerieFicha = modo;
+  ocultarAvisoFormulario('avisoFichaEvento');
+  if(modo === 'serie') recurrenciaDesplegada = true;
+  else{
+    // Al volver a "fecha" lo propio de la serie vuelve a como estaba guardado.
+    recurrenciaEventoSeleccionada = ev.recurrencia; semanaDelMesEventoSeleccionada = ev.semanaDelMes || 1;
+    hasDurationEventoSeleccionado = ev.hasDuration || false; duracionDesplegada = hasDurationEventoSeleccionado;
+    document.getElementById('eventoFechaTermino').value = ev.hasDuration ? fechaTerminoParaOcurrencia(ev, fechaOcurrenciaEnEdicion) : (ev.endDate || ev.fecha);
+    pintarSegmentadoRecurrenciaEvento(); pintarSegmentadoSemanaDelMes();
+  }
+  aplicarModoSerieFicha();
+}
+function aplicarModoSerieFicha(){
+  const $ = id => document.getElementById(id);
+  const ev = eventoEnEdicionId !== null ? eventosAgenda.find(x => x.id === eventoEnEdicionId) : null;
+  if(modoSerieFicha === null || !ev){ $('filaModoSerie').style.display = 'none'; $('notaModoSerieFicha').style.display = 'none'; return; }
+  const enSerie = modoSerieFicha === 'serie';
+  $('filaModoSerie').style.display = 'flex'; $('notaModoSerieFicha').style.display = 'block';
+  $('botonModoFecha').classList.toggle('activo', !enSerie); $('botonModoSerie').classList.toggle('activo', enSerie);
+  $('notaModoSerieFicha').textContent = enSerie ? 'Las modificaciones realizadas se harán a partir de esta fecha.' : 'Las modificaciones realizadas se harán solo en esta fecha.';
+  $('notaFechaEventoBloqueada').style.display = 'none';
+  $('eventoFecha').disabled = false;
+  $('eventoFechaTermino').disabled = !enSerie;
+  duracionFijaPorSerie = !enSerie && !!ev.hasDuration;
+  $('notaHoraTerminoOcurrencia').style.display = enSerie ? 'none' : 'block';
+  $('botonOmitirFechaEvento').style.display = enSerie ? 'none' : 'block';
+  $('zonaEliminarEvento').style.display = enSerie ? 'block' : 'none';
+  $('botonSobrescribirSesion').style.display = (!enSerie && ev.etiqueta === 'atenciones' && ev.pacienteId) ? 'block' : 'none';
+  if(enSerie){ $('filaRealizadoEvento').style.display = 'none'; $('campoAdultoResponsableSesion').style.display = 'none'; }
+  else{
+    if(instanciaRealizadoEnFicha) $('filaRealizadoEvento').style.display = 'flex';
+    if(subtipoAtencionSeleccionado === 'existente' && pacienteEventoSeleccionadoId) actualizarCampoAdultoResponsableSesion(true);
+  }
+  actualizarCamposSegunEtiqueta();
+}
+// Lo que no corresponde a cada modo se esconde (se llama al final de actualizarCamposSegunEtiqueta).
+function ajustarBloquesPorModo(){
+  if(modoSerieFicha === null) return;
+  const $ = id => document.getElementById(id);
+  if(modoSerieFicha === 'serie'){ $('campoEstadoSesionEvento').style.display = 'none'; return; }
+  ['campoRecurrenciaEvento','campoRecurrenciaPersonalizada','botonAbrirRecurrencia','botonAbrirDuracion','botonQuitarDuracion','filaOpcionesExtraEvento'].forEach(id => { $(id).style.display = 'none'; });
+}
+// El paciente y el tipo de un evento que se repite no se cambian desde la app.
+function avisarCambioBloqueadoSerie(ev){
+  const esAt = etiquetaEventoSeleccionada === 'atenciones';
+  const cambioTipo = etiquetaEventoSeleccionada !== ev.etiqueta;
+  const cambioPaciente = esAt && (subtipoAtencionSeleccionado !== 'existente' || pacienteEventoSeleccionadoId !== ev.pacienteId);
+  if(!cambioTipo && !cambioPaciente) return false;
+  mostrarAvisoFormulario('avisoFichaEvento', 'No se puede cambiar el paciente ni el tipo de un evento que se repite desde la app. Déjalos como estaban. Si de verdad necesitas cambiarlos, hay que resolverlo en el chat de Claude.', cambioTipo ? 'gridEtiquetasEvento' : 'campoBusquedaPaciente');
+  return true;
+}
+// Modo "fecha": devuelve true si ya resolvió el guardado (o mostró un aviso).
+async function guardarFechaDeSerie(fecha, hora){
+  const ev = eventosAgenda.find(x => x.id === eventoEnEdicionId);
+  const fechaOriginal = fechaOcurrenciaEnEdicion;
+  if(!ev || ev.recurrencia === 'ninguna' || !fechaOriginal) return false;
+  if(avisarCambioBloqueadoSerie(ev)) return true;
+  const esAt = etiquetaEventoSeleccionada === 'atenciones';
+  const nombreNuevo = esAt ? null : document.getElementById('eventoNombreLibre').value.trim();
+  const cambia = fecha !== fechaOriginal || (hora || '') !== (ev.hora || '') || (!esAt && nombreNuevo !== (ev.nombre || ''));
+  if(!cambia) return false; // solo estado, adultos, etc.: sigue el guardado de siempre
+  if(!esAt && instanciaRealizadoEnFicha && document.getElementById('filaRealizadoEvento').style.display !== 'none'){
+    estadoSesionEventoSeleccionado = document.getElementById('checkRealizadoEvento').checked ? ESTADO_REALIZADO : null;
+  }
+  if((estadoSesionEventoSeleccionado || null) !== ((ev.estadosPorFecha || {})[fechaOriginal] || null)){
+    mostrarAvisoFormulario('avisoFichaEvento', 'Cambia el estado por un lado y la fecha, la hora o el nombre por otro: guarda primero uno y después el otro.', 'campoEstadoSesionEvento');
+    return true;
+  }
+  eventoEnMovimiento = ev; fechaOcurrenciaEnMovimiento = fechaOriginal; moverModoGlobal = false; moverModoSoloHora = false;
+  idAvisoMover = 'avisoFichaEvento'; campoFechaMover = 'eventoFecha'; campoHoraMover = 'eventoHora';
+  moverNombreOverride = (!esAt && nombreNuevo !== (ev.nombre || '')) ? nombreNuevo : null;
+  try{ await guardarMoverSesion(); }
+  finally{ idAvisoMover = 'avisoMoverSesion'; campoFechaMover = 'moverSesionFecha'; campoHoraMover = 'moverSesionHora'; moverNombreOverride = null; }
+  return true;
+}
+// Modo "serie": corta la serie vieja en esta fecha y crea la nueva.
+async function guardarSerieDesdeAqui(){
+  const ev = eventosAgenda.find(x => x.id === eventoEnEdicionId);
+  const fechaCorte = fechaOcurrenciaEnEdicion;
+  if(!ev || !fechaCorte) return;
+  ocultarAvisoFormulario('avisoFichaEvento');
+  const aviso = (t, c) => mostrarAvisoFormulario('avisoFichaEvento', t, c);
+  if(avisarCambioBloqueadoSerie(ev)) return;
+  const esAt = etiquetaEventoSeleccionada === 'atenciones';
+  const fecha = document.getElementById('eventoFecha').value;
+  const hora = document.getElementById('eventoHora').value;
+  const nombre = esAt ? ev.nombre : document.getElementById('eventoNombreLibre').value.trim();
+  if(!fecha){ aviso('Falta la fecha.', 'eventoFecha'); return; }
+  if(fecha < fechaCorte){ aviso('La fecha no puede ser anterior a esta sesión: los cambios empiezan desde aquí.', 'eventoFecha'); return; }
+  if(esAt && !hora){ aviso('Falta la hora de la atención.', 'eventoHora'); return; }
+  if(hora && !horaEsValida(hora)){ aviso('La hora está incompleta. Usa el formato 24 horas, por ejemplo 09:30.', 'eventoHora'); return; }
+  if(!esAt && !nombre){ aviso('Falta el nombre del evento.', 'eventoNombreLibre'); return; }
+  if(recurrenciaEventoSeleccionada === 'ninguna'){ aviso('Elige cómo se repite. Para terminar la serie usa "Eliminar la serie desde esta fecha en adelante".', 'segmentadoRecurrenciaEvento'); return; }
+  const mostrarDuracion = !esAt && etiquetaEventoSeleccionada !== 'analisis';
+  const hasDuration = mostrarDuracion && hasDurationEventoSeleccionado;
+  let endDate = '', endTime = '';
+  if(hasDuration){
+    endDate = document.getElementById('eventoFechaTermino').value || fecha;
+    if(endDate < fecha){ aviso('La fecha de término no puede ser anterior a la de inicio.', 'eventoFechaTermino'); return; }
+    endTime = document.getElementById('eventoHoraTermino').value || '';
+    if(endTime && !horaEsValida(endTime)){ aviso('La hora de término está incompleta. Usa el formato 24 horas, por ejemplo 18:00.', 'eventoHoraTermino'); return; }
+  }
+  const esPers = recurrenciaEventoSeleccionada === 'mensual_personalizada';
+  const diaSemana = fechaDesdeISO(fecha).getDay();
+  const spanActual = (ev.hasDuration && ev.endDate) ? diasEntreFechas(ev.fecha, ev.endDate) : 0;
+  const sinCambios = fecha === fechaCorte && (hora || '') === (ev.hora || '') && nombre === (ev.nombre || nombre)
+    && recurrenciaEventoSeleccionada === ev.recurrencia && (!esPers || (diaSemana === ev.diaSemana && semanaDelMesEventoSeleccionada === ev.semanaDelMes))
+    && !!hasDuration === !!ev.hasDuration && (hasDuration ? (diasEntreFechas(fecha, endDate) === spanActual && endTime === (ev.endTime || '')) : true);
+  if(sinCambios){ aviso('No hay cambios que guardar en la serie.', 'eventoHora'); return; }
+
+  const nuevo = {
+    id: generarIdEvento(), etiqueta: ev.etiqueta, nombre, pacienteId: ev.pacienteId, fecha, hora, recurrencia: recurrenciaEventoSeleccionada,
+    diaSemana: esPers ? diaSemana : undefined, semanaDelMes: esPers ? semanaDelMesEventoSeleccionada : undefined,
+    fechasExcluidas: (ev.fechasExcluidas || []).filter(f => f >= fechaCorte), estadoSesion: null,
+    estadosPorFecha: {}, adultosPorFecha: {}, marcadoPagadoPorFecha: {}, endTimePorFecha: {},
+    hasDuration, endDate: hasDuration ? endDate : '', endTime: hasDuration ? endTime : '', creado: Date.now(), pendienteSync:false, colaSync:[]
+  };
+  // Sesiones desde esta fecha que tienen estado, adultos, pago u otros datos propios.
+  const futuras = generarOcurrencias(ev, fechaCorte, rangoAnalisisFin());
+  const nuevasFechas = new Set(generarOcurrencias(nuevo, fechaCorte, rangoAnalisisFin()));
+  const conDatos = new Set();
+  ['estadosPorFecha','adultosPorFecha','marcadoPagadoPorFecha','montoBrutoCongeladoPorFecha','comisionELCongeladaPorFecha','impuestoCongeladoPorFecha','nombreSobrescritoPorFecha','endTimePorFecha'].forEach(c => {
+    Object.keys(ev[c] || {}).forEach(f => { const v = ev[c][f]; if(futuras.includes(f) && (Array.isArray(v) ? v.length : (v !== null && v !== undefined && v !== ''))) conDatos.add(f); });
+  });
+  const fechasDatos = Array.from(conDatos).sort();
+  const sinLugar = fechasDatos.filter(f => !nuevasFechas.has(f));
+  if(sinLugar.length){
+    aviso(`No se puede hacer este cambio porque la sesión del ${formatearFechaMovimiento(sinLugar[0])}${sinLugar.length > 1 ? ` (y ${sinLugar.length - 1} más)` : ''} ya tiene estado o pago y quedaría en un día que la serie nueva ya no tiene. Cambia solo la hora u otro dato que no mueva los días, o resuelve primero esas sesiones.`, 'eventoFecha');
+    return;
+  }
+  const facturada = fechasDatos.find(f => clavesFacturadasDesdeServidor.has(obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: ev.id, fecha: f })));
+  if(facturada){ aviso(`La sesión del ${formatearFechaMovimiento(facturada)} ya está en una boleta de Entre Lazos y no se puede traspasar a una serie nueva.`, 'eventoFecha'); return; }
+
+  // Desde acá no se pregunta nada más: todos los cambios de datos van seguidos (así Deshacer los revierte de una vez).
+  ev.fechasExcluidas = ev.fechasExcluidas || []; ev.colaSync = ev.colaSync || [];
+  futuras.forEach(f => {
+    if(!ev.fechasExcluidas.includes(f)){ ev.fechasExcluidas.push(f); ev.colaSync.push({ accion:'omitir_fecha_evento', datosBase:{ id_evento: ev.id, fecha_omitida: f } }); }
+  });
+  nuevo.colaSync.push({ accion:'crear_evento', datosBase: construirDatosEventoBase(nuevo) });
+  nuevo.fechasExcluidas.forEach(f => nuevo.colaSync.push({ accion:'omitir_fecha_evento', datosBase:{ id_evento: nuevo.id, fecha_omitida: f } }));
+  eventosAgenda.push(nuevo);
+  for(const f of fechasDatos) await trasladarDatosDeFecha(ev, nuevo, f);
+  cerrarFichaEvento(); rerenderizarVistaAgendaActual();
+  await guardarEventosEnAlmacenamiento();
+  procesarColaEntidadAgenda(ev, guardarEventosEnAlmacenamiento);
+  procesarColaEntidadAgenda(nuevo, guardarEventosEnAlmacenamiento);
+}
+// Pasa de la serie vieja a la nueva (misma fecha) el estado, adultos, pago, montos congelados y boleta de una sesión.
+async function trasladarDatosDeFecha(ev, nuevo, f){
+  const estado = (ev.estadosPorFecha || {})[f] || null;
+  const clavePrev = obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: ev.id, fecha: f });
+  const claveNueva = obtenerClaveOrigen({ tipoInstancia:'evento', eventoId: nuevo.id, fecha: f });
+  const idNuevo = idIngresoDeterministico(claveNueva);
+  const pagadas = fechasPagadasEnSerie(ev, [f]);
+  const ingresoViejo = pagadas.length ? ingresos.find(i => i.id === idIngresoDeterministico(clavePrev)) : null;
+  const fechaPagoViejo = pagadas.length ? ((ev.marcadoPagadoPorFecha || {})[f] || null) : null;
+  const adultos = (ev.adultosPorFecha && ev.adultosPorFecha[f]) ? [...ev.adultosPorFecha[f]] : [];
+  ['montoBrutoCongeladoPorFecha','comisionELCongeladaPorFecha','impuestoCongeladoPorFecha','nombreSobrescritoPorFecha','endTimePorFecha'].forEach(c => {
+    if(ev[c] && ev[c][f] !== undefined){ nuevo[c] = nuevo[c] || {}; nuevo[c][f] = ev[c][f]; }
+  });
+  if(nuevo.endTimePorFecha && nuevo.endTimePorFecha[f] !== undefined) encolarActualizarHoraFinSesion(nuevo, f, nuevo.endTimePorFecha[f]);
+  if(pagadas.length) await eliminarIngresoYEstadoDeFechas(ev, pagadas, true);
+  if(estado) nuevo.estadosPorFecha[f] = estado;
+  if(adultos.length) nuevo.adultosPorFecha[f] = adultos;
+  if(fechaPagoViejo && estado && ESTADOS_QUE_GENERAN_INGRESO.includes(estado)) nuevo.marcadoPagadoPorFecha[f] = fechaPagoViejo;
+  let montoInfo = null;
+  if(estado && nuevo.etiqueta === 'atenciones' && nuevo.pacienteId){
+    montoInfo = calcularMontoBrutoParaPaciente(nuevo.pacienteId);
+    if(montoInfo){
+      if(typeof nuevo.montoBrutoCongeladoPorFecha?.[f] === 'number') montoInfo.montoBruto = nuevo.montoBrutoCongeladoPorFecha[f];
+      if(typeof nuevo.comisionELCongeladaPorFecha?.[f] === 'number') montoInfo.comisionEL = nuevo.comisionELCongeladaPorFecha[f];
+      if(typeof nuevo.impuestoCongeladoPorFecha?.[f] === 'number') montoInfo.impuestoPct = nuevo.impuestoCongeladoPorFecha[f];
+      if(ingresoViejo){ montoInfo.montoBruto = ingresoViejo.montoBruto; montoInfo.formaPago = ingresoViejo.medioPago || ''; }
+    }
+  }
+  if(estado || adultos.length) encolarActualizarEstadoSesion(nuevo, f, estado, montoInfo, estado ? idNuevo : null, adultos);
+  if(montoInfo && ingresoViejo && !montoInfo.esEntreLazos && ESTADOS_QUE_GENERAN_INGRESO.includes(estado)){
+    sincronizarIngresoLocalDeSesion(idNuevo, { tipo: montoInfo.tipo, claveOrigen: claveNueva, fecha: fechaIngresoDeSesion(nuevo, f), montoBruto: montoInfo.montoBruto, montoNeto: ingresoViejo.montoNeto, nombre: ingresoViejo.descripcion || montoInfo.nombre, medioPago: ingresoViejo.medioPago });
+    await guardarIngresosEnAlmacenamiento();
+  }
+  await reasignarClaveBoleta(clavePrev, claveNueva, f);
+}
+
 function cerrarFichaEvento(){
+  modoSerieFicha = null; document.getElementById('filaModoSerie').style.display = 'none'; document.getElementById('notaModoSerieFicha').style.display = 'none';
   document.getElementById('filaRealizadoEvento').style.display = 'none'; instanciaRealizadoEnFicha = null;
   document.getElementById('fondoModalEvento').classList.remove('abierto');
   eventoEnEdicionId = null; consultaEnEdicionId = null; fechaOcurrenciaEnEdicion = null;
@@ -5944,6 +6134,7 @@ function actualizarCamposSegunEtiqueta(){
   document.getElementById('botonAbrirDuracion').style.display = verBotonDuracion ? 'inline-block' : 'none';
   document.getElementById('botonAbrirRecurrencia').style.display = verBotonRecurrencia ? 'inline-block' : 'none';
   document.getElementById('filaOpcionesExtraEvento').style.display = (verBotonDuracion || verBotonRecurrencia) ? 'flex' : 'none';
+  ajustarBloquesPorModo();
 }
 let duracionDesplegada = false;
 let recurrenciaDesplegada = false;
@@ -6070,6 +6261,7 @@ async function guardarFichaEvento(){
   finally{ if(!document.getElementById('fondoModalMedioPagoSesion').classList.contains('abierto')) medioPagoSesionElegido = null; }
 }
 async function guardarFichaEventoInterno(){
+  if(modoSerieFicha === 'serie'){ await guardarSerieDesdeAqui(); return; }
   // Resguardo: un evento nuevo que se repite, o que no es Atención, nunca guarda estado de sesión.
   if(eventoEnEdicionId === null && consultaEnEdicionId === null && (recurrenciaEventoSeleccionada !== 'ninguna' || etiquetaEventoSeleccionada !== 'atenciones')){
     estadoSesionEventoSeleccionado = null; grupoEstadoEventoElegido = null;
@@ -6114,6 +6306,8 @@ async function guardarFichaEventoInterno(){
     mostrarAvisoFormulario('avisoFichaEvento', 'Una sesión con fecha futura no puede estar realizada. Si ya la pagaron, usa Pago adelantado.', 'segmentadoEstadoSesionEvento');
     return;
   }
+
+  if(modoSerieFicha === 'fecha'){ if(await guardarFechaDeSerie(fecha, hora)) return; }
 
   if(etiquetaEventoSeleccionada === 'atenciones' && subtipoAtencionSeleccionado === 'consulta'){
     const nombre = document.getElementById('eventoConsultaNombre').value.trim();
@@ -6520,19 +6714,13 @@ async function guardarEventoGenerico(fecha, hora, nombre, pacienteId){
 
 function solicitarOmitirFecha(){
   document.getElementById('botonOmitirFechaEvento').style.display = 'none';
-  document.getElementById('botonMoverSesionEvento').style.display = 'none';
-  document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'none'; document.getElementById('botonCambiarHoraSerieDesdeAqui').style.display = 'none';
-  document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = 'none';
-  document.getElementById('botonEliminarEvento').style.display = 'none';
+        document.getElementById('botonEliminarEvento').style.display = 'none';
   document.getElementById('confirmacionOmitirFecha').style.display = 'block';
 }
 function cancelarOmitirFecha(){
   document.getElementById('botonOmitirFechaEvento').style.display = 'block';
-  document.getElementById('botonMoverSesionEvento').style.display = 'block';
-  document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'block'; document.getElementById('botonCambiarHoraSerieDesdeAqui').style.display = 'block';
-  const permiteDuracion = etiquetaEventoSeleccionada !== 'atenciones' && etiquetaEventoSeleccionada !== 'analisis';
-  document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = permiteDuracion ? 'block' : 'none';
-  document.getElementById('botonEliminarEvento').style.display = 'block';
+      const permiteDuracion = etiquetaEventoSeleccionada !== 'atenciones' && etiquetaEventoSeleccionada !== 'analisis';
+    document.getElementById('botonEliminarEvento').style.display = 'block';
   document.getElementById('confirmacionOmitirFecha').style.display = 'none';
 }
 async function confirmarOmitirFecha(){
@@ -6710,21 +6898,23 @@ function cerrarModalMoverSesion(){
   document.getElementById('fondoModalMoverSesion').classList.remove('abierto');
   eventoEnMovimiento = null; fechaOcurrenciaEnMovimiento = null; moverModoGlobal = false; moverModoSoloHora = false;
 }
+// Desde la ficha (modo "Modificar fecha") se leen los campos de la propia ficha y los avisos salen ahí.
+let idAvisoMover = 'avisoMoverSesion', campoFechaMover = 'moverSesionFecha', campoHoraMover = 'moverSesionHora', moverNombreOverride = null;
 async function guardarMoverSesion(){
   if(!eventoEnMovimiento || !fechaOcurrenciaEnMovimiento) return;
-  const nuevaFecha = document.getElementById('moverSesionFecha').value;
-  const nuevaHora = document.getElementById('moverSesionHora').value;
-  ocultarAvisoFormulario('avisoMoverSesion');
+  const nuevaFecha = document.getElementById(campoFechaMover).value;
+  const nuevaHora = document.getElementById(campoHoraMover).value;
+  ocultarAvisoFormulario(idAvisoMover);
   if(moverModoSoloHora){
     // Solo cambia la hora: la hora es obligatoria y la fecha de corte es la de esta sesión.
-    if(!horaEsValida(nuevaHora)){ mostrarAvisoFormulario('avisoMoverSesion', 'Falta la hora o está incompleta. Usa el formato 24 horas, por ejemplo 09:30.', 'moverSesionHora'); return; }
-    if(nuevaHora === (eventoEnMovimiento.hora || '')){ mostrarAvisoFormulario('avisoMoverSesion', 'Esa es la misma hora que tiene la serie ahora. Escribe una hora distinta.', 'moverSesionHora'); return; }
+    if(!horaEsValida(nuevaHora)){ mostrarAvisoFormulario(idAvisoMover, 'Falta la hora o está incompleta. Usa el formato 24 horas, por ejemplo 09:30.', campoHoraMover); return; }
+    if(nuevaHora === (eventoEnMovimiento.hora || '')){ mostrarAvisoFormulario(idAvisoMover, 'Esa es la misma hora que tiene la serie ahora. Escribe una hora distinta.', campoHoraMover); return; }
     await confirmarCambioSerieDesdeAqui(fechaOcurrenciaEnMovimiento, nuevaHora, true);
     return;
   }
-  if(!nuevaFecha){ mostrarAvisoFormulario('avisoMoverSesion', 'Falta la nueva fecha.', 'moverSesionFecha'); return; }
+  if(!nuevaFecha){ mostrarAvisoFormulario(idAvisoMover, 'Falta la nueva fecha.', campoFechaMover); return; }
   const horaObligatoria = eventoEnMovimiento.etiqueta === 'atenciones';
-  if((horaObligatoria || nuevaHora) && !horaEsValida(nuevaHora)){ mostrarAvisoFormulario('avisoMoverSesion', 'Falta la hora o está incompleta. Usa el formato 24 horas, por ejemplo 09:30.', 'moverSesionHora'); return; }
+  if((horaObligatoria || nuevaHora) && !horaEsValida(nuevaHora)){ mostrarAvisoFormulario(idAvisoMover, 'Falta la hora o está incompleta. Usa el formato 24 horas, por ejemplo 09:30.', campoHoraMover); return; }
 
   if(moverModoGlobal){ await confirmarCambioSerieDesdeAqui(nuevaFecha, nuevaHora); return; }
 
@@ -6735,7 +6925,7 @@ async function guardarMoverSesion(){
   // usuario está viendo, no una versión desactualizada.
   let estadoAMover = estadoSesionEventoSeleccionado;
   if(estadoAMover && estadoAMover.startsWith('realizada') && nuevaFecha > hoyISO()){
-    mostrarAvisoFormulario('avisoMoverSesion', 'Una sesión realizada no se puede mover a una fecha futura. Primero cambia su estado.', 'moverSesionFecha');
+    mostrarAvisoFormulario(idAvisoMover, 'Una sesión realizada no se puede mover a una fecha futura. Primero cambia su estado.', campoFechaMover);
     return;
   }
   // Si la sesión que se mueve ya estaba pagada, su ingreso se traslada a la
@@ -6764,7 +6954,7 @@ async function guardarMoverSesion(){
   // 2) Crea una atención suelta (sin repetición) en el nuevo día, con el
   // mismo paciente/nombre/etiqueta y el estado que tenía esa sesión.
   const nuevoEvento = {
-    id: generarIdEvento(), etiqueta: evento.etiqueta, nombre: evento.nombre, pacienteId: evento.pacienteId,
+    id: generarIdEvento(), etiqueta: evento.etiqueta, nombre: (moverNombreOverride !== null ? moverNombreOverride : evento.nombre), pacienteId: evento.pacienteId,
     fecha: nuevaFecha, hora: nuevaHora, recurrencia: 'ninguna',
     fechasExcluidas: [], estadoSesion: estadoAMover || null,
     estadosPorFecha: {}, adultosPorFecha: {}, marcadoPagadoPorFecha: {}, creado: Date.now(),
@@ -6996,10 +7186,7 @@ function solicitarEliminarEvento(){
   document.getElementById('botonEliminarSerieDesdeAqui').style.display = 'none';
   document.getElementById('confirmacionEliminarSerieDesdeAqui').style.display = 'none';
   document.getElementById('botonOmitirFechaEvento').style.display = 'none';
-  document.getElementById('botonMoverSesionEvento').style.display = 'none';
-  document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'none'; document.getElementById('botonCambiarHoraSerieDesdeAqui').style.display = 'none';
-  document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = 'none';
-  const eventoActual = eventoEnEdicionId !== null ? eventosAgenda.find(x => x.id === eventoEnEdicionId) : null;
+        const eventoActual = eventoEnEdicionId !== null ? eventosAgenda.find(x => x.id === eventoEnEdicionId) : null;
   const esSerie = eventoActual && eventoActual.recurrencia !== 'ninguna';
   const hayBoletasEliminar = clavesBoletaDeEntidad(eventoActual ? eventoActual.id : consultaEnEdicionId, !eventoActual).some(c => { const r0 = boletaDeClave(c); return r0 && !r0.b.sinBoleta; });
   document.getElementById('textoConfirmacionEliminarEvento').textContent = (esSerie
@@ -7013,11 +7200,8 @@ function cancelarEliminarEvento(){
   document.getElementById('botonEliminarSerieDesdeAqui').style.display = (evento && evento.recurrencia !== 'ninguna' && fechaOcurrenciaEnEdicion && fechaOcurrenciaEnEdicion > evento.fecha) ? 'block' : 'none';
   if(evento && evento.recurrencia !== 'ninguna'){
     document.getElementById('botonOmitirFechaEvento').style.display = 'block';
-    document.getElementById('botonMoverSesionEvento').style.display = 'block';
-    document.getElementById('botonCambiarSerieDesdeAqui').style.display = 'block'; document.getElementById('botonCambiarHoraSerieDesdeAqui').style.display = 'block';
-    const permiteDuracion = evento.etiqueta !== 'atenciones' && evento.etiqueta !== 'analisis';
-    document.getElementById('botonCambiarDuracionSerieDesdeAqui').style.display = permiteDuracion ? 'block' : 'none';
-  }
+            const permiteDuracion = evento.etiqueta !== 'atenciones' && evento.etiqueta !== 'analisis';
+      }
   document.getElementById('confirmacionEliminarEvento').style.display = 'none';
 }
 // "Eliminar la serie desde esta fecha en adelante": conserva todo lo anterior (sesiones realizadas,
